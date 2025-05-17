@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { motion, AnimatePresence } from 'framer-motion'; // Import framer-motion for animations
 
 const LogActivities = ({ formData, setFormData }) => {
   const navigate = useNavigate();
@@ -16,19 +17,42 @@ const LogActivities = ({ formData, setFormData }) => {
   }, [moodFromState, formData, setFormData]);
 
   const [selectedItems, setSelectedItems] = useState({
-    mood: '',
     activities: [],
     social: [],
     health: [],
-    sleepQuality: '',
+    sleepHours: '', // Changed from sleepQuality to sleepHours
   });
+
+  // Track which containers are visible (all previous containers remain visible)
+  const [visibleContainers, setVisibleContainers] = useState(['activities']);
+
+  // Determine if a container should be shown
+  const shouldShowContainer = (containerName) => {
+    return visibleContainers.includes(containerName);
+  };
+
+  // Update visible containers when selections change
+  useEffect(() => {
+    const newVisibleContainers = ['activities'];
+    
+    if (selectedItems.activities.length > 0) {
+      newVisibleContainers.push('social');
+    }
+    
+    if (selectedItems.social.length > 0) {
+      newVisibleContainers.push('health');
+    }
+    
+    if (selectedItems.health.length > 0) {
+      newVisibleContainers.push('sleepHours'); // Changed from sleepQuality
+    }
+    
+    setVisibleContainers(newVisibleContainers);
+  }, [selectedItems]);
 
   const handleSelect = (type, value) => {
     setSelectedItems((prev) => {
-      if (type === 'sleepQuality') {
-        return { ...prev, sleepQuality: value };
-      }
-
+      // For activities, social, and health, toggle selection
       const alreadySelected = prev[type].includes(value);
       const updated = alreadySelected
         ? prev[type].filter((item) => item !== value)
@@ -37,14 +61,29 @@ const LogActivities = ({ formData, setFormData }) => {
       return { ...prev, [type]: updated };
     });
 
-    setFormData((prevData) => ({
-      ...prevData,
-      [type]:
-        type === 'sleepQuality'
-          ? value
-          : prevData[type].includes(value)
+    setFormData((prevData) => {
+      // For activities, social, and health, toggle selection
+      return {
+        ...prevData,
+        [type]: prevData[type].includes(value)
           ? prevData[type].filter((item) => item !== value)
           : [...prevData[type], value],
+      };
+    });
+  };
+
+  // Handle sleep hours input change
+  const handleSleepHoursChange = (e) => {
+    const value = Math.max(0, parseInt(e.target.value) || 0);
+    
+    setSelectedItems(prev => ({
+      ...prev,
+      sleepHours: value
+    }));
+    
+    setFormData(prev => ({
+      ...prev,
+      sleepHours: value
     }));
   };
 
@@ -105,20 +144,10 @@ const LogActivities = ({ formData, setFormData }) => {
     { name: 'Eat Healthy', icon: '/images/eat healthy.gif' },
   ];
 
-  const sleepQuality = [
-    { name: 'No Sleep', icon: '/images/no-sleep.gif' },
-    { name: 'Poor Sleep', icon: '/images/poor-sleep.gif' },
-    { name: 'Medium Sleep', icon: '/images/medium-sleep.gif' },
-    { name: 'Good Sleep', icon: '/images/good-sleep.gif' },
-  ];
-
   const renderItems = (items, type) => (
-    <div className={`grid ${type === 'health' || type === 'sleepQuality' ? 'grid-cols-4' : 'grid-cols-5'} gap-2`}>
+    <div className={`grid ${type === 'health' ? 'grid-cols-4' : 'grid-cols-5'} gap-2`}>
       {items.map((item) => {
-        const isSelected =
-          type === 'sleepQuality'
-            ? selectedItems[type] === item.name
-            : selectedItems[type].includes(item.name);
+        const isSelected = selectedItems[type].includes(item.name);
 
         return (
           <div
@@ -145,31 +174,131 @@ const LogActivities = ({ formData, setFormData }) => {
     </div>
   );
 
+  // Animation variants for framer-motion
+  const containerVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
+  };
+
+  // Helper function to get instruction text based on container type
+  const getInstructionText = (type) => {
+    switch (type) {
+      case 'activities':
+        return 'Select one or more activity';
+      case 'social':
+        return 'Select one or more social';
+      case 'health':
+        return 'Select one or more health-related activity';
+      case 'sleepHours':
+        return 'Enter hours of sleep';
+      default:
+        return '';
+    }
+  };
+
+  // Check if continue button should be shown (when all required fields are filled)
+  const showContinueButton = selectedItems.activities.length > 0 &&
+                            selectedItems.social.length > 0 &&
+                            selectedItems.health.length > 0 &&
+                            selectedItems.sleepHours !== '';
+
   return (
     <div className="bg-[#eef0ee] min-h-screen flex flex-col items-center justify-start pt-20 pb-20 relative">
-      <h2 className="text-5xl font-bold mb-8">How did your day go?</h2>
-      <div className="w-full max-w-3xl bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-semibold mb-4">Activities</h3>
-        {renderItems(activities, 'activities')}
+      <h2 className="text-5xl font-bold mb-8">Select accordingly.</h2>
+      
+      <div className="w-full max-w-3xl space-y-6">
+        <AnimatePresence>
+          {shouldShowContainer('activities') && (
+            <motion.div 
+              className="w-full bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 relative"
+              key="activities"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h3 className="text-lg font-semibold mb-4">Activities</h3>
+              <span className="absolute top-4 right-4 text-sm text-gray-600">
+                {getInstructionText('activities')}
+              </span>
+              {renderItems(activities, 'activities')}
+            </motion.div>
+          )}
+
+          {shouldShowContainer('social') && (
+            <motion.div 
+              className="w-full bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 relative"
+              key="social"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h3 className="text-lg font-semibold mb-4">Social</h3>
+              <span className="absolute top-4 right-4 text-sm text-gray-600">
+                {getInstructionText('social')}
+              </span>
+              {renderItems(social, 'social')}
+            </motion.div>
+          )}
+
+          {shouldShowContainer('health') && (
+            <motion.div 
+              className="w-full bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 relative"
+              key="health"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h3 className="text-lg font-semibold mb-4">Health</h3>
+              <span className="absolute top-4 right-4 text-sm text-gray-600">
+                {getInstructionText('health')}
+              </span>
+              {renderItems(health, 'health')}
+            </motion.div>
+          )}
+
+          {shouldShowContainer('sleepHours') && (
+            <motion.div 
+              className="w-full bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 relative"
+              key="sleepHours"
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+            >
+              <h3 className="text-lg font-semibold mb-4">Sleep Hours</h3>
+              <span className="absolute top-4 right-4 text-sm text-gray-600">
+                {getInstructionText('sleepHours')}
+              </span>
+              
+              <div className="flex flex-col items-center justify-center py-4">
+                <label htmlFor="sleepHours" className="text-lg mb-3">
+                  How many hours did you sleep last night?
+                </label>
+                <input
+                  type="number"
+                  id="sleepHours"
+                  name="sleepHours"
+                  min="0"
+                  value={selectedItems.sleepHours}
+                  onChange={handleSleepHoursChange}
+                  className="w-24 h-24 text-4xl text-center rounded-full border-2 border-[#6fba94] bg-[#eef0ee] focus:outline-none focus:border-[#6fba94]"
+                />
+                <p className="mt-2 text-sm text-gray-600">Hours</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
-      <div className="w-full max-w-3xl bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-semibold mb-4">Social</h3>
-        {renderItems(social, 'social')}
-      </div>
-      <div className="w-full max-w-3xl bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-semibold mb-4">Health</h3>
-        {renderItems(health, 'health')}
-      </div>
-      <div className="w-full max-w-3xl bg-[#eef0ee] border border-[#b1b1b1] rounded-lg p-4 mb-4">
-        <h3 className="text-lg font-semibold mb-4">Sleep Quality</h3>
-        {renderItems(sleepQuality, 'sleepQuality')}
-      </div>
-      <button
-        onClick={handleSubmit}
-        className="absolute bottom-10 right-10 bg-[#6fba94] text-white font-bold py-2 px-4 rounded-full hover:bg-[#5aa88f]"
-      >
-        Continue
-      </button>
+
+      {showContinueButton && (
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          onClick={handleSubmit}
+          className="mt-8 bg-[#6fba94] text-white font-bold py-2 px-6 rounded-full hover:bg-[#5aa88f]"
+        >
+          Continue
+        </motion.button>
+      )}
     </div>
   );
 };

@@ -120,9 +120,8 @@ const LandingPage = () => {
           <div className="hidden md:flex items-center space-x-8">
             <Link to="/" className="text-[#4a8063] font-semibold hover:text-[#64aa86] transition-colors">Home</Link>
             <Link to="/about" className="text-[#4a8063] font-semibold hover:text-[#64aa86] transition-colors">About</Link>
-            <Link to="/signin" className="text-[#4a8063] font-semibold hover:text-[#64aa86] transition-colors">Login</Link>
-            <Link to="/signup" className="bg-[#4a8063] text-white px-6 py-2 rounded-full shadow-md hover:bg-[#3d6952] transition-colors">
-              Sign Up
+            <Link to="/signin" className="bg-[#4a8063] text-white px-6 py-2 rounded-full shadow-md hover:bg-[#3d6952] transition-colors">
+              Login
             </Link>
           </div>
           

@@ -57,10 +57,10 @@ const sendVerificationEmail = (user, token) => {
 
 exports.signup = async (req, res) => {
   try {
-    const { email, name, password, role, gender } = req.body;
+    const { email, firstName, lastName, password, role, gender } = req.body;
 
-    if (!email || !name || !password) {
-      return res.status(400).json({ success: false, message: 'Email, name, and password are required.' });
+    if (!email || !firstName || !lastName || !password) {
+      return res.status(400).json({ success: false, message: 'Email, first name, last name, and password are required.' });
     }
 
     let user = await User.findOne({ email });
@@ -78,13 +78,14 @@ exports.signup = async (req, res) => {
     const userRecord = await admin.auth().createUser({
       email,
       password,
-      displayName: name,
+      displayName: `${firstName} ${lastName}`,
     });
 
     // Create new user in MongoDB
     user = new User({
       email,
-      name,
+      firstName,
+      lastName,
       gender: gender || 'Rather not say', // Include gender with default fallback
       avatar: avatarPath,
       firebaseUid: userRecord.uid,
@@ -112,6 +113,60 @@ exports.signup = async (req, res) => {
   } catch (error) {
     console.error('Error in signup:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.googleAuth = async (req, res) => {
+  try {
+    const { email, firstName, lastName, avatar, firebaseUid } = req.body;
+    let user = await User.findOne({ email });
+    
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-10);
+      
+      user = new User({
+        email,
+        firstName,
+        lastName,
+        avatar,
+        firebaseUid,
+        password: randomPassword, 
+        role: 'user',
+        verified: true, 
+      });
+      
+      await user.save();
+    } else {
+      user.firstName = firstName || user.firstName;
+      user.lastName = lastName || user.lastName;
+      user.avatar = avatar || user.avatar;
+      user.verified = true; 
+      
+      if (!user.firebaseUid) {
+        user.firebaseUid = firebaseUid;
+      }
+      
+      await user.save();
+    }
+
+    // Generate token
+    const token = jwt.sign({ uid: user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_TIME,
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Google authentication successful',
+      token,
+      role: user.role,
+    });
+  } catch (error) {
+    console.error('Error in Google authentication:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
   }
 };
 

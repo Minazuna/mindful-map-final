@@ -11,7 +11,6 @@ const moodPredictionRoutes = require("./routes/moodPredictionRoutes");
 const adminRoutes = require('./routes/adminRoutes');
 const correlationRoutes = require('./routes/correlationRoutes');
 const forumRoutes = require('./routes/forumRoutes');
-const checkGracePeriods = require('./middleware/gracePeriod');
 
 const app = express();
 
@@ -19,14 +18,10 @@ const { initScheduledTasks } = require('./utils/cronScheduler');
 
 // Middleware
 app.use(bodyParser.json());
-app.use(cors({
-  origin: 'https://mindful-map-frontend.vercel.app',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-})); 
+app.use(cors()); 
 
 // Routes
-app.use('/api/auth', checkGracePeriods, authRoutes);
+app.use('/api/auth', authRoutes);
 app.use('/api', moodLogRoutes);
 app.use('/api', journalRoutes);
 app.use('/api', analysisRoutes);

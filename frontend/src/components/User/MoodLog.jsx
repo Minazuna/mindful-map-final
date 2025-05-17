@@ -66,7 +66,6 @@ const MoodLog = ({ setFormData }) => {
   const time = currentTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   const moods = [
-    { name: 'Relaxed', icon: '/images/relaxed.gif' },
     { name: 'Happy', icon: '/images/happy.gif' },
     { name: 'Fine', icon: '/images/fine.gif' },
     { name: 'Anxious', icon: '/images/anxious.gif' },
@@ -76,7 +75,7 @@ const MoodLog = ({ setFormData }) => {
 
   return (
     <div className="bg-[#eef0ee] h-screen flex flex-col items-center justify-center relative">
-      <h2 className="text-5xl font-bold mb-2">How are you feeling today?</h2>
+      <h2 className="text-5xl font-bold mb-2">What are you feeling?</h2>
       <div className="flex justify-between w-full max-w-md px-10 mb-6">
         <div className="text-sm text-left w-1/2">
           <p>{day}, {date}</p>
