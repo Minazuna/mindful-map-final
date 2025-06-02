@@ -15,6 +15,10 @@ const MoodLogSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  moodScore: {
+    type: Number,
+    required: true,
+  },
   activities: {
     type: [String],
     required: true,
@@ -28,7 +32,7 @@ const MoodLogSchema = new mongoose.Schema({
     required: true,
   },
   sleepQuality: {
-    type: String,
+    type: Number,
     required: true,
   },
 });

@@ -1,13 +1,72 @@
 const MoodLog = require('../models/MoodLog');
 const moment = require('moment');
 
+// exports.saveMood = async (req, res) => {
+//   try {
+//     const { mood, activities, social, health, sleepQuality, date } = req.body;
+
+//     if (!req.user) {
+//       return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
+//     }
+
+//     const logDate = new Date(date);
+//     logDate.setUTCHours(0, 0, 0, 0); 
+
+//     const existingLog = await MoodLog.findOne({
+//       user: req.user._id,
+//       date: { 
+//         $gte: logDate, 
+//         $lt: new Date(logDate.getTime() + 24 * 60 * 60 * 1000) 
+//       }
+//     });
+
+//     if (existingLog) {
+//       return res.status(400).json({ success: false, message: 'You have already created a log for this date.' });
+//     }
+
+//     const newMoodLog = new MoodLog({
+//       user: req.user._id,
+//       mood,
+//       activities,
+//       social,
+//       health,
+//       sleepQuality,
+//       date: logDate, // UTC midnight
+//       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+//     });
+
+//     await newMoodLog.save();
+
+//     // Check if the mood is negative and return recommendations
+//     if (['angry', 'sad', 'anxious'].includes(mood.toLowerCase())) {
+//       return res.status(200).json({ success: true, message: 'Mood log saved successfully.', mood });
+//     }
+  
+//     res.status(200).json({ success: true, message: 'Mood log saved successfully.' });
+//   } catch (error) {
+//     console.error('Error saving mood log:', error);
+//     res.status(500).json({ success: false, message: 'Server error while saving mood log.' });
+//   }
+// };
+
 exports.saveMood = async (req, res) => {
   try {
-    const { mood, activities, social, health, sleepQuality, date } = req.body;
+    const { mood, activities, social, health, sleepHours, date } = req.body; 
 
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
     }
+
+    const moodValues = {
+      'Happy': 4,
+      'Fine': 2,
+      'Anxious': 0,
+      'Sad': -3,
+      'Angry': -1
+    };
+
+    // Get the mood value, default to 0 if mood not found
+    const moodValue = moodValues[mood] !== undefined ? moodValues[mood] : 0;
 
     // Convert the date string to a Date object and set it to UTC midnight
     const logDate = new Date(date);
@@ -28,10 +87,11 @@ exports.saveMood = async (req, res) => {
     const newMoodLog = new MoodLog({
       user: req.user._id,
       mood,
+      moodScore: moodValue,
       activities,
       social,
       health,
-      sleepQuality,
+      sleepQuality: sleepHours, 
       date: logDate, // UTC midnight
       time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     });
