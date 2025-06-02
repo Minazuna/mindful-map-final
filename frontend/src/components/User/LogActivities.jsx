@@ -123,10 +123,12 @@ const LogActivities = ({ formData, setFormData }) => {
     { name: 'Work', icon: '/images/work.gif' },
     { name: 'Reading', icon: '/images/reading.gif' },
     { name: 'Gaming', icon: '/images/gaming.gif' },
+    { name: 'Browsing Phone', icon: '/images/browsingphone.gif' },
     { name: 'Music', icon: '/images/music.gif' },
     { name: 'Movie', icon: '/images/movie.gif' },
-    { name: 'Drinking', icon: '/images/drinking.gif' },
+    { name: 'Watching TV', icon: '/images/watchingtv.gif' },
     { name: 'Relax', icon: '/images/relax.gif' },
+    { name: 'Travel', icon: '/images/travel.gif' },
   ];
 
   const social = [
@@ -135,6 +137,7 @@ const LogActivities = ({ formData, setFormData }) => {
     { name: 'Relationship', icon: '/images/relationship.gif' },
     { name: 'Colleagues', icon: '/images/colleagues.gif' },
     { name: 'Pets', icon: '/images/pets.gif' },
+    { name: 'Alone', icon: '/images/alone.gif' },
   ];
 
   const health = [
@@ -142,6 +145,11 @@ const LogActivities = ({ formData, setFormData }) => {
     { name: 'Walk', icon: '/images/walk.gif' },
     { name: 'Run', icon: '/images/run.gif' },
     { name: 'Eat Healthy', icon: '/images/eat healthy.gif' },
+    { name: 'Smoke', icon: '/images/smoke.gif' },
+    { name: 'Vape', icon: '/images/vape.gif' },
+    { name: 'Drink Alcohol', icon: '/images/drinking.gif' },
+    { name: 'Junk Food', icon: '/images/junkfood.gif' },
+    { name: 'No Exercise', icon: '/images/noexercise.gif' },
   ];
 
   const renderItems = (items, type) => (
