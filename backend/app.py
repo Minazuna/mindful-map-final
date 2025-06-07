@@ -80,18 +80,23 @@ class MoodPredictor:
                     selected_activities = []
 
                     if len(unique_moods) >= 3:
-                        # Use the latest mood
-                        selected_mood = day_data.iloc[0]['mood']
+                        # Average the multiple different moods
+                        mood_score_map = {'happy': 4, 'fine': 2, 'anxious': 0, 'sad': -3, 'angry': -1}
+                        avg_score = day_data['mood'].map(mood_score_map).mean()
+                        
+                        # Find closest mood to average score
+                        closest_mood = min(mood_score_map.items(), key=lambda x: abs(x[1] - avg_score))
+                        selected_mood = closest_mood[0]
+                        
                         # Get activities from the latest mood entry
                         activities = day_data.iloc[0]['activities']
                         if isinstance(activities, list) and activities:
-                            # Randomly select two activities from the list
                             if len(activities) >= 2:
                                 selected_activities = list(np.random.choice(activities, size=2, replace=False))
                             else:
                                 selected_activities = activities
                     else:
-                        # Get the most common mood
+                        # Get the most common mood (existing logic)
                         mood_counts = day_data['mood'].value_counts()
                         selected_mood = mood_counts.index[0]
                         
@@ -206,7 +211,7 @@ def get_prediction():
         # Forward the token to Node backend to validate and get mood logs
         import requests
         
-        node_api = 'https://mindful-map-backend-node.onrender.com'
+        node_api = 'http://localhost:5000'
         response = requests.get(
             f"{node_api}/api/mood-logs", 
             headers={
@@ -260,8 +265,6 @@ def get_prediction():
             'message': f'Server error: {str(e)}'
         }), 500
 
-# This endpoint is just for backward compatibility with the original implementation
-# It expects the mood logs in the request body
 @app.route('/api/predict-mood', methods=['GET'])
 def get_prediction_from_node():
     try:
@@ -275,7 +278,7 @@ def get_prediction_from_node():
         # Forward the token to Node backend to validate and get mood logs
         import requests
         
-        node_api = 'https://mindful-map-backend-node.onrender.com'
+        node_api = 'http://localhost:5000'
         response = requests.get(
             f"{node_api}/api/mood-logs", 
             headers={
@@ -330,4 +333,4 @@ def get_prediction_from_node():
         }), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5000)))
+    app.run(debug=True, host='0.0.0.0', port=5000)
