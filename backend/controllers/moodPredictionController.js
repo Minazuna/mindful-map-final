@@ -9,7 +9,7 @@ exports.predictMood = async (req, res) => {
         const moodLogs = await MoodLog.find({ 
             user: req.user._id,
             date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-        }).select('mood date activities -_id');
+        }).select('mood moodScore date activities -_id');
 
         console.log("Retrieved mood logs:", moodLogs);
 
@@ -24,6 +24,7 @@ exports.predictMood = async (req, res) => {
         // Format logs for the Python service
         const formattedLogs = moodLogs.map(log => ({
             mood: log.mood.toLowerCase(),
+            moodScore: log.moodScore,
             timestamp: log.date.toISOString(),
             activities: Array.isArray(log.activities) ? log.activities : []
         }));

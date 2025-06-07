@@ -80,15 +80,15 @@ class MoodPredictor:
 
                     if len(unique_moods) >= 3:
                         # Average the multiple different moods
-                        mood_score_map = {'happy': 4, 'fine': 2, 'anxious': 0, 'sad': -3, 'angry': -1}
-                        avg_score = day_data['mood'].map(mood_score_map).mean()
+                        avg_score = day_data['moodScore'].mean()
                         
-                        # Find closest mood to average score
-                        closest_mood = min(mood_score_map.items(), key=lambda x: abs(x[1] - avg_score))
-                        selected_mood = closest_mood[0]
+                        # Find the mood entry with moodScore closest to the average
+                        day_data['score_diff'] = abs(day_data['moodScore'] - avg_score)
+                        closest_entry = day_data.loc[day_data['score_diff'].idxmin()]
+                        selected_mood = closest_entry['mood']
                         
-                        # Get activities from the latest mood entry
-                        activities = day_data.iloc[0]['activities']
+                        # Get activities from the closest entry
+                        activities = closest_entry['activities']
                         if isinstance(activities, list) and activities:
                             if len(activities) >= 2:
                                 selected_activities = list(np.random.choice(activities, size=2, replace=False))
@@ -319,6 +319,7 @@ def get_prediction_from_node():
         for log in mood_logs:
             formatted_logs.append({
                 'mood': log.get('mood', '').lower(),
+                'moodScore': log.get('moodScore', 0),
                 'timestamp': log.get('date'),
                 'activities': log.get('activities', [])
             })
