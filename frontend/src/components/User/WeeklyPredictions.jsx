@@ -82,8 +82,6 @@ const WeeklyPredictions = () => {
     switch(mood.toLowerCase()) {
       case 'happy':
         return '#6fb971';
-      case 'relaxed':
-        return '#64aa86';
       case 'fine':
         return '#8fbc8f';
       case 'sad':
@@ -264,7 +262,7 @@ const WeeklyPredictions = () => {
                   </Box>
                   
                   {dayOrder.map((day, index) => {
-                    const prediction = predictions[day] || { mood: "No prediction available", activities: [] };
+                    const prediction = predictions[day] || { mood: "No prediction available", activities: [], probability: null };
                     const isCurrentDay = day === currentDay;
                     const moodColor = getMoodColor(prediction.mood);
                     
@@ -344,6 +342,23 @@ const WeeklyPredictions = () => {
                                   ? `No prediction available for ${day}`
                                   : `You may feel ${prediction.mood.toLowerCase()}${formatActivities(prediction.activities)}`}
                               </Typography>
+                              
+                              {/* Probability display */}
+                              {prediction.probability && (
+                                <Typography 
+                                  variant="body2" 
+                                  sx={{ 
+                                    fontFamily: 'Nunito, sans-serif',
+                                    fontSize: '0.9rem',
+                                    fontWeight: 500,
+                                    color: moodColor,
+                                    textAlign: {xs: 'center', sm: 'left'},
+                                    mt: 0.5
+                                  }}
+                                >
+                                  Confidence: {prediction.probability}%
+                                </Typography>
+                              )}
                               
                               {prediction.activities && prediction.activities.length > 0 && (
                                 <Box 

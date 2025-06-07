@@ -21,7 +21,7 @@ class MoodPredictor:
         self.model = RandomForestClassifier(n_estimators=100, random_state=42)
         self.label_encoder = LabelEncoder()
         self.days_of_week = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-        self.mood_categories = ['relaxed', 'happy', 'fine', 'anxious', 'sad', 'angry']
+        self.mood_categories = ['happy', 'fine', 'anxious', 'sad', 'angry']
         # Set a random seed based on current timestamp
         np.random.seed(int(pd.Timestamp.now().timestamp()))
         
@@ -64,7 +64,6 @@ class MoodPredictor:
 
             # Include data from four weeks before the current week
             four_weeks_ago = current_week_start - pd.Timedelta(days=28)
-
 
             processed_data = []
 
@@ -171,14 +170,27 @@ class MoodPredictor:
             test_X = test_X.reindex(columns=self.days_of_week, fill_value=0)
 
             predictions = self.model.predict(test_X)
+            # NEW: Get prediction probabilities
+            prediction_probabilities = self.model.predict_proba(test_X)
             predicted_moods = self.label_encoder.inverse_transform(predictions)
 
             weekly_predictions = {}
-            for day, mood in zip(self.days_of_week, predicted_moods):
+            for i, (day, mood) in enumerate(zip(self.days_of_week, predicted_moods)):
                 activities = self.daily_activities.get(day, [])
+                
+                # Calculate confidence percentage
+                if mood != 'unknown':
+                    # Get the probability of the predicted class
+                    predicted_class_index = predictions[i]
+                    confidence = prediction_probabilities[i][predicted_class_index] * 100
+                    confidence = round(confidence, 1)  # Round to 1 decimal place
+                else:
+                    confidence = None
+                
                 weekly_predictions[day] = {
                     'mood': mood if mood != 'unknown' else 'No prediction available',
-                    'activities': activities
+                    'activities': activities,
+                    'probability': confidence
                 }
 
             return {'daily_predictions': weekly_predictions}
