@@ -2,12 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { motion, AnimatePresence } from 'framer-motion'; // Import framer-motion for animations
+import { motion, AnimatePresence } from 'framer-motion';
 
 const LogActivities = ({ formData, setFormData }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const moodFromState = location.state?.mood;
+  const [showLastLogPrompt, setShowLastLogPrompt] = useState(false);
+  const [lastMoodLog, setLastMoodLog] = useState(null);
+  const [isLoadingLastLog, setIsLoadingLastLog] = useState(true);
 
   // Initialize the formData with the passed mood if not already set
   useEffect(() => {
@@ -20,13 +23,12 @@ const LogActivities = ({ formData, setFormData }) => {
     activities: [],
     social: [],
     health: [],
-    sleepHours: '', // Changed from sleepQuality to sleepHours
+    sleepHours: '', 
   });
 
-  // Track which containers are visible (all previous containers remain visible)
+  // Track which containers are visible
   const [visibleContainers, setVisibleContainers] = useState(['activities']);
 
-  // Determine if a container should be shown
   const shouldShowContainer = (containerName) => {
     return visibleContainers.includes(containerName);
   };
@@ -44,15 +46,41 @@ const LogActivities = ({ formData, setFormData }) => {
     }
     
     if (selectedItems.health.length > 0) {
-      newVisibleContainers.push('sleepHours'); // Changed from sleepQuality
+      newVisibleContainers.push('sleepHours');
     }
     
     setVisibleContainers(newVisibleContainers);
   }, [selectedItems]);
 
+  // Fetch the last mood log when component mounts
+  useEffect(() => {
+    const fetchTodaysLastMoodLog = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log/today-last`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        if (response.data && response.data.success && response.data.lastLog) {
+          setLastMoodLog(response.data.lastLog);
+          setShowLastLogPrompt(true);
+        }
+      } catch (error) {
+        console.error('Error fetching today\'s last mood log:', error);
+      } finally {
+        setIsLoadingLastLog(false);
+      }
+    };
+
+    fetchTodaysLastMoodLog();
+  }, []);
+
   const handleSelect = (type, value) => {
     setSelectedItems((prev) => {
-      // For activities, social, and health, toggle selection
       const alreadySelected = prev[type].includes(value);
       const updated = alreadySelected
         ? prev[type].filter((item) => item !== value)
@@ -62,7 +90,6 @@ const LogActivities = ({ formData, setFormData }) => {
     });
 
     setFormData((prevData) => {
-      // For activities, social, and health, toggle selection
       return {
         ...prevData,
         [type]: prevData[type].includes(value)
@@ -72,7 +99,6 @@ const LogActivities = ({ formData, setFormData }) => {
     });
   };
 
-  // Handle sleep hours input change
   const handleSleepHoursChange = (e) => {
     const value = Math.max(0, parseInt(e.target.value) || 0);
     
@@ -85,6 +111,31 @@ const LogActivities = ({ formData, setFormData }) => {
       ...prev,
       sleepHours: value
     }));
+  };
+
+  const handleUseLastLog = () => {
+    if (lastMoodLog) {
+      const lastLogData = {
+        activities: lastMoodLog.activities || [],
+        social: lastMoodLog.social || [],
+        health: lastMoodLog.health || [],
+        sleepHours: lastMoodLog.sleepQuality || '',
+      };
+
+      setSelectedItems(lastLogData);
+      setFormData(prevData => ({
+        ...prevData,
+        ...lastLogData
+      }));
+
+      // Show all containers since we're pre-selecting everything
+      setVisibleContainers(['activities', 'social', 'health', 'sleepHours']);
+    }
+    setShowLastLogPrompt(false);
+  };
+
+  const handleStartFresh = () => {
+    setShowLastLogPrompt(false);
   };
 
   const handleSubmit = async () => {
@@ -182,7 +233,6 @@ const LogActivities = ({ formData, setFormData }) => {
     </div>
   );
 
-  // Animation variants for framer-motion
   const containerVariants = {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0, transition: { duration: 0.5 } }
@@ -210,8 +260,47 @@ const LogActivities = ({ formData, setFormData }) => {
                             selectedItems.health.length > 0 &&
                             selectedItems.sleepHours !== '';
 
+  const LastLogPromptModal = () => (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <motion.div 
+        className="bg-white rounded-lg p-6 max-w-md mx-4"
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+      >
+        <h3 className="text-lg font-semibold mb-4">Use Previous Activity Log?</h3>
+        <p className="text-gray-600 mb-6">
+          Would you like to use your last activity log from today ({new Date(lastMoodLog?.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}) as a starting point?
+        </p>
+        
+        <div className="flex space-x-3">
+          <button
+            onClick={handleUseLastLog}
+            className="flex-1 bg-[#6fba94] text-white font-semibold py-2 px-4 rounded-lg hover:bg-[#5aa88f]"
+          >
+            Yes, Use Last Log
+          </button>
+          <button
+            onClick={handleStartFresh}
+            className="flex-1 bg-gray-300 text-gray-700 font-semibold py-2 px-4 rounded-lg hover:bg-gray-400"
+          >
+            Start Fresh
+          </button>
+        </div>
+      </motion.div>
+    </div>
+  );
+
   return (
     <div className="bg-[#eef0ee] min-h-screen flex flex-col items-center justify-start pt-20 pb-20 relative">
+      {isLoadingLastLog && (
+        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
+          <div className="text-lg text-gray-700">Loading...</div>
+        </div>
+      )}
+      
+      {showLastLogPrompt && lastMoodLog && <LastLogPromptModal />}
+
       <h2 className="text-5xl font-bold mb-8">Select accordingly.</h2>
       
       <div className="w-full max-w-3xl space-y-6">

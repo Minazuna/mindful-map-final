@@ -79,6 +79,46 @@ exports.getAllMoodLogs = async (req, res) => {
   }
 };
 
+exports.getTodaysLastMoodLog = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
+    }
+
+    // Get today's date range
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(now);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    // Find all mood logs for today
+    const todaysMoodLogs = await MoodLog.find({
+      user: req.user._id,
+      date: { $gte: startOfDay, $lte: endOfDay }
+    }).sort({ date: -1 });
+
+    if (!todaysMoodLogs.length) {
+      return res.status(200).json({ 
+        success: false, 
+        message: 'No previous mood logs found for today or this is the first log',
+        lastLog: null 
+      });
+    }
+
+    // Return the most recent log from today (excluding the current session)
+    const lastMoodLog = todaysMoodLogs[0];
+
+    res.status(200).json({ 
+      success: true, 
+      lastLog: lastMoodLog 
+    });
+  } catch (error) {
+    console.error('Error fetching today\'s last mood log:', error);
+    res.status(500).json({ success: false, message: 'Server error while fetching today\'s last mood log.' });
+  }
+};
 
 exports.checkMoodLogs = async (req, res) => {
   try {
