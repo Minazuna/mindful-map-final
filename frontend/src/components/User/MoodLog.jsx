@@ -47,15 +47,19 @@ const MoodLog = ({ setFormData }) => {
     
     const dateToSend = `${logDate.getFullYear()}-${String(logDate.getMonth() + 1).padStart(2, '0')}-${String(logDate.getDate()).padStart(2, '0')}`;
   
-  console.log('Date being sent:', dateToSend);
+    console.log('Date being sent:', dateToSend);
   
-  setFormData((prevData) => ({ 
-    ...prevData, 
-    mood: selectedMood,
-    date: dateToSend 
-  }));
+    setFormData((prevData) => ({ 
+      ...prevData, 
+      mood: selectedMood,
+      date: dateToSend 
+    }));
     
     navigate('/log-activities', { state: { mood: selectedMood } });
+  };
+
+  const handleSkipClick = () => {
+    navigate('/mood-entries');
   };
 
   const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
@@ -106,12 +110,22 @@ const MoodLog = ({ setFormData }) => {
           </div>
         ))}
       </div>
-      <button
-        onClick={handleContinueClick}
-        className="absolute bottom-10 right-10 bg-[#6fba94] text-white font-bold py-2 px-4 rounded-full hover:bg-[#5aa88f]"
-      >
-        Continue
-      </button>
+      
+      {/* Button container */}
+      <div className="absolute bottom-10 right-10 flex space-x-3">
+        <button
+          onClick={handleSkipClick}
+          className="bg-gray-300 text-gray-700 font-bold py-2 px-4 rounded-full hover:bg-gray-400 transition-colors"
+        >
+          Skip for now
+        </button>
+        <button
+          onClick={handleContinueClick}
+          className="bg-[#6fba94] text-white font-bold py-2 px-4 rounded-full hover:bg-[#5aa88f] transition-colors"
+        >
+          Continue
+        </button>
+      </div>
     </div>
   );
 };

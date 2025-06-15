@@ -5,7 +5,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BottomNav from '../BottomNav';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Chip, Tooltip, IconButton } from '@mui/material';
+import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Chip, Tooltip, IconButton, Dialog, DialogContent, DialogTitle, DialogActions } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -17,6 +17,7 @@ import ViewListIcon from '@mui/icons-material/ViewList';
 import ClearIcon from '@mui/icons-material/Clear';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
+import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import { motion, AnimatePresence } from 'framer-motion';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
@@ -38,6 +39,8 @@ const MoodEntries = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [showTips, setShowTips] = useState(false);
+  const [showTimeRestrictionModal, setShowTimeRestrictionModal] = useState(false);
+  const [remainingTime, setRemainingTime] = useState(0);
   const [selectedDays, setSelectedDays] = useState({
     Sunday: false,
     Monday: false,
@@ -76,6 +79,50 @@ const MoodEntries = () => {
       return [];
     }
   };
+
+const checkLastMoodLogTime = async () => {
+  try {
+    console.log('Checking last mood log time...');
+    const token = localStorage.getItem('token');
+    // Updated endpoint to match your existing route
+    const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log/today-last`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    
+    console.log('Last mood log response:', response.data);
+    
+    // Handle the response structure from your getTodaysLastMoodLog function
+    if (response.data.success && response.data.lastLog && response.data.lastLog.date) {
+      const lastLogTime = new Date(response.data.lastLog.date);
+      const currentTime = new Date();
+      const timeDifference = currentTime - lastLogTime;
+      const thirtyMinutesInMs = 30 * 60 * 1000; // 30 minutes in milliseconds
+      
+      console.log('Last log time:', lastLogTime);
+      console.log('Current time:', currentTime);
+      console.log('Time difference (ms):', timeDifference);
+      console.log('Time difference (minutes):', timeDifference / (60 * 1000));
+      
+      if (timeDifference < thirtyMinutesInMs) {
+        const remainingMs = thirtyMinutesInMs - timeDifference;
+        const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
+        console.log('Remaining minutes:', remainingMinutes);
+        setRemainingTime(remainingMinutes);
+        return false; // Cannot log yet
+      }
+    }
+    
+    // If success is false (no logs today) or enough time has passed, allow logging
+    console.log('Can log - no recent entries or enough time passed');
+    return true; // Can log
+  } catch (error) {
+    console.error('Error checking last mood log time:', error);
+    // Allow logging if there's an error (like 404 or network error)
+    return true;
+  }
+};
 
   useEffect(() => {
     const loadInitialLogs = async () => {
@@ -206,8 +253,18 @@ const MoodEntries = () => {
     setShowTips(!showTips);
   };
 
-  const handleAddMoodLog = () => {
-    navigate('/log-mood');
+  const handleAddMoodLog = async () => {
+    const canLog = await checkLastMoodLogTime();
+    
+    if (!canLog) {
+      setShowTimeRestrictionModal(true);
+    } else {
+      navigate('/log-mood');
+    }
+  };
+
+  const handleCloseTimeRestrictionModal = () => {
+    setShowTimeRestrictionModal(false);
   };
 
   // Check if any filters are active
@@ -461,6 +518,66 @@ const MoodEntries = () => {
           )}
         </div>
       </nav>
+
+{/* Time Restriction Modal */}
+<Dialog
+  open={showTimeRestrictionModal}
+  onClose={handleCloseTimeRestrictionModal}
+  PaperProps={{
+    style: {
+      borderRadius: '20px',
+      padding: '16px',
+      maxWidth: '400px',
+      fontFamily: 'inherit'
+    }
+  }}
+>
+  <DialogContent style={{ padding: '24px' }}>
+    <div className="text-center">
+      {/* Icon */}
+      <div className="mb-4">
+        <AccessTimeIcon style={{ fontSize: 56, color: '#6fba94' }} />
+      </div>
+      
+      {/* Title */}
+      <h2 className="text-2xl font-bold text-gray-800 mb-3">
+        Please Wait
+      </h2>
+      
+      {/* Message */}
+      <p className="text-gray-600 mb-6 leading-relaxed text-base">
+        You can log a new mood entry every 30 minutes.
+      </p>
+      
+      {/* Time remaining */}
+      <div className="bg-green-50 rounded-2xl p-4 mb-6 border border-green-100">
+        <p className="text-[#6fba94] font-semibold text-lg">
+          {remainingTime} minute{remainingTime !== 1 ? 's' : ''} remaining
+        </p>
+      </div>
+      
+      {/* Button */}
+      <Button
+        onClick={handleCloseTimeRestrictionModal}
+        variant="contained"
+        fullWidth
+        style={{
+          backgroundColor: '#6fba94',
+          color: 'white',
+          borderRadius: '16px',
+          textTransform: 'none',
+          fontWeight: 600,
+          padding: '12px 24px',
+          fontSize: '16px',
+          fontFamily: 'inherit',
+          boxShadow: '0 4px 12px rgba(111, 186, 148, 0.3)'
+        }}
+      >
+        Got it
+      </Button>
+    </div>
+  </DialogContent>
+</Dialog>
 
       {/* Enhanced Tips Section */}
       <AnimatePresence>
