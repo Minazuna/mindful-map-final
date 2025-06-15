@@ -112,11 +112,19 @@ const WeeklyPredictions = () => {
           },
         });
 
-        const data = await response.json();
-        if (data.success) {
+        const text = await response.text(); // get raw body first
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (parseErr) {
+          console.error("Failed to parse JSON:", text);
+          throw new Error("Invalid JSON response from server");
+        }
+
+        if (response.ok && data.success) {
           setPredictions(data.predictions);
         } else {
-          console.error("Failed to fetch predictions:", data.message);
+          console.error("Failed to fetch predictions:", data.message || "Unknown error");
         }
       } catch (error) {
         console.error("Error fetching predictions:", error);
