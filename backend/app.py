@@ -68,81 +68,103 @@ class MoodPredictor:
             processed_data = []
 
             for day in self.days_of_week:
-                seed = int(pd.Timestamp.now().timestamp() * hash(day)) % (2**32 - 1)
-                np.random.seed(seed)
-                
                 day_data = df[(df['day_of_week'] == day) & (df['timestamp'] >= four_weeks_ago)]
 
                 if not day_data.empty:
-                    unique_moods = day_data['mood'].unique()
-                    selected_mood = None
-                    selected_activities = []
+                    # Group by date to handle multiple moods per day
+                    daily_groups = day_data.groupby(day_data['timestamp'].dt.date)
+                    
+                    daily_averages = []
+                    daily_top_activities = []
+                    
+                    for date, group in daily_groups:
+                        # Average mood scores for each day
+                        avg_mood_score = group['moodScore'].mean()
+                        daily_averages.append(avg_mood_score)
+                        
+                        # Collect all activities for the day
+                        all_day_activities = []
+                        for activities in group['activities']:
+                            if isinstance(activities, list):
+                                all_day_activities.extend(activities)
 
-                    if len(unique_moods) >= 3:
-                        # Average the multiple different moods
-                        avg_score = day_data['moodScore'].mean()
-                        
-                        # Find the mood entry with moodScore closest to the average
-                        day_data['score_diff'] = abs(day_data['moodScore'] - avg_score)
-                        closest_entry = day_data.loc[day_data['score_diff'].idxmin()]
-                        selected_mood = closest_entry['mood']
-                        
-                        # Get activities from the closest entry
-                        activities = closest_entry['activities']
-                        if isinstance(activities, list) and activities:
-                            if len(activities) >= 2:
-                                selected_activities = list(np.random.choice(activities, size=2, replace=False))
+                        # Find most occurring activity for this specific day (pick only one)
+                        day_most_occurring = None
+                        if all_day_activities:
+                            activity_counts = pd.Series(all_day_activities).value_counts()
+                            day_most_occurring = activity_counts.index[0]  # Get only the top one
+                            daily_top_activities.append(day_most_occurring)
+                    
+                    # Average the daily averages to get final prediction for this day
+                    final_avg_score = np.mean(daily_averages) if daily_averages else 0
+                    
+                    # Find most occurring activities across all past weeks for this day
+                    selected_activities = []
+                    if daily_top_activities:
+                        # Step 1: Count how many times each activity was the top per week
+                        week_activity_counts = pd.Series(daily_top_activities).value_counts()
+                        max_count = week_activity_counts.iloc[0]
+                        most_frequent = week_activity_counts[week_activity_counts == max_count]
+
+                        if max_count >= 2:
+                            if len(most_frequent) == 1:
+                                # One clearly most frequent activity
+                                selected_activities = [most_frequent.index[0]]
                             else:
-                                selected_activities = activities
-                    else:
-                        # Get the most common mood (existing logic)
-                        mood_counts = day_data['mood'].value_counts()
-                        selected_mood = mood_counts.index[0]
-                        
-                        # Get all instances of the most common mood
-                        mood_specific_data = day_data[day_data['mood'] == selected_mood]
-                        
-                        if not mood_specific_data.empty:
-                            # Collect ALL activities for the most common mood
-                            all_activities = []
-                            for row in mood_specific_data.itertuples():
-                                activities = row.activities
-                                if isinstance(activities, list) and activities:
-                                    all_activities.extend(activities)
-                            
-                            if all_activities:
-                                # Count activity frequencies
-                                activity_counts = pd.Series(all_activities).value_counts()
-                                
-                                # Get the maximum frequency
-                                max_freq = activity_counts.iloc[0]
-                                
-                                if max_freq > 1:
-                                    # Get all activities that have the maximum frequency
-                                    most_common = activity_counts[activity_counts == max_freq]
-                                    if len(most_common) >= 2:
-                                        # If there are 2 or more activities with the same max frequency
-                                        selected_activities = list(most_common.index[:2])
-                                    else:
-                                        # If only one most common activity
-                                        selected_activities = [most_common.index[0]]
+                                # Tie (each appears at least twice)
+                                selected_activities = most_frequent.index[:2].tolist()
+                        else:
+                            # Fallback: Use top 1–2 frequent activities from most recent week's same day
+                            recent_day = df[df['day_of_week'] == day].sort_values('timestamp', ascending=False)
+
+                            # Get only the most recent date's logs
+                            if not recent_day.empty:
+                                most_recent_date = recent_day['timestamp'].dt.date.iloc[0]
+                                same_day_recent_logs = recent_day[recent_day['timestamp'].dt.date == most_recent_date]
+
+                                # Aggregate activities for that most recent weekday
+                                all_recent_activities = []
+                                for acts in same_day_recent_logs['activities']:
+                                    if isinstance(acts, list):
+                                        all_recent_activities.extend(acts)
+
+                                if all_recent_activities:
+                                    counts = pd.Series(all_recent_activities).value_counts()
+                                    selected_activities = counts.index[:2].tolist()
                                 else:
-                                    # If no clear common activity, randomly select two activities
-                                    unique_activities = list(set(all_activities))
-                                    if len(unique_activities) >= 2:
-                                        selected_activities = list(np.random.choice(unique_activities, size=2, replace=False))
-                                    else:
-                                        selected_activities = unique_activities
+                                    selected_activities = []
+                            else:
+                                selected_activities = []
+                    else:
+                        selected_activities = []
+
+                    
+                    # Convert average mood score back to mood category
+                    # Assuming mood score ranges: happy=4, fine=2, anxious=0, sad=-3, angry=-1
+                    if final_avg_score >= 3:  # Closer to happy (4)
+                        predicted_mood = 'happy'
+                    elif final_avg_score >= 1:  # Closer to fine (2)
+                        predicted_mood = 'fine'
+                    elif final_avg_score >= -0.5:  # Closer to anxious (0)
+                        predicted_mood = 'anxious'
+                    elif final_avg_score >= -2:  # Closer to angry (-1)
+                        predicted_mood = 'angry'
+                    elif final_avg_score >= -3:  # Closer to sad (-3)
+                        predicted_mood = 'sad'
+                    else:
+                        predicted_mood = 'unknown'
 
                     processed_data.append({
                         'day_of_week': day,
-                        'mood': selected_mood.lower() if selected_mood else 'unknown',
+                        'mood': predicted_mood,
+                        'mood_score': final_avg_score,
                         'major_activities': selected_activities
                     })
                 else:
                     processed_data.append({
                         'day_of_week': day,
                         'mood': 'unknown',
+                        'mood_score': 0,
                         'major_activities': []
                     })
 
@@ -170,27 +192,14 @@ class MoodPredictor:
             test_X = test_X.reindex(columns=self.days_of_week, fill_value=0)
 
             predictions = self.model.predict(test_X)
-            # NEW: Get prediction probabilities
-            prediction_probabilities = self.model.predict_proba(test_X)
             predicted_moods = self.label_encoder.inverse_transform(predictions)
 
             weekly_predictions = {}
-            for i, (day, mood) in enumerate(zip(self.days_of_week, predicted_moods)):
+            for day, mood in zip(self.days_of_week, predicted_moods):
                 activities = self.daily_activities.get(day, [])
-                
-                # Calculate confidence percentage
-                if mood != 'unknown':
-                    # Get the probability of the predicted class
-                    predicted_class_index = predictions[i]
-                    confidence = prediction_probabilities[i][predicted_class_index] * 100
-                    confidence = round(confidence, 1)  # Round to 1 decimal place
-                else:
-                    confidence = None
-                
                 weekly_predictions[day] = {
                     'mood': mood if mood != 'unknown' else 'No prediction available',
-                    'activities': activities,
-                    'probability': confidence
+                    'activities': activities
                 }
 
             return {'daily_predictions': weekly_predictions}
@@ -209,74 +218,7 @@ def predict_mood(mood_logs):
     except Exception as e:
         logger.error(f"Error in prediction: {str(e)}")
         return {'error': str(e)}
-
-@app.route('/api/predict-mood', methods=['POST'])
-def get_prediction():
-    try:
-        token = request.headers.get('Authorization')
-        if not token or not token.startswith('Bearer '):
-            return jsonify({
-                'success': False,
-                'message': 'Authentication token is missing or invalid'
-            }), 401
-            
-        # Forward the token to Node backend to validate and get mood logs
-        import requests
-        
-        node_api = 'http://localhost:5000'
-        response = requests.get(
-            f"{node_api}/api/mood-logs", 
-            headers={
-                'Authorization': token,
-                'Content-Type': 'application/json'
-            }
-        )
-        
-        if response.status_code != 200:
-            return jsonify({
-                'success': False,
-                'message': 'Failed to retrieve mood logs from node backend'
-            }), response.status_code
-            
-        mood_logs = response.json().get('logs', [])
-        
-        if len(mood_logs) < 7:
-            return jsonify({
-                'success': True,
-                'predictions': {},
-                'message': 'Need at least one week of mood data for predictions'
-            })
-        
-        # Format logs
-        formatted_logs = []
-        for log in mood_logs:
-            formatted_logs.append({
-                'mood': log.get('mood', '').lower(),
-                'timestamp': log.get('date'),
-                'activities': log.get('activities', [])
-            })
-            
-        # Get predictions
-        result = predict_mood(formatted_logs)
-        
-        if 'error' in result:
-            return jsonify({
-                'success': False,
-                'message': result['error']
-            }), 500
-            
-        return jsonify({
-            'success': True,
-            'predictions': result['daily_predictions']
-        })
-        
-    except Exception as e:
-        logger.error(f"API Error: {str(e)}")
-        return jsonify({
-            'success': False,
-            'message': f'Server error: {str(e)}'
-        }), 500
-
+   
 @app.route('/api/predict-mood', methods=['GET'])
 def get_prediction_from_node():
     try:
@@ -346,4 +288,4 @@ def get_prediction_from_node():
         }), 500
 
 if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5001)

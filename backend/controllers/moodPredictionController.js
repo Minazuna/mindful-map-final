@@ -72,18 +72,18 @@ exports.predictMood = async (req, res) => {
     }
 };
 
-// Add a new endpoint to provide mood logs to the Python service
 exports.getMoodLogs = async (req, res) => {
     try {
         const moodLogs = await MoodLog.find({ 
             user: req.user._id,
             date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-        }).select('mood date activities -_id');
+        }).select('mood moodScore date activities -_id');
 
         return res.status(200).json({
             success: true,
             logs: moodLogs.map(log => ({
                 mood: log.mood,
+                moodScore: log.moodScore, 
                 date: log.date.toISOString(),
                 activities: Array.isArray(log.activities) ? log.activities : []
             }))
