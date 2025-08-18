@@ -31,6 +31,7 @@ import CalmingMusic from './components/User/Statistics/Recommendations/CalmingMu
 import Activities from './components/User/Activities';
 import Meditation from './components/User/Statistics/Recommendations/Meditation';
 import ForumDiscussion from './components/User/Forum';
+import PersonalJournal from './components/User/Journal/PersonalJournal';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
@@ -347,6 +348,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <ForumDiscussion />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/personal-journal"
+          element={
+            <UserPrivateRoute>
+              <PersonalJournal />
             </UserPrivateRoute>
           }
         />

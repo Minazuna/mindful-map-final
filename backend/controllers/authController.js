@@ -7,7 +7,7 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const {  accountDisabledTemplate } = require("../utils/emailTemplates");
+const { accountDisabledTemplate } = require("../utils/emailTemplates");
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -28,36 +28,9 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const sendVerificationEmail = (user, token) => {
-  const verificationUrl = `${process.env.VITE_NODE_API}/api/auth/verify-email?token=${token}`;
-
-  const mailOptions = {
-    from: '"Mindful Map" <no-reply@mindfulmap.com>',
-    to: user.email,
-    subject: 'Account Verification',
-    html: `
-      <div style="background-color: #f9f9f9; padding: 20px; font-family: 'Roboto', sans-serif;">
-        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px; border-radius: 10px; text-align: center;">
-          <img src="${process.env.FRONTEND_URL}/images/logo.png" alt="Mindful Map" style="width: 100px; margin-bottom: 20px;">
-          <h2>Account Verification</h2>
-          <p style="text-align: justify;">Good day! Thank you for joining Mindful Map. To start using your account, please verify your email first by clicking the button below. We're looking forward to having you!</p>
-          <a href="${verificationUrl}" style="display: inline-block; padding: 10px 20px; margin-top: 20px; background-color: #6fba94; color: #ffffff; text-decoration: none; border-radius: 5px;">Verify Account</a>
-        </div>
-      </div>
-    `,
-  };
-
-  transporter.sendMail(mailOptions, (error, info) => {
-    if (error) {
-      return console.error('Error sending email:', error);
-    }
-    console.log('Verification email sent:', info.response);
-  });
-};
-
 exports.signup = async (req, res) => {
   try {
-    const { email, firstName, lastName, password, role, gender } = req.body;
+    const { email, firstName, middleInitial, lastName, password, role, gender, section } = req.body;
 
     if (!email || !firstName || !lastName || !password) {
       return res.status(400).json({ success: false, message: 'Email, first name, last name, and password are required.' });
@@ -78,20 +51,22 @@ exports.signup = async (req, res) => {
     const userRecord = await admin.auth().createUser({
       email,
       password,
-      displayName: `${firstName} ${lastName}`,
+      displayName: `${firstName} ${middleInitial ? middleInitial + ' ' : ''}${lastName}`,
     });
 
-    // Create new user in MongoDB
+    // Create new user in MongoDB - automatically verified
     user = new User({
       email,
       firstName,
+      middleInitial: middleInitial || '',
       lastName,
-      gender: gender || 'Rather not say', // Include gender with default fallback
+      gender: gender || 'Rather not say',
+      section: section || undefined,
       avatar: avatarPath,
       firebaseUid: userRecord.uid,
       password, // Password will be hashed in the pre-save hook
       role: role || 'user',
-      verified: role === 'admin', // Automatically verify admin users
+      verified: true, // Auto-verify all users
     });
 
     await user.save();
@@ -100,14 +75,9 @@ exports.signup = async (req, res) => {
       expiresIn: process.env.JWT_EXPIRES_TIME,
     });
 
-    // Send verification email if the user is not an admin
-    if (user.role !== 'admin') {
-      sendVerificationEmail(user, token);
-    }
-
     return res.status(201).json({
       success: true,
-      message: user.role === 'admin' ? 'Admin registered successfully.' : 'User registered successfully. Please check your email to verify your account.',
+      message: 'User registered successfully. You can now log in.',
       token,
     });
   } catch (error) {
@@ -132,7 +102,8 @@ exports.googleAuth = async (req, res) => {
         firebaseUid,
         password: randomPassword, 
         role: 'user',
-        verified: true, 
+        verified: true,
+        section: 'N/A', // Set section as N/A for Google users - they can update later
       });
       
       await user.save();
@@ -141,6 +112,11 @@ exports.googleAuth = async (req, res) => {
       user.lastName = lastName || user.lastName;
       user.avatar = avatar || user.avatar;
       user.verified = true; 
+      
+      // Only set section to N/A if it's not already set
+      if (!user.section) {
+        user.section = 'N/A';
+      }
       
       if (!user.firebaseUid) {
         user.firebaseUid = firebaseUid;
@@ -169,6 +145,8 @@ exports.googleAuth = async (req, res) => {
     });
   }
 };
+
+// ...existing code... (login, getMe, requestReactivation functions remain the same)
 
 exports.login = async (req, res) => {
   try {
@@ -257,11 +235,6 @@ exports.login = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid email or password.' });
     }
 
-    // Check if the user is verified
-    if (!user.verified) {
-      return res.status(403).json({ success: false, message: 'Please verify your email to log in.' });
-    }
-
     // Generate a token
     const token = jwt.sign({ uid: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: process.env.JWT_EXPIRES_TIME,
@@ -296,31 +269,6 @@ exports.getMe = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
-  }
-};
-
-exports.verifyEmail = async (req, res) => {
-  try {
-    const { token } = req.query;
-
-    if (!token) {
-      return res.status(400).json({ success: false, message: 'Invalid or missing token.' });
-    }
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    const user = await User.findById(decoded.uid);
-
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found.' });
-    }
-
-    user.verified = true;
-    await user.save();
-
-    return res.redirect(`${process.env.FRONTEND_URL}/signin`);
-  } catch (error) {
-    console.error('Error in email verification:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
 

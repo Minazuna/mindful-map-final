@@ -16,9 +16,11 @@ const Signup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '',
+    middleInitial: '',
     lastName: '',
     email: '',
-    gender: 'Rather not say',
+    gender: '',
+    section: '',
     password: '',
     avatar: null,
   });
@@ -51,9 +53,11 @@ const Signup = () => {
     e.preventDefault();
     const data = new FormData();
     data.append('firstName', formData.firstName);
+    data.append('middleInitial', formData.middleInitial);
     data.append('lastName', formData.lastName);
     data.append('email', formData.email);
-    data.append('gender', formData.gender);
+    data.append('gender', formData.gender || 'Rather not say');
+    data.append('section', formData.section);
     data.append('password', formData.password);
     if (formData.avatar) {
       data.append('avatar', formData.avatar);
@@ -66,7 +70,7 @@ const Signup = () => {
         },
       });
       if (response.data.success) {
-        toast.success('Registration successful! Please check your email to verify your account.');
+        toast.success('Registration successful!');
         setError('');
         setTimeout(() => {
           navigate('/signin');
@@ -140,113 +144,284 @@ const Signup = () => {
     }
   };
 
+  // Updated input styling
+  const inputStyles = {
+    base: "w-full p-3 rounded-xl border-2 border-[#6fba94] outline-none focus:border-[#6fba94] text-black bg-[#F1F8E8]",
+  };
+
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex bg-[#F1F8E8]">
       <ToastContainer />
-      <div className="w-3/5 bg-cover bg-center" style={{ backgroundImage: "url('/images/trynow.png')" }}>
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-          <h1 className="text-5xl font-bold text-white">Welcome to Mindful Map!</h1>
-          <p className="text-lg text-white mt-4">
-            We are excited to guide you through your <br />
-            mental wellness journey.
-          </p>
-        </div>
-      </div>
-      <div className="w-2/5 flex items-center justify-center bg-[#eef0ee]">
-        <form className="w-3/5 flex flex-col items-center" onSubmit={handleSubmit}>
-          <h2 className="w-full text-left text-5xl font-bold mb-6" style={{ color: '#3a3939' }}>Sign Up</h2>
+      <style jsx>{`
+        /* Fix for autofill visibility */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #F1F8E8 inset !important;
+          -webkit-text-fill-color: #000000 !important;
+          background-color: #F1F8E8 !important;
+          color: #000000 !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+        
+        /* Ensure all input text is visible */
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+          color: #000000 !important;
+          background-color: #F1F8E8 !important;
+          font-size: 16px !important; /* Prevents zoom on iOS */
+          -webkit-appearance: none !important;
+          -moz-appearance: none !important;
+          appearance: none !important;
+        }
+        
+        /* Placeholder styling */
+        input::placeholder {
+          color: #666666 !important;
+          opacity: 1 !important;
+        }
+        
+        /* Focus state improvements */
+        input:focus {
+          background-color: #F1F8E8 !important;
+          color: #000000 !important;
+          border-color: #6fba94 !important;
+          box-shadow: 0 0 0 2px rgba(111, 186, 148, 0.2) !important;
+        }
+      `}</style>
+      
+      {/* Left Side - Form */}
+      <div className="w-1/2 flex items-center justify-center p-8">
+        <form className="w-full max-w-md flex flex-col items-center" onSubmit={handleSubmit}>
+          <h1 className="w-full text-center text-5xl font-bold mb-8" style={{ color: '#3a3939' }}>
+            Create your account
+          </h1>
           
-          {/* First Name and Last Name side-by-side */}
-          <div className="w-full flex gap-2 mb-4">
+
+          {/* First Name, Middle Initial, and Last Name */}
+          <div className="w-full flex gap-3 mb-4">
             <input
               type="text"
               name="firstName"
               placeholder="First Name"
-              className="w-1/2 p-3 rounded-full bg-[#eef0ee] border-2 border-[#6fba94] outline-none focus:border-[#6fba94]"
+              className={inputStyles.base}
+              style={{ 
+                color: '#000000',
+                backgroundColor: '#F1F8E8',
+                fontSize: '16px',
+                flex: '2'
+              }}
+              onChange={handleChange}
+            />
+            <input
+              type="text"
+              name="middleInitial"
+              placeholder="M.I."
+              className={inputStyles.base}
+              maxLength="2"
+              style={{ 
+                color: '#000000',
+                backgroundColor: '#F1F8E8',
+                fontSize: '16px',
+                width: '60px',
+                flex: 'none'
+              }}
               onChange={handleChange}
             />
             <input
               type="text"
               name="lastName"
               placeholder="Last Name"
-              className="w-1/2 p-3 rounded-full bg-[#eef0ee] border-2 border-[#6fba94] outline-none focus:border-[#6fba94]"
+              className={inputStyles.base}
+              style={{ 
+                color: '#000000',
+                backgroundColor: '#F1F8E8',
+                fontSize: '16px',
+                flex: '2'
+              }}
               onChange={handleChange}
             />
           </div>
           
-          {/* Gender Selection Dropdown */}
-          <div className="w-full mb-4">
-            <FormControl fullWidth variant="outlined" sx={{ 
-              '& .MuiOutlinedInput-root': {
-                borderRadius: '9999px',
-                backgroundColor: '#eef0ee',
-                fontFamily: 'Nunito, sans-serif',
-                '& fieldset': {
-                  borderColor: '#6fba94',
-                  borderWidth: '2px',
+          {/* Gender and Section Dropdowns */}
+          <div className="w-full flex gap-3 mb-4">
+            <div className="w-1/2">
+              <FormControl fullWidth variant="outlined" sx={{ 
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                  backgroundColor: '#F1F8E8',
+                  fontFamily: 'Nunito, sans-serif',
+                  color: '#000000',
+                  '& fieldset': {
+                    borderColor: '#6fba94',
+                    borderWidth: '2px',
+                  },
+                  '&:hover fieldset': {
+                    borderColor: '#6fba94',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6fba94',
+                  },
                 },
-                '&:hover fieldset': {
-                  borderColor: '#6fba94',
+                '& .MuiSelect-select': {
+                  fontFamily: 'Nunito, sans-serif',
+                  color: '#000000',
+                  backgroundColor: '#F1F8E8',
                 },
-                '&.Mui-focused fieldset': {
-                  borderColor: '#6fba94',
-                },
-              },
-              '& .MuiSelect-select': {
-                fontFamily: 'Nunito, sans-serif',
-              },
-              '& .MuiMenuItem-root': {
-                fontFamily: 'Nunito, sans-serif',
-              }
-            }}>
-              <Select
-                id="gender"
-                name="gender"
-                value={formData.gender}
-                onChange={handleChange}
-                displayEmpty
-                renderValue={(selected) => selected}
-                MenuProps={{
-                  PaperProps: {
-                    sx: {
-                      fontFamily: 'Nunito, sans-serif',
-                      '& .MuiMenuItem-root': {
+                '& .MuiMenuItem-root': {
+                  fontFamily: 'Nunito, sans-serif',
+                  color: '#000000',
+                }
+              }}>
+                <Select
+                  id="gender"
+                  name="gender"
+                  value={formData.gender}
+                  onChange={handleChange}
+                  displayEmpty
+                  renderValue={(selected) => {
+                    if (!selected) {
+                      return <span style={{ color: '#666666' }}>Gender</span>;
+                    }
+                    return selected;
+                  }}
+                  sx={{
+                    color: '#000000',
+                    backgroundColor: '#F1F8E8',
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
                         fontFamily: 'Nunito, sans-serif',
-                      },
-                      '& .MuiMenuItem-root:hover': {
-                        backgroundColor: 'rgba(111, 186, 148, 0.1)',
-                      },
-                      '& .MuiMenuItem-root.Mui-selected': {
-                        backgroundColor: 'rgba(111, 186, 148, 0.2)',
-                        fontFamily: 'Nunito, sans-serif',
-                      },
-                      '& .MuiMenuItem-root.Mui-selected:hover': {
-                        backgroundColor: 'rgba(111, 186, 148, 0.3)',
+                        '& .MuiMenuItem-root': {
+                          fontFamily: 'Nunito, sans-serif',
+                          color: '#000000',
+                        },
+                        '& .MuiMenuItem-root:hover': {
+                          backgroundColor: 'rgba(111, 186, 148, 0.1)',
+                        },
+                        '& .MuiMenuItem-root.Mui-selected': {
+                          backgroundColor: 'rgba(111, 186, 148, 0.2)',
+                          fontFamily: 'Nunito, sans-serif',
+                          color: '#000000',
+                        },
+                        '& .MuiMenuItem-root.Mui-selected:hover': {
+                          backgroundColor: 'rgba(111, 186, 148, 0.3)',
+                        },
                       },
                     },
+                  }}
+                >
+                  <MenuItem value="Male">Male</MenuItem>
+                  <MenuItem value="Female">Female</MenuItem>
+                  <MenuItem value="Rather not say">Rather not say</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
+
+            <div className="w-1/2">
+              <FormControl fullWidth variant="outlined" sx={{ 
+                '& .MuiOutlinedInput-root': {
+                  borderRadius: '12px',
+                  backgroundColor: '#F1F8E8',
+                  fontFamily: 'Nunito, sans-serif',
+                  color: '#000000',
+                  '& fieldset': {
+                    borderColor: '#6fba94',
+                    borderWidth: '2px',
                   },
-                }}
-              >
-                <MenuItem value="Male">Male</MenuItem>
-                <MenuItem value="Female">Female</MenuItem>
-                <MenuItem value="Rather not say">Rather not say</MenuItem>
-              </Select>
-            </FormControl>
+                  '&:hover fieldset': {
+                    borderColor: '#6fba94',
+                  },
+                  '&.Mui-focused fieldset': {
+                    borderColor: '#6fba94',
+                  },
+                },
+                '& .MuiSelect-select': {
+                  fontFamily: 'Nunito, sans-serif',
+                  color: '#000000',
+                  backgroundColor: '#F1F8E8',
+                },
+                '& .MuiMenuItem-root': {
+                  fontFamily: 'Nunito, sans-serif',
+                  color: '#000000',
+                }
+              }}>
+                <Select
+                  id="section"
+                  name="section"
+                  value={formData.section}
+                  onChange={handleChange}
+                  displayEmpty
+                  renderValue={(selected) => {
+                    if (!selected) {
+                      return <span style={{ color: '#666666' }}>Section</span>;
+                    }
+                    return selected;
+                  }}
+                  sx={{
+                    color: '#000000',
+                    backgroundColor: '#F1F8E8',
+                  }}
+                  MenuProps={{
+                    PaperProps: {
+                      sx: {
+                        fontFamily: 'Nunito, sans-serif',
+                        '& .MuiMenuItem-root': {
+                          fontFamily: 'Nunito, sans-serif',
+                          color: '#000000',
+                        },
+                        '& .MuiMenuItem-root:hover': {
+                          backgroundColor: 'rgba(111, 186, 148, 0.1)',
+                        },
+                        '& .MuiMenuItem-root.Mui-selected': {
+                          backgroundColor: 'rgba(111, 186, 148, 0.2)',
+                          fontFamily: 'Nunito, sans-serif',
+                          color: '#000000',
+                        },
+                        '& .MuiMenuItem-root.Mui-selected:hover': {
+                          backgroundColor: 'rgba(111, 186, 148, 0.3)',
+                        },
+                      },
+                    },
+                  }}
+                >
+                  <MenuItem value="Grade 11 - A">Grade 11 - A</MenuItem>
+                  <MenuItem value="Grade 11 - B">Grade 11 - B</MenuItem>
+                  <MenuItem value="Grade 11 - C">Grade 11 - C</MenuItem>
+                  <MenuItem value="Grade 11 - D">Grade 11 - D</MenuItem>
+                </Select>
+              </FormControl>
+            </div>
           </div>
+
           <input
             type="email"
             name="email"
             placeholder="Email"
-            className="w-full p-3 mb-4 rounded-full bg-[#eef0ee] border-2 border-[#6fba94] outline-none focus:border-[#6fba94]"
+            className={inputStyles.base + " mb-4"}
             onChange={handleChange}
+            style={{ 
+              color: '#000000',
+              backgroundColor: '#F1F8E8',
+              fontSize: '16px'
+            }}
           />
+
           <div className="w-full relative mb-6">
             <input
               type={showPassword ? 'text' : 'password'}
               name="password"
               placeholder="Password"
-              className="w-full p-3 rounded-full bg-[#eef0ee] border-2 border-[#6fba94] outline-none focus:border-[#6fba94]"
+              className={inputStyles.base}
               onChange={handleChange}
+              style={{ 
+                color: '#000000',
+                backgroundColor: '#F1F8E8',
+                fontSize: '16px'
+              }}
             />
             <div
               className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
@@ -255,8 +430,9 @@ const Signup = () => {
               {showPassword ? <VisibilityOffIcon className="text-[#6fba94]"/> : <VisibilityIcon className="text-[#6fba94]"/>}
             </div>
           </div>
+
           <div className="w-full flex flex-col items-center mb-6">
-            <label htmlFor="avatar" className="text-lg w-1/2 p-3 rounded-full bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] text-center cursor-pointer">
+            <label htmlFor="avatar" className="text-lg w-3/4 p-3 rounded-xl bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] text-center cursor-pointer transition-colors">
               Upload Avatar
             </label>
             <input
@@ -270,19 +446,21 @@ const Signup = () => {
               <p className="mt-2 text-sm text-gray-600">File selected: {formData.avatar.name}</p>
             )}
           </div>
+
           {error && <p className="text-red-500 mb-4">{error}</p>}
+
           <button
             type="submit"
-            className="text-lg w-full p-3 rounded-full bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] mb-3"
+            className="text-lg w-full p-3 rounded-xl bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] mb-4 transition-colors"
           >
-            Sign Up
+            Create Account
           </button>
           
           {/* Google Sign In Button */}
           <button 
             type="button"
             onClick={handleGoogleSignIn}
-            className="text-lg w-full p-3 rounded-full bg-white border-2 border-gray-300 font-medium flex items-center justify-center gap-2 hover:bg-gray-100 mb-4"
+            className="text-lg w-full p-3 rounded-xl bg-white border-2 border-[#6fba94] font-medium flex items-center justify-center gap-2 hover:bg-gray-50 mb-4 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M21.8 12.2c0-.7-.06-1.41-.17-2.08H12v3.93h5.5a4.7 4.7 0 01-2.04 3.09v2.57h3.3c1.94-1.78 3.04-4.4 3.04-7.5z"/>
@@ -293,16 +471,29 @@ const Signup = () => {
             Sign up with Google
           </button>
           
-          <p className="mt-2 text-mg">
+          <p className="mt-2 text-base text-center">
             <span style={{ color: '#3a3939' }}>Already have an account? </span>
             <span
               style={{ color: '#6fba94', cursor: 'pointer' }}
               onClick={() => navigate('/signin')}
+              className="hover:underline font-semibold"
             >
               Sign in.
             </span>
           </p>
         </form>
+      </div>
+
+      {/* Right Side - Logo Container */}
+      <div className="w-1/2 flex items-center justify-center">
+        <div className="bg-[#95D2B3] rounded-3xl shadow-lg p-24 flex items-center justify-center w-200 h-200">
+          <img
+            src="/images/logo.png"
+            alt="Mindful Map Logo"
+            className="max-w-86 max-h-96 object-contain cursor-pointer hover:scale-105 transition-transform duration-300"
+            onClick={() => navigate('/')}
+          />
+        </div>
       </div>
     </div>
   );

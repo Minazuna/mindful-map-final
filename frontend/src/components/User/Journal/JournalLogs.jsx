@@ -10,6 +10,7 @@ import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import GridViewIcon from '@mui/icons-material/GridView';
 import ViewListIcon from '@mui/icons-material/ViewList';
 import CloseIcon from '@mui/icons-material/Close';
+import EditIcon from '@mui/icons-material/Edit';
 import BottomNav from '../../BottomNav';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -219,6 +220,10 @@ const JournalLogs = () => {
     } else {
       navigate('/journal-entry');
     }
+  };
+
+  const handlePersonalJournalClick = () => {
+    navigate('/personal-journal');
   };
 
   const handleJournalClick = (id) => {
@@ -504,12 +509,22 @@ const JournalLogs = () => {
             />
           </div>
           
-          {/* Right side */}
-          <div className="w-1/4 flex justify-end">
+          {/* Right side - Updated with two buttons */}
+          <div className="w-1/4 flex justify-end space-x-2">
+            {/* Create Personalized Entry Button */}
+            <div 
+              className="bg-[#5ca57f] text-white rounded-full p-2 shadow-md hover:bg-[#4e8067] transition-colors duration-300 cursor-pointer"
+              onClick={handlePersonalJournalClick}
+              aria-label="Create personalized journal entry"
+            >
+              <EditIcon />
+            </div>
+            
+            {/* Journal Challenge Button */}
             <div 
               className="bg-[#6fba94] text-white rounded-full p-2 shadow-md hover:bg-[#5ca57f] transition-colors duration-300 cursor-pointer"
               onClick={handleAddClick}
-              aria-label="Add journal entry"
+              aria-label="Journal challenge entry"
             >
               <AddIcon />
             </div>
@@ -567,11 +582,19 @@ const JournalLogs = () => {
               <p className="mb-4 text-gray-500">
                 {searchTerm ? 'Try adjusting your search term' : 'No entries for this month. Add a new entry to get started!'}
               </p>
-              <div 
-                onClick={handleAddClick}
-                className="px-4 py-2 bg-[#6fba94] text-white rounded-lg inline-flex items-center hover:bg-[#5ca57f] transition-colors duration-300 cursor-pointer"
-              >
-                <AddIcon fontSize="small" className="mr-2" /> Create New Entry
+              <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+                <div 
+                  onClick={handleAddClick}
+                  className="px-4 py-2 bg-[#6fba94] text-white rounded-lg inline-flex items-center hover:bg-[#5ca57f] transition-colors duration-300 cursor-pointer"
+                >
+                  <AddIcon fontSize="small" className="mr-2" /> Journal Challenge
+                </div>
+                <div 
+                  onClick={handlePersonalJournalClick}
+                  className="px-4 py-2 bg-[#5ca57f] text-white rounded-lg inline-flex items-center hover:bg-[#4e8067] transition-colors duration-300 cursor-pointer"
+                >
+                  <EditIcon fontSize="small" className="mr-2" /> Create Personalized Entry
+                </div>
               </div>
             </div>
           ) : (

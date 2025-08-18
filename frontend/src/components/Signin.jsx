@@ -181,46 +181,99 @@ const Signin = () => {
     setShowPassword(!showPassword);
   };
 
+  // Updated input styling
+  const inputStyles = {
+    base: "w-full p-3 rounded-xl border-2 border-[#6fba94] outline-none focus:border-[#6fba94] text-black bg-[#F1F8E8]",
+  };
+
   return (
-    <div className="min-h-screen flex">
-      <div className="w-3/5 bg-cover bg-center" style={{ backgroundImage: "url('/images/trynow.png')" }}>
-        <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-          <h1 className="text-5xl font-bold text-white">Welcome Back!</h1>
-          <p className="text-lg text-white mt-4">
-            We are excited to continue your <br />
-            mental wellness journey.
-          </p>
-        </div>
-      </div>
-      <div className="w-2/5 flex items-center justify-center bg-[#eef0ee]">
-        <form className="w-3/5 flex flex-col items-center" onSubmit={handleSubmit}>
-          <h2 className="w-full text-left text-5xl font-bold mb-6" style={{ color: '#3a3939' }}>Sign In</h2>
+    <div className="min-h-screen flex bg-[#F1F8E8]">
+      <style jsx>{`
+        /* Fix for autofill visibility */
+        input:-webkit-autofill,
+        input:-webkit-autofill:hover,
+        input:-webkit-autofill:focus,
+        input:-webkit-autofill:active {
+          -webkit-box-shadow: 0 0 0 1000px #F1F8E8 inset !important;
+          -webkit-text-fill-color: #000000 !important;
+          background-color: #F1F8E8 !important;
+          color: #000000 !important;
+          transition: background-color 5000s ease-in-out 0s;
+        }
+        
+        /* Ensure all input text is visible */
+        input[type="text"],
+        input[type="email"],
+        input[type="password"] {
+          color: #000000 !important;
+          background-color: #F1F8E8 !important;
+          font-size: 16px !important; /* Prevents zoom on iOS */
+          -webkit-appearance: none !important;
+          -moz-appearance: none !important;
+          appearance: none !important;
+        }
+        
+        /* Placeholder styling */
+        input::placeholder {
+          color: #666666 !important;
+          opacity: 1 !important;
+        }
+        
+        /* Focus state improvements */
+        input:focus {
+          background-color: #F1F8E8 !important;
+          color: #000000 !important;
+          border-color: #6fba94 !important;
+          box-shadow: 0 0 0 2px rgba(111, 186, 148, 0.2) !important;
+        }
+      `}</style>
+      
+      {/* Left Side - Form */}
+      <div className="w-1/2 flex items-center justify-center p-8">
+        <form className="w-full max-w-md flex flex-col items-center" onSubmit={handleSubmit}>
+          <h1 className="w-full text-center text-5xl font-bold mb-8" style={{ color: '#3a3939' }}>
+            Welcome back!
+          </h1>
+          
           <input
             type="email"
             name="email"
             placeholder="Email"
-            className="w-full p-3 mb-4 rounded-full bg-[#eef0ee] border-2 border-[#6fba94] outline-none focus:border-[#6fba94]"
+            className={inputStyles.base + " mb-4"}
             onChange={handleChange}
+            style={{ 
+              color: '#000000',
+              backgroundColor: '#F1F8E8',
+              fontSize: '16px'
+            }}
           />
-          <div className="relative w-full mb-6">
+
+          <div className="w-full relative mb-6">
             <input
               type={showPassword ? 'text' : 'password'}
               name="password"
               placeholder="Password"
-              className="w-full p-3 rounded-full bg-[#eef0ee] border-2 border-[#6fba94] outline-none focus:border-[#6fba94]"
+              className={inputStyles.base}
               onChange={handleChange}
+              style={{ 
+                color: '#000000',
+                backgroundColor: '#F1F8E8',
+                fontSize: '16px'
+              }}
             />
             <div
               className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
               onClick={togglePasswordVisibility}
             >
-              {showPassword ? <VisibilityOffIcon className="text-[#6fba94]" /> : <VisibilityIcon className="text-[#6fba94]" />}
+              {showPassword ? <VisibilityOffIcon className="text-[#6fba94]"/> : <VisibilityIcon className="text-[#6fba94]"/>}
             </div>
           </div>
+
           {error && <p className="text-red-500 mb-4">{error}</p>}
+
           <button
             type="submit"
-            className="text-lg w-full p-3 rounded-full bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] mb-3"
+            className="text-lg w-full p-3 rounded-xl bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] mb-4 transition-colors"
           >
             Sign In
           </button>
@@ -229,7 +282,7 @@ const Signin = () => {
           <button 
             type="button"
             onClick={handleGoogleSignIn}
-            className="text-lg w-full p-3 rounded-full bg-white border-2 border-gray-300 font-medium flex items-center justify-center gap-2 hover:bg-gray-100 mb-4"
+            className="text-lg w-full p-3 rounded-xl bg-white border-2 border-[#6fba94] font-medium flex items-center justify-center gap-2 hover:bg-gray-50 mb-4 transition-colors"
           >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M21.8 12.2c0-.7-.06-1.41-.17-2.08H12v3.93h5.5a4.7 4.7 0 01-2.04 3.09v2.57h3.3c1.94-1.78 3.04-4.4 3.04-7.5z"/>
@@ -240,16 +293,29 @@ const Signin = () => {
             Sign in with Google
           </button>
           
-          <p className="mt-2 text-mg">
+          <p className="mt-2 text-base text-center">
             <span style={{ color: '#3a3939' }}>Don't have an account? </span>
             <span
               style={{ color: '#6fba94', cursor: 'pointer' }}
               onClick={() => navigate('/signup')}
+              className="hover:underline font-semibold"
             >
               Sign up.
             </span>
           </p>
         </form>
+      </div>
+
+      {/* Right Side - Logo Container */}
+      <div className="w-1/2 flex items-center justify-center">
+        <div className="bg-[#95D2B3] rounded-3xl shadow-lg p-24 flex items-center justify-center w-200 h-200">
+          <img
+            src="/images/logo.png"
+            alt="Mindful Map Logo"
+            className="max-w-86 max-h-96 object-contain cursor-pointer hover:scale-105 transition-transform duration-300"
+            onClick={() => navigate('/')}
+          />
+        </div>
       </div>
     </div>
   );

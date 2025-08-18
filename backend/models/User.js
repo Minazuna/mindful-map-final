@@ -11,7 +11,12 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: false,
   },
-   lastName: {
+  middleInitial: {
+    type: String,
+    required: false,
+    maxlength: 2,
+  },
+  lastName: {
     type: String,
     required: false,
   },
@@ -19,6 +24,11 @@ const UserSchema = new mongoose.Schema({
     type: String,
     enum: ['Male', 'Female', 'Rather not say'],
     default: 'Rather not say'
+  },
+  section: {
+    type: String,
+    enum: ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'],
+    required: false,
   },
   avatar: {
     type: String, 
@@ -35,10 +45,6 @@ const UserSchema = new mongoose.Schema({
   role: {
     type: String,
     default: 'user',
-  },
-  verified: {
-    type: Boolean,
-    default: false,
   },
   createdAt: {
     type: Date,
