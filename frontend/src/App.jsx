@@ -5,8 +5,6 @@ import AboutUs from './components/AboutUs';
 import Signup from './components/Signup';
 import Signin from './components/Signin';
 import Home from './components/User/Home';
-import MoodLog from './components/User/MoodLog';
-import LogActivities from './components/User/LogActivities';
 import MoodEntries from './components/User/MoodEntries';
 import CalendarLog from './components/User/CalendarLog';
 import DailyRecommendations from './components/User/DailyRecommendations';
@@ -41,6 +39,20 @@ import UsersTable from './components/Admin/UsersTable';
 import InactiveUsers from './components/Admin/InactiveUsers';
 import PromptsTable from './components/Admin/PromptsTable';
 import StatisticsTable from './components/Admin/StatisticsTable';
+
+//Student's Inputs 
+import ChooseCategory from './components/User/Inputs/ChooseCategory';
+import BeforeValence from './components/User/Inputs/BeforeValence';
+import AfterValence from './components/User/Inputs/AfterValence';
+import BeforePositive from './components/User/Inputs/BeforePositive';
+import BeforeNegative from './components/User/Inputs/BeforeNegative';
+import AfterPositive from './components/User/Inputs/AfterPositive';
+import AfterNegative from './components/User/Inputs/AfterNegative';
+
+import OverallActivities from './components/User/Inputs/OverallActivities';
+import Health from './components/User/Inputs/Health';
+import Social from './components/User/Inputs/Social';
+import Sleep from './components/User/Inputs/Sleep';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -144,18 +156,90 @@ const App = () => {
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
         <Route
-          path="/log-mood"
+          path="/choose-category"
           element={
             <UserPrivateRoute>
-              <MoodLog setFormData={setFormData} />
+              <ChooseCategory />
             </UserPrivateRoute>
           }
         />
         <Route
-          path="/log-activities"
+          path="/before-valence"
           element={
             <UserPrivateRoute>
-              <LogActivities formData={formData} setFormData={setFormData} />
+              <BeforeValence />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/after-valence"
+          element={
+            <UserPrivateRoute>
+              <AfterValence />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/before-positive"
+          element={
+            <UserPrivateRoute>
+              <BeforePositive />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/before-negative"
+          element={
+            <UserPrivateRoute>
+              <BeforeNegative />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/after-positive"
+          element={
+            <UserPrivateRoute>
+              <AfterPositive />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/after-negative"
+          element={
+            <UserPrivateRoute>
+              <AfterNegative />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/overall-activities"
+          element={
+            <UserPrivateRoute>
+              <OverallActivities />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/social-interactions"
+          element={
+            <UserPrivateRoute>
+              <Social />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/health-activities"
+          element={
+            <UserPrivateRoute>
+              <Health />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/sleep-hours"
+          element={
+            <UserPrivateRoute>
+              <Sleep />
             </UserPrivateRoute>
           }
         />

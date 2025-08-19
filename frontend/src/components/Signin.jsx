@@ -62,36 +62,7 @@ const Signin = () => {
         if (userResponse.data.role === 'admin') {
           navigate('/admin/dashboard');
         } else if (userResponse.data.role === 'user') {
-          try {
-            const moodLogResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log`, {
-              headers: {
-                Authorization: `Bearer ${response.data.token}`,
-              },
-            });
-  
-            const now = new Date();
-            const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-
-            const logsToday = moodLogResponse.data.filter(log => {
-              const logDate = new Date(log.date);
-              return logDate.toISOString().split('T')[0] === now.toISOString().split('T')[0];
-            });
-
-            const recentLog = logsToday.find(log => new Date(log.date) > thirtyMinutesAgo);
-
-            if (recentLog) {
-              navigate('/mood-entries');
-            } else {
-              navigate('/log-mood');
-            }
-
-          } catch (error) {
-            if (error.response && error.response.data.message === 'No mood logs found') {
-              navigate('/log-mood');
-            } else {
-              toast.error('Error fetching mood logs.');
-            }
-          }
+          navigate('/choose-category');
         } else {
           toast.error("Unknown user role.");
         }
@@ -150,25 +121,7 @@ const Signin = () => {
         if (response.data.role === 'admin') {
           navigate('/admin/dashboard');
         } else {
-          // Check if the user has logged a mood for the day
-          try {
-            const moodLogResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log`, {
-              headers: {
-                Authorization: `Bearer ${response.data.token}`,
-              },
-            });
-  
-            const today = new Date().toISOString().split('T')[0];
-            const loggedToday = moodLogResponse.data.some(log => log.date.split('T')[0] === today);
-  
-            if (loggedToday) {
-              navigate('/mood-entries');
-            } else {
-              navigate('/log-mood');
-            }
-          } catch (error) {
-            navigate('/log-mood');
-          }
+          navigate('/choose-category');
         }
       }
     } catch (error) {
