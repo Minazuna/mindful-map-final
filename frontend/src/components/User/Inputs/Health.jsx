@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Health = () => {
+const Health = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
-  const [selectedHealth, setSelectedHealth] = useState('');
+  const [selectedHealth, setSelectedHealth] = useState(categoryFormData.activity || '');
 
   const healthOptions = [
     { id: 'jog', label: 'Jog', icon: '/images/jog.png' },
@@ -22,6 +22,12 @@ const Health = () => {
 
   const handleNext = () => {
     if (selectedHealth) {
+      // Save the selected health activity to the form data
+      setCategoryFormData(prev => ({
+        ...prev,
+        activity: selectedHealth
+      }));
+      
       console.log('Selected health activity:', selectedHealth);
       navigate('/before-valence');
     }

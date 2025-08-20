@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Sleep = () => {
+const Sleep = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
-  const [sleepHours, setSleepHours] = useState('');
+  const [sleepHours, setSleepHours] = useState(categoryFormData.hrs || '');
 
   const handleInputChange = (e) => {
     const value = e.target.value;
@@ -15,8 +15,12 @@ const Sleep = () => {
 
   const handleSubmit = () => {
     if (sleepHours !== '' && Number(sleepHours) >= 0) {
-      // For now, just navigate back to choose category or wherever you want
-      // Later you can add API call to save the sleep hours
+      // Save the sleep hours to the form data
+      setCategoryFormData(prev => ({
+        ...prev,
+        hrs: Number(sleepHours)
+      }));
+      
       console.log('Sleep hours:', sleepHours);
       navigate('/before-valence');
     }

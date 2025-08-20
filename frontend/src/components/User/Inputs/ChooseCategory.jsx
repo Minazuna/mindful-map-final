@@ -1,17 +1,32 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const ChooseCategory = () => {
+const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
 
   const categories = [
-    { name: 'Activities', path: '/overall-activities' },
-    { name: 'Social Interactions', path: '/social-interactions' },
-    { name: 'Health-related Activities', path: '/health-activities' },
-    { name: 'Previous Night\'s Sleep (No. of Hours)', path: '/sleep-hours' }
+    { name: 'Activities', path: '/overall-activities', categoryKey: 'activity' },
+    { name: 'Social Interactions', path: '/social-interactions', categoryKey: 'social' },
+    { name: 'Health-related Activities', path: '/health-activities', categoryKey: 'health' },
+    { name: 'Previous Night\'s Sleep (No. of Hours)', path: '/sleep-hours', categoryKey: 'sleep' }
   ];
 
-  const handleCategorySelect = (path) => {
+  const handleCategorySelect = (path, categoryKey) => {
+    // Set the selected category
+    setCategoryFormData(prev => ({
+      ...prev,
+      category: categoryKey,
+      // Reset other fields when changing category
+      activity: '',
+      hrs: 0,
+      beforeValence: '',
+      beforeEmotion: '',
+      beforeIntensity: 0,
+      afterValence: '',
+      afterEmotion: '',
+      afterIntensity: 0
+    }));
+    
     navigate(path);
   };
 
@@ -83,7 +98,7 @@ const ChooseCategory = () => {
           {categories.map((category, index) => (
             <button
               key={index}
-              onClick={() => handleCategorySelect(category.path)}
+              onClick={() => handleCategorySelect(category.path, category.categoryKey)}
               className="w-full py-4 px-8 rounded-2xl text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform"
               style={{ 
                 backgroundColor: '#F1F8E8',

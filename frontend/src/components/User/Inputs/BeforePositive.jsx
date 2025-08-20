@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Positive = () => {
+const Positive = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
   const [selectedEmotion, setSelectedEmotion] = useState('');
   const [intensity, setIntensity] = useState(0);
@@ -27,10 +27,15 @@ const Positive = () => {
 
   const handleSubmit = () => {
     if (selectedEmotion && intensity > 0) {
-      // For now, just log and navigate
-      // Later you can add API call to save the emotion and intensity
-      console.log('Selected emotion:', selectedEmotion, 'Intensity:', intensity);
-      navigate('/after-valence'); // or wherever you want to navigate next
+      // Save before emotion data
+      setCategoryFormData(prev => ({
+        ...prev,
+        beforeEmotion: selectedEmotion,
+        beforeIntensity: intensity
+      }));
+      
+      console.log('Selected before emotion:', selectedEmotion, 'Intensity:', intensity);
+      navigate('/after-valence');
     }
   };
 

@@ -147,6 +147,19 @@ const App = () => {
     sleepQuality: '',
   });
 
+  // New category-based form data
+  const [categoryFormData, setCategoryFormData] = useState({
+    category: '',
+    activity: '',
+    hrs: 0,
+    beforeValence: '',
+    beforeEmotion: '',
+    beforeIntensity: 0,
+    afterValence: '',
+    afterEmotion: '',
+    afterIntensity: 0
+  });
+
   return (
     <Router>
       <ToastContainer />
@@ -159,7 +172,7 @@ const App = () => {
           path="/choose-category"
           element={
             <UserPrivateRoute>
-              <ChooseCategory />
+              <ChooseCategory categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -167,7 +180,7 @@ const App = () => {
           path="/before-valence"
           element={
             <UserPrivateRoute>
-              <BeforeValence />
+              <BeforeValence categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -175,7 +188,7 @@ const App = () => {
           path="/after-valence"
           element={
             <UserPrivateRoute>
-              <AfterValence />
+              <AfterValence categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -183,7 +196,7 @@ const App = () => {
           path="/before-positive"
           element={
             <UserPrivateRoute>
-              <BeforePositive />
+              <BeforePositive categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -191,7 +204,7 @@ const App = () => {
           path="/before-negative"
           element={
             <UserPrivateRoute>
-              <BeforeNegative />
+              <BeforeNegative categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -199,7 +212,7 @@ const App = () => {
           path="/after-positive"
           element={
             <UserPrivateRoute>
-              <AfterPositive />
+              <AfterPositive categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -207,7 +220,7 @@ const App = () => {
           path="/after-negative"
           element={
             <UserPrivateRoute>
-              <AfterNegative />
+              <AfterNegative categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -215,7 +228,7 @@ const App = () => {
           path="/overall-activities"
           element={
             <UserPrivateRoute>
-              <OverallActivities />
+              <OverallActivities categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -223,7 +236,7 @@ const App = () => {
           path="/social-interactions"
           element={
             <UserPrivateRoute>
-              <Social />
+              <Social categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -231,7 +244,7 @@ const App = () => {
           path="/health-activities"
           element={
             <UserPrivateRoute>
-              <Health />
+              <Health categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />
@@ -239,7 +252,7 @@ const App = () => {
           path="/sleep-hours"
           element={
             <UserPrivateRoute>
-              <Sleep />
+              <Sleep categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />

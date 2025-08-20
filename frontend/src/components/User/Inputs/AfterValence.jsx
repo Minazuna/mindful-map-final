@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const AfterValence = () => {
+const AfterValence = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
 
   const valenceOptions = [
@@ -22,12 +22,18 @@ const AfterValence = () => {
   ];
 
   const handleValenceSelect = (option) => {
+    // Save the selected after valence
+    setCategoryFormData(prev => ({
+      ...prev,
+      afterValence: option.id
+    }));
+    
     console.log('Selected after valence:', option.id);
     navigate(option.path);
   };
 
   const handleBack = () => {
-    navigate('/choose-category'); // or wherever you want to go back to
+    navigate(-1); // Go back to previous page
   };
 
   return (

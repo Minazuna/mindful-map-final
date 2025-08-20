@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Social = () => {
+const Social = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
-  const [selectedSocial, setSelectedSocial] = useState('');
+  const [selectedSocial, setSelectedSocial] = useState(categoryFormData.activity || '');
 
   const socialOptions = [
     { id: 'alone', label: 'Alone', icon: '/images/alone.png' },
@@ -21,6 +21,12 @@ const Social = () => {
 
   const handleNext = () => {
     if (selectedSocial) {
+      // Save the selected social interaction to the form data
+      setCategoryFormData(prev => ({
+        ...prev,
+        activity: selectedSocial
+      }));
+      
       console.log('Selected social:', selectedSocial);
       navigate('/before-valence');
     }

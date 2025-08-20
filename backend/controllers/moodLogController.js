@@ -3,63 +3,112 @@ const moment = require('moment');
 
 exports.saveMood = async (req, res) => {
   try {
-    const { mood, activities, social, health, sleepHours } = req.body;
+    const { 
+      category, 
+      activity, 
+      hrs, 
+      beforeValence, 
+      beforeEmotion, 
+      beforeIntensity, 
+      afterValence, 
+      afterEmotion, 
+      afterIntensity 
+    } = req.body;
 
     if (!req.user) {
       return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
     }
 
-    const moodValues = {
-      'Happy': 4,
-      'Fine': 2,
-      'Anxious': 0,
-      'Sad': -3,
-      'Angry': -1
-    };
-
-    const moodValue = moodValues[mood] !== undefined ? moodValues[mood] : 0;
-
-    const now = new Date();
-    const thirtyMinutesAgo = new Date(now.getTime() - 30 * 60 * 1000);
-
-    // Find the most recent mood log for today
-    const startOfDay = new Date(now);
-    startOfDay.setUTCHours(0, 0, 0, 0);
-
-    const endOfDay = new Date(now);
-    endOfDay.setUTCHours(23, 59, 59, 999);
-
-    const recentLog = await MoodLog.findOne({
-      user: req.user._id,
-      date: { $gte: startOfDay, $lte: endOfDay }
-    }).sort({ date: -1 }); 
-
-    if (recentLog && new Date(recentLog.date) > thirtyMinutesAgo) {
-      return res.status(400).json({
-        success: false,
-        message: 'You can only log a new mood after 30 minutes.',
-      });
+    // Validate required fields
+    if (!category || !['activity', 'social', 'health', 'sleep'].includes(category)) {
+      return res.status(400).json({ success: false, message: 'Valid category is required (activity, social, health, sleep).' });
     }
 
+    if (!beforeValence || !afterValence) {
+      return res.status(400).json({ success: false, message: 'Before and after valence are required.' });
+    }
+
+    if (!afterEmotion || !afterIntensity) {
+      return res.status(400).json({ success: false, message: 'After emotion and intensity are required.' });
+    }
+
+    // Validate category-specific fields
+    if (category === 'sleep') {
+      if (!hrs || typeof hrs !== 'number') {
+        return res.status(400).json({ success: false, message: 'Hours of sleep is required for sleep category.' });
+      }
+    } else {
+      if (!activity) {
+        return res.status(400).json({ success: false, message: 'Activity is required for this category.' });
+      }
+    }
+
+    // Validate before emotion and intensity if not "can't remember"
+    if (beforeValence !== 'can\'t remember') {
+      if (!beforeEmotion || !beforeIntensity) {
+        return res.status(400).json({ success: false, message: 'Before emotion and intensity are required when valence is specified.' });
+      }
+    }
+
+    const now = new Date();
+
+    // For sleep category, check if there's already an entry today and update it
+    if (category === 'sleep') {
+      const startOfDay = new Date(now);
+      startOfDay.setUTCHours(0, 0, 0, 0);
+
+      const endOfDay = new Date(now);
+      endOfDay.setUTCHours(23, 59, 59, 999);
+
+      const existingSleepLog = await MoodLog.findOne({
+        user: req.user._id,
+        category: 'sleep',
+        date: { $gte: startOfDay, $lte: endOfDay }
+      });
+
+      if (existingSleepLog) {
+        // Update existing sleep log
+        existingSleepLog.hrs = hrs;
+        existingSleepLog.beforeValence = beforeValence;
+        existingSleepLog.beforeEmotion = beforeValence !== 'can\'t remember' ? beforeEmotion : undefined;
+        existingSleepLog.beforeIntensity = beforeValence !== 'can\'t remember' ? beforeIntensity : undefined;
+        existingSleepLog.afterValence = afterValence;
+        existingSleepLog.afterEmotion = afterEmotion;
+        existingSleepLog.afterIntensity = afterIntensity;
+        existingSleepLog.date = now;
+
+        await existingSleepLog.save();
+
+        return res.status(200).json({ 
+          success: true, 
+          message: 'Sleep log updated successfully.',
+          log: existingSleepLog
+        });
+      }
+    }
+
+    // Create new mood log entry
     const newMoodLog = new MoodLog({
       user: req.user._id,
-      mood,
-      moodScore: moodValue,
-      activities,
-      social,
-      health,
-      sleepQuality: sleepHours,
-      date: now, 
-      time: now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      date: now,
+      category,
+      activity: category !== 'sleep' ? activity : undefined,
+      hrs: category === 'sleep' ? hrs : undefined,
+      beforeValence,
+      beforeEmotion: beforeValence !== 'can\'t remember' ? beforeEmotion : undefined,
+      beforeIntensity: beforeValence !== 'can\'t remember' ? beforeIntensity : undefined,
+      afterValence,
+      afterEmotion,
+      afterIntensity
     });
 
     await newMoodLog.save();
 
-    if (['angry', 'sad', 'anxious'].includes(mood.toLowerCase())) {
-      return res.status(200).json({ success: true, message: 'Mood log saved successfully.', mood });
-    }
-
-    res.status(200).json({ success: true, message: 'Mood log saved successfully.' });
+    res.status(200).json({ 
+      success: true, 
+      message: 'Mood log saved successfully.',
+      log: newMoodLog
+    });
   } catch (error) {
     console.error('Error saving mood log:', error);
     res.status(500).json({ success: false, message: 'Server error while saving mood log.' });
@@ -85,6 +134,8 @@ exports.getTodaysLastMoodLog = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
     }
 
+    const { category } = req.query;
+
     // Get today's date range
     const now = new Date();
     const startOfDay = new Date(now);
@@ -93,21 +144,31 @@ exports.getTodaysLastMoodLog = async (req, res) => {
     const endOfDay = new Date(now);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
-    // Find all mood logs for today
-    const todaysMoodLogs = await MoodLog.find({
+    // Build query
+    const query = {
       user: req.user._id,
       date: { $gte: startOfDay, $lte: endOfDay }
-    }).sort({ date: -1 });
+    };
+
+    // If category is specified, filter by category
+    if (category) {
+      query.category = category;
+    }
+
+    // Find all mood logs for today (optionally filtered by category)
+    const todaysMoodLogs = await MoodLog.find(query).sort({ date: -1 });
 
     if (!todaysMoodLogs.length) {
       return res.status(200).json({ 
         success: false, 
-        message: 'No previous mood logs found for today or this is the first log',
+        message: category 
+          ? `No previous mood logs found for ${category} category today` 
+          : 'No previous mood logs found for today',
         lastLog: null 
       });
     }
 
-    // Return the most recent log from today (excluding the current session)
+    // Return the most recent log from today
     const lastMoodLog = todaysMoodLogs[0];
 
     res.status(200).json({ 
@@ -172,16 +233,24 @@ exports.checkMoodLogs = async (req, res) => {
 
 exports.getPaginatedMoodLogs = async (req, res) => {
   try {
-    const { month, year, page = 0, limit = 4 } = req.query;
+    const { month, year, page = 0, limit = 4, category } = req.query;
     const skip = page * limit;
 
-    const moodLogs = await MoodLog.find({
+    // Build query
+    const query = {
       user: req.user._id,
       date: {
         $gte: new Date(year, month - 1, 1),
         $lt: new Date(year, month, 1)
       }
-    })
+    };
+
+    // Add category filter if specified
+    if (category) {
+      query.category = category;
+    }
+
+    const moodLogs = await MoodLog.find(query)
       .sort({ date: -1 })
       .skip(skip)
       .limit(parseInt(limit));
@@ -190,5 +259,64 @@ exports.getPaginatedMoodLogs = async (req, res) => {
   } catch (error) {
     console.error('Error fetching paginated mood logs:', error);
     res.status(500).json({ success: false, message: 'Server error while fetching paginated mood logs.' });
+  }
+};
+
+// Get mood logs by category
+exports.getMoodLogsByCategory = async (req, res) => {
+  try {
+    const { category } = req.params;
+    
+    if (!['activity', 'social', 'health', 'sleep'].includes(category)) {
+      return res.status(400).json({ success: false, message: 'Invalid category' });
+    }
+
+    const moodLogs = await MoodLog.find({ 
+      user: req.user._id, 
+      category 
+    }).sort({ date: -1 });
+
+    res.status(200).json(moodLogs);
+  } catch (error) {
+    console.error('Error fetching mood logs by category:', error);
+    res.status(500).json({ success: false, message: 'Server error while fetching mood logs by category.' });
+  }
+};
+
+// Get today's sleep log specifically
+exports.getTodaysSleepLog = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
+    }
+
+    const now = new Date();
+    const startOfDay = new Date(now);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(now);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const sleepLog = await MoodLog.findOne({
+      user: req.user._id,
+      category: 'sleep',
+      date: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    if (!sleepLog) {
+      return res.status(200).json({ 
+        success: false, 
+        message: 'No sleep log found for today',
+        sleepLog: null 
+      });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      sleepLog 
+    });
+  } catch (error) {
+    console.error('Error fetching today\'s sleep log:', error);
+    res.status(500).json({ success: false, message: 'Server error while fetching today\'s sleep log.' });
   }
 };

@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const OverallActivities = () => {
+const OverallActivities = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
-  const [selectedActivity, setSelectedActivity] = useState('');
+  const [selectedActivity, setSelectedActivity] = useState(categoryFormData.activity || '');
 
   const activityOptions = [
     { id: 'study', label: 'Study', icon: '/images/study.png' },
@@ -24,6 +24,12 @@ const OverallActivities = () => {
 
   const handleNext = () => {
     if (selectedActivity) {
+      // Save the selected activity to the form data
+      setCategoryFormData(prev => ({
+        ...prev,
+        activity: selectedActivity
+      }));
+      
       console.log('Selected activity:', selectedActivity);
       navigate('/before-valence');
     }

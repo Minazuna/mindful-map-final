@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-const Valence = () => {
+const Valence = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
 
   const valenceOptions = [
@@ -20,7 +20,7 @@ const Valence = () => {
       path: '/before-negative'
     },
     { 
-      id: 'cant-remember', 
+      id: 'can\'t remember', 
       label: "I can't remember", 
       emoji: '🤔',
       color: '#95D2B3',
@@ -29,12 +29,18 @@ const Valence = () => {
   ];
 
   const handleValenceSelect = (option) => {
+    // Save the selected before valence
+    setCategoryFormData(prev => ({
+      ...prev,
+      beforeValence: option.id
+    }));
+    
     console.log('Selected valence:', option.id);
     navigate(option.path);
   };
 
   const handleBack = () => {
-    navigate('/choose-category');
+    navigate(-1); // Go back to previous page (could be different category pages)
   };
 
   return (

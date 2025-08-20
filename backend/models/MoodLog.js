@@ -11,30 +11,61 @@ const MoodLogSchema = new mongoose.Schema({
     required: true,
     default: Date.now,
   },
-  mood: {
+  category: {
     type: String,
     required: true,
+    enum: ['activity', 'social', 'health', 'sleep']
   },
-  moodScore: {
+  // For activity, social, and health categories
+  activity: {
+    type: String,
+    required: function() {
+      return this.category !== 'sleep';
+    }
+  },
+  // For sleep category
+  hrs: {
     type: Number,
-    required: true,
+    required: function() {
+      return this.category === 'sleep';
+    }
   },
-  activities: {
-    type: [String],
-    required: true,
+  // Before valence tracking
+  beforeValence: {
+    type: String,
+    enum: ['positive', 'negative', 'can\'t remember'],
+    required: true
   },
-  social: {
-    type: [String],
-    required: true,
+  beforeEmotion: {
+    type: String,
+    required: function() {
+      return this.beforeValence !== 'can\'t remember';
+    }
   },
-  health: {
-    type: [String],
-    required: true,
-  },
-  sleepQuality: {
+  beforeIntensity: {
     type: Number,
-    required: true,
+    min: 1,
+    max: 5,
+    required: function() {
+      return this.beforeValence !== 'can\'t remember';
+    }
   },
+  // After valence tracking
+  afterValence: {
+    type: String,
+    enum: ['positive', 'negative'],
+    required: true
+  },
+  afterEmotion: {
+    type: String,
+    required: true
+  },
+  afterIntensity: {
+    type: Number,
+    min: 1,
+    max: 5,
+    required: true
+  }
 });
 
 module.exports = mongoose.model('MoodLog', MoodLogSchema);

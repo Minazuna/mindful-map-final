@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import { toast } from 'react-toastify';
 
-const AfterNegative = () => {
+const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
   const [selectedEmotion, setSelectedEmotion] = useState('');
   const [intensity, setIntensity] = useState(0);
@@ -25,12 +27,59 @@ const AfterNegative = () => {
     setIntensity(level);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (selectedEmotion && intensity > 0) {
-      // For now, just log and navigate
-      // Later you can add API call to save the emotion and intensity
-      console.log('Selected after emotion:', selectedEmotion, 'Intensity:', intensity);
-      navigate('/choose-category'); // or wherever you want to navigate next
+      try {
+        // Update the category form data with after emotions
+        const finalFormData = {
+          ...categoryFormData,
+          afterValence: 'negative',
+          afterEmotion: selectedEmotion,
+          afterIntensity: intensity
+        };
+
+        console.log('Final category form data:', finalFormData);
+
+        // Submit to API
+        const token = localStorage.getItem('token');
+        if (!token) {
+          toast.error('Please log in again.');
+          return;
+        }
+
+        const response = await axios.post(`${import.meta.env.VITE_NODE_API}/api/mood-log`, finalFormData, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        console.log('Mood log saved:', response.data);
+        
+        if (response.data.success) {
+          toast.success('Mood log saved successfully!');
+          
+          // Reset category form data
+          setCategoryFormData({
+            category: '',
+            activity: '',
+            hrs: 0,
+            beforeValence: '',
+            beforeEmotion: '',
+            beforeIntensity: 0,
+            afterValence: '',
+            afterEmotion: '',
+            afterIntensity: 0
+          });
+          
+          // Navigate back to choose category to add more entries or go to mood entries
+          navigate('/choose-category');
+        } else {
+          toast.error('Failed to save mood log');
+        }
+      } catch (error) {
+        console.error('Error saving mood log:', error);
+        toast.error(error.response?.data?.message || 'Error saving mood log');
+      }
     }
   };
 
