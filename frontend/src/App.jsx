@@ -21,13 +21,12 @@ import WeeklyPredictions from './components/User/WeeklyPredictions';
 import DailyPrediction from './components/User/DailyPrediction';
 import MainPredictions from './components/User/MainPredictions';
 import Recommendations from './components/User/Statistics/Recommendations';
-import BreathingExercise from './components/User/Statistics/Recommendations/BreathingExercise';
-import Pomodoro from './components/User/Statistics/Recommendations/Pomodoro';
-import Affirmation from './components/User/Statistics/Recommendations/Affirmation';
-import ListTask from './components/User/Statistics/Recommendations/ListTask';
-import CalmingMusic from './components/User/Statistics/Recommendations/CalmingMusic';
+import Pomodoro from './components/User/Statistics/Activities/Pomodoro';
+import Affirmation from './components/User/Statistics/Activities/Affirmation';
+import ListTask from './components/User/Statistics/Activities/ListTask';
+import CalmingMusic from './components/User/Statistics/Activities/CalmingMusic';
 import Activities from './components/User/Activities';
-import Meditation from './components/User/Statistics/Recommendations/Meditation';
+import Meditation from './components/User/Statistics/Activities/Meditation';
 import ForumDiscussion from './components/User/Forum';
 import PersonalJournal from './components/User/Journal/PersonalJournal';
 import { ToastContainer, toast } from 'react-toastify';
@@ -53,6 +52,11 @@ import OverallActivities from './components/User/Inputs/OverallActivities';
 import Health from './components/User/Inputs/Health';
 import Social from './components/User/Inputs/Social';
 import Sleep from './components/User/Inputs/Sleep';
+
+//Breathing Exercise
+import BreathingExercise from './components/User/Statistics/Activities/BreathingExercise/BreathingExercise';
+import CompletionModal from './components/User/Statistics/Activities/BreathingExercise/CompletionModal';
+import ProgressModal from './components/User/Statistics/Activities/BreathingExercise/ProgressModal';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
