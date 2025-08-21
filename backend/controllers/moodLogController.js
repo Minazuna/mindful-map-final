@@ -70,8 +70,8 @@ exports.saveMood = async (req, res) => {
         // Update existing sleep log
         existingSleepLog.hrs = hrs;
         existingSleepLog.beforeValence = beforeValence;
-        existingSleepLog.beforeEmotion = beforeValence !== 'can\'t remember' ? beforeEmotion : undefined;
-        existingSleepLog.beforeIntensity = beforeValence !== 'can\'t remember' ? beforeIntensity : undefined;
+        existingSleepLog.beforeEmotion = beforeValence !== 'can\'t remember' ? beforeEmotion : null;
+        existingSleepLog.beforeIntensity = beforeValence !== 'can\'t remember' ? beforeIntensity : 0;
         existingSleepLog.afterValence = afterValence;
         existingSleepLog.afterEmotion = afterEmotion;
         existingSleepLog.afterIntensity = afterIntensity;
@@ -95,8 +95,8 @@ exports.saveMood = async (req, res) => {
       activity: category !== 'sleep' ? activity : undefined,
       hrs: category === 'sleep' ? hrs : undefined,
       beforeValence,
-      beforeEmotion: beforeValence !== 'can\'t remember' ? beforeEmotion : undefined,
-      beforeIntensity: beforeValence !== 'can\'t remember' ? beforeIntensity : undefined,
+      beforeEmotion: beforeValence !== 'can\'t remember' ? beforeEmotion : null,
+      beforeIntensity: beforeValence !== 'can\'t remember' ? beforeIntensity : 0,
       afterValence,
       afterEmotion,
       afterIntensity

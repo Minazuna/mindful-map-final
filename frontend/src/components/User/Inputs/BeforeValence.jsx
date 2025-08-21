@@ -32,7 +32,10 @@ const Valence = ({ categoryFormData, setCategoryFormData }) => {
     // Save the selected before valence
     setCategoryFormData(prev => ({
       ...prev,
-      beforeValence: option.id
+      beforeValence: option.id,
+      // If "can't remember", explicitly set beforeEmotion to null and beforeIntensity to 0
+      beforeEmotion: option.id === 'can\'t remember' ? null : prev.beforeEmotion,
+      beforeIntensity: option.id === 'can\'t remember' ? 0 : prev.beforeIntensity
     }));
     
     console.log('Selected valence:', option.id);

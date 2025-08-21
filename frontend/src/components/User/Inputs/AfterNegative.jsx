@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import ContinueTrackingModal from './ContinueTrackingModal';
 
 const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
   const [selectedEmotion, setSelectedEmotion] = useState('');
   const [intensity, setIntensity] = useState(0);
+  const [showContinueModal, setShowContinueModal] = useState(false);
 
   const emotions = [
     { id: 'bored', emoji: '😑', label: 'Bored' },
@@ -25,6 +27,16 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
 
   const handleIntensitySelect = (level) => {
     setIntensity(level);
+  };
+
+  const handleContinueTracking = () => {
+    setShowContinueModal(false);
+    navigate('/choose-category');
+  };
+
+  const handleFinishTracking = () => {
+    setShowContinueModal(false);
+    navigate('/mood-entries');
   };
 
   const handleSubmit = async () => {
@@ -64,15 +76,15 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
             activity: '',
             hrs: 0,
             beforeValence: '',
-            beforeEmotion: '',
+            beforeEmotion: null,
             beforeIntensity: 0,
             afterValence: '',
             afterEmotion: '',
             afterIntensity: 0
           });
           
-          // Navigate back to choose category to add more entries or go to mood entries
-          navigate('/choose-category');
+          // Show the continue tracking modal
+          setShowContinueModal(true);
         } else {
           toast.error('Failed to save mood log');
         }
@@ -235,6 +247,13 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
           </p>
         </div>
       </div>
+
+      {/* Continue Tracking Modal */}
+      <ContinueTrackingModal
+        isOpen={showContinueModal}
+        onContinue={handleContinueTracking}
+        onFinish={handleFinishTracking}
+      />
     </div>
   );
 };

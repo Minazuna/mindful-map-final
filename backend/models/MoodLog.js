@@ -38,14 +38,16 @@ const MoodLogSchema = new mongoose.Schema({
   },
   beforeEmotion: {
     type: String,
+    default: null,
     required: function() {
       return this.beforeValence !== 'can\'t remember';
     }
   },
   beforeIntensity: {
     type: Number,
-    min: 1,
+    min: 0,
     max: 5,
+    default: 0,
     required: function() {
       return this.beforeValence !== 'can\'t remember';
     }

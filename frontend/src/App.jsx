@@ -153,7 +153,7 @@ const App = () => {
     activity: '',
     hrs: 0,
     beforeValence: '',
-    beforeEmotion: '',
+    beforeEmotion: null,
     beforeIntensity: 0,
     afterValence: '',
     afterEmotion: '',
