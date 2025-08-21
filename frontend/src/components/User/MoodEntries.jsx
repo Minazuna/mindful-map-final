@@ -130,6 +130,16 @@ const MoodEntries = () => {
       .replace(/\b\w/g, (letter) => letter.toUpperCase()); // Capitalize first letter of each word
   };
 
+  // Format timestamp function
+  const formatTimestamp = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { 
+      hour: 'numeric', 
+      minute: '2-digit',
+      hour12: true 
+    });
+  };
+
   const fetchMoodLogs = async () => {
     try {
       setLoading(true);
@@ -424,7 +434,7 @@ const MoodEntries = () => {
         <DialogContent style={{ padding: '24px' }}>
           <div className="text-center">
             <div className="mb-4">
-              <AccessTimeIcon style={{ fontSize: 56, color: '#55AD9B' }} />
+              <AccessTimeIcon style={{ fontSize: 56, color: '#272829' }} />
             </div>
             
             <h2 className="text-2xl font-bold mb-3" style={{ color: '#272829' }}>
@@ -547,9 +557,15 @@ const MoodEntries = () => {
                                 <h3 className="font-semibold text-xl" style={{ color: '#272829' }}>
                                   {formatText(log.category)}
                                 </h3>
-                                <p className="text-base" style={{ color: '#55AD9B' }}>
+                                <p className="text-base" style={{ color: '#3a796cff', fontWeight: 'bold' }}>
                                   {formatText(log.activity)} {log.hrs && `• ${log.hrs} hrs`}
                                 </p>
+                                <div className="flex items-center mt-1">
+                                  <AccessTimeIcon style={{ fontSize: 16, color: '#272829', marginRight: '4px' }} />
+                                  <span className="text-sm" style={{ color: '#272829' }}>
+                                    {formatTimestamp(log.date)}
+                                  </span>
+                                </div>
                               </div>
                             </div>
                             
