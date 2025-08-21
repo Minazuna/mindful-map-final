@@ -5,7 +5,7 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BottomNav from '../BottomNav';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Chip, Tooltip, IconButton, Dialog, DialogContent, DialogTitle, DialogActions } from '@mui/material';
+import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Chip, Tooltip, IconButton, Dialog, DialogContent, DialogActions } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -38,146 +38,152 @@ const MoodEntries = () => {
   const [favoriteEntries, setFavoriteEntries] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
-  const [showTips, setShowTips] = useState(false);
   const [showTimeRestrictionModal, setShowTimeRestrictionModal] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
-  const [selectedDays, setSelectedDays] = useState({
-    Sunday: false,
-    Monday: false,
-    Tuesday: false,
-    Wednesday: false,
-    Thursday: false,
-    Friday: false,
-    Saturday: false,
+  const [selectedCategories, setSelectedCategories] = useState({
+    'Overall Activities': false,
+    'Social': false,
+    'Health': false,
+    'Sleep': false,
   });
-  const [selectedMoods, setSelectedMoods] = useState({
-    Happy: false,
-    Sad: false,
-    Anxious: false,
-    Fine: false,
-    Angry: false,
+  const [selectedValences, setSelectedValences] = useState({
+    'Positive': false,
+    'Negative': false,
   });
   const [sortOrder, setSortOrder] = useState('newest');
 
-  const fetchMoodLogs = async (page) => {
+  // Emotion emojis mapping
+  const emotionEmojis = {
+    // Positive emotions
+    'calm': '😌',
+    'relaxed': '😊',
+    'pleased': '🙂',
+    'happy': '😄',
+    'excited': '🤩',
+    // Negative emotions
+    'bored': '😑',
+    'sad': '😢',
+    'disappointed': '😞',
+    'angry': '😠',
+    'tense': '😰'
+  };
+
+  // Activity icons mapping (PNG for most, emoji for sleep)
+  const getActivityIcon = (activity, category) => {
+    // Sleep category uses emojis
+    if (category === 'Sleep') {
+      return <span className="text-3xl">😴</span>;
+    }
+
+    // All other categories use PNG images
+    const activityImages = {
+      // Overall Activities
+      'study': '/images/study.png',
+      'read': '/images/read.png',
+      'extracurricular': '/images/extraCurricularActivities.png',
+      'relax': '/images/relax.png',
+      'watch-movie': '/images/watchMovie.png',
+      'listen-music': '/images/listenToMusic.png',
+      'gaming': '/images/gaming.png',
+      'browse-internet': '/images/browseInternet.png',
+      'shopping': '/images/shopping.png',
+      'travel': '/images/travel.png',
+      // Social
+      'alone': '/images/alone.png',
+      'friends': '/images/friend.png',
+      'family': '/images/family.png',
+      'classmates': '/images/classmate.png',
+      'relationship': '/images/relationship.png',
+      'pet': '/images/pet.png',
+      // Health
+      'jog': '/images/jog.png',
+      'walk': '/images/walk.png',
+      'exercise': '/images/exercise.png',
+      'meditate': '/images/meditate.png',
+      'eat-healthy': '/images/eatHealthy.png',
+      'no-physical': '/images/noPhysicalActivity.png',
+      'eat-unhealthy': '/images/eatUnhealthy.png',
+      'drink-alcohol': '/images/alcoho.png'
+    };
+
+    const imageSrc = activityImages[activity];
+    if (imageSrc) {
+      return (
+        <img
+          src={imageSrc}
+          alt={activity}
+          className="w-10 h-10 object-contain"
+        />
+      );
+    }
+
+    // Fallback
+    return <span className="text-3xl">📝</span>;
+  };
+
+  // Format text function to handle uppercase and remove special characters
+  const formatText = (text) => {
+    if (!text) return '';
+    
+    return text
+      .replace(/[-_]/g, ' ') // Replace hyphens and underscores with spaces
+      .replace(/\b\w/g, (letter) => letter.toUpperCase()); // Capitalize first letter of each word
+  };
+
+  const fetchMoodLogs = async () => {
     try {
+      setLoading(true);
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log/paginated`, {
+      const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
-        params: {
-          month: currentMonth + 1,
-          year: currentYear,
-          page,
-          limit: 6,
-        },
       });
-      return response.data;
+      setMoodLogs(response.data);
+      setLoading(false);
     } catch (error) {
       console.error('Error fetching mood logs:', error);
-      return [];
+      setLoading(false);
     }
   };
 
-const checkLastMoodLogTime = async () => {
-  try {
-    console.log('Checking last mood log time...');
-    const token = localStorage.getItem('token');
-    // Updated endpoint to match your existing route
-    const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log/today-last`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    console.log('Last mood log response:', response.data);
-    
-    // Handle the response structure from your getTodaysLastMoodLog function
-    if (response.data.success && response.data.lastLog && response.data.lastLog.date) {
-      const lastLogTime = new Date(response.data.lastLog.date);
-      const currentTime = new Date();
-      const timeDifference = currentTime - lastLogTime;
-      const thirtyMinutesInMs = 30 * 60 * 1000; // 30 minutes in milliseconds
+  const checkLastMoodLogTime = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log/today-last`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       
-      console.log('Last log time:', lastLogTime);
-      console.log('Current time:', currentTime);
-      console.log('Time difference (ms):', timeDifference);
-      console.log('Time difference (minutes):', timeDifference / (60 * 1000));
-      
-      if (timeDifference < thirtyMinutesInMs) {
-        const remainingMs = thirtyMinutesInMs - timeDifference;
-        const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
-        console.log('Remaining minutes:', remainingMinutes);
-        setRemainingTime(remainingMinutes);
-        return false; // Cannot log yet
+      if (response.data.success && response.data.lastLog && response.data.lastLog.date) {
+        const lastLogTime = new Date(response.data.lastLog.date);
+        const currentTime = new Date();
+        const timeDifference = currentTime - lastLogTime;
+        const thirtyMinutesInMs = 30 * 60 * 1000;
+        
+        if (timeDifference < thirtyMinutesInMs) {
+          const remainingMs = thirtyMinutesInMs - timeDifference;
+          const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
+          setRemainingTime(remainingMinutes);
+          return false;
+        }
       }
+      
+      return true;
+    } catch (error) {
+      console.error('Error checking last mood log time:', error);
+      return true;
     }
-    
-    // If success is false (no logs today) or enough time has passed, allow logging
-    console.log('Can log - no recent entries or enough time passed');
-    return true; // Can log
-  } catch (error) {
-    console.error('Error checking last mood log time:', error);
-    // Allow logging if there's an error (like 404 or network error)
-    return true;
-  }
-};
+  };
 
   useEffect(() => {
-    const loadInitialLogs = async () => {
-      setLoading(true);
-      const initialLogs = await fetchMoodLogs(0);
-      setMoodLogs(initialLogs);
-      setPage(1);
-      setHasMore(initialLogs.length === 6);
-      setLoading(false);
-
-      const savedFavorites = localStorage.getItem('favoriteMoodEntries');
-      if (savedFavorites) {
-        setFavoriteEntries(JSON.parse(savedFavorites));
-      }
-    };
-
-    loadInitialLogs();
-  }, [currentMonth, currentYear]);
-
-  const loadMoreLogs = async () => {
-    if (loading) return;
-    setLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    const newLogs = await fetchMoodLogs(page);
-    setMoodLogs((prevLogs) => [...prevLogs, ...newLogs]);
-    setPage((prevPage) => prevPage + 1);
-    setHasMore(newLogs.length === 6);
-    setLoading(false);
-  };
-
-  const daysOfWeek = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const moods = ["Happy", "Sad", "Anxious", "Fine", "Angry"];
-
-  const handlePrevMonth = () => {
-    if (currentMonth === 0) {
-      setCurrentMonth(11);
-      setCurrentYear(currentYear - 1);
-    } else {
-      setCurrentMonth(currentMonth - 1);
+    fetchMoodLogs();
+    const savedFavorites = localStorage.getItem('favoriteMoodEntries');
+    if (savedFavorites) {
+      setFavoriteEntries(JSON.parse(savedFavorites));
     }
-    setPage(0);
-    setMoodLogs([]);
-  };
-
-  const handleNextMonth = () => {
-    if (currentMonth === 11) {
-      setCurrentMonth(0);
-      setCurrentYear(currentYear + 1);
-    } else {
-      setCurrentMonth(currentMonth + 1);
-    }
-    setPage(0);
-    setMoodLogs([]);
-  };
+  }, []);
 
   const handleFilterClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -201,35 +207,29 @@ const checkLastMoodLogTime = async () => {
   };
 
   const clearAllFilters = () => {
-    setSelectedDays({
-      Sunday: false,
-      Monday: false,
-      Tuesday: false,
-      Wednesday: false,
-      Thursday: false,
-      Friday: false,
-      Saturday: false,
+    setSelectedCategories({
+      'Overall Activities': false,
+      'Social': false,
+      'Health': false,
+      'Sleep': false,
     });
-    setSelectedMoods({
-      Happy: false,
-      Sad: false,
-      Anxious: false,
-      Fine: false,
-      Angry: false,
+    setSelectedValences({
+      'Positive': false,
+      'Negative': false,
     });
     setSearchTerm('');
   };
 
-  const handleDayChange = (event) => {
-    setSelectedDays({
-      ...selectedDays,
+  const handleCategoryChange = (event) => {
+    setSelectedCategories({
+      ...selectedCategories,
       [event.target.name]: event.target.checked,
     });
   };
 
-  const handleMoodChange = (event) => {
-    setSelectedMoods({
-      ...selectedMoods,
+  const handleValenceChange = (event) => {
+    setSelectedValences({
+      ...selectedValences,
       [event.target.name]: event.target.checked,
     });
   };
@@ -245,21 +245,13 @@ const checkLastMoodLogTime = async () => {
     setActiveTab(newValue);
   };
 
-  const toggleViewMode = () => {
-    setViewMode(viewMode === 'list' ? 'calendar' : 'list');
-  };
-
-  const toggleTips = () => {
-    setShowTips(!showTips);
-  };
-
   const handleAddMoodLog = async () => {
     const canLog = await checkLastMoodLogTime();
     
     if (!canLog) {
       setShowTimeRestrictionModal(true);
     } else {
-      navigate('/log-mood');
+      navigate('/choose-category');
     }
   };
 
@@ -268,31 +260,29 @@ const checkLastMoodLogTime = async () => {
   };
 
   // Check if any filters are active
-  const hasActiveFilters = Object.values(selectedDays).some(Boolean) || 
-                          Object.values(selectedMoods).some(Boolean) || 
+  const hasActiveFilters = Object.values(selectedCategories).some(Boolean) || 
+                          Object.values(selectedValences).some(Boolean) || 
                           searchTerm.length > 0;
 
-  // Memoized filtered and sorted logs
-  const processedMoodLogs = useMemo(() => {
+  // Group mood logs by date
+  const groupedMoodLogs = useMemo(() => {
     let filtered = moodLogs.filter((moodLog) => {
-      const logDate = new Date(moodLog.date);
-      const day = daysOfWeek[logDate.getDay()];
-      const dayMatch = !Object.values(selectedDays).some(Boolean) || selectedDays[day];
+      const categoryMatch = !Object.values(selectedCategories).some(Boolean) || 
+                           selectedCategories[moodLog.category];
       
-      const moodMatch = !Object.values(selectedMoods).some(Boolean) || selectedMoods[moodLog.mood];
+      const valenceMatch = !Object.values(selectedValences).some(Boolean) || 
+                          (selectedValences['Positive'] && moodLog.beforeValence === 'positive') ||
+                          (selectedValences['Negative'] && moodLog.beforeValence === 'negative');
       
       const searchMatch = !searchTerm || 
-        moodLog.mood.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (moodLog.activities && moodLog.activities.some(activity => 
-          activity.toLowerCase().includes(searchTerm.toLowerCase()))) ||
-        (moodLog.social && moodLog.social.some(social => 
-          social.toLowerCase().includes(searchTerm.toLowerCase()))) ||
-        (moodLog.health && moodLog.health.some(health => 
-          health.toLowerCase().includes(searchTerm.toLowerCase())));
+        moodLog.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (moodLog.activity && moodLog.activity.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (moodLog.beforeEmotion && moodLog.beforeEmotion.toLowerCase().includes(searchTerm.toLowerCase())) ||
+        (moodLog.afterEmotion && moodLog.afterEmotion.toLowerCase().includes(searchTerm.toLowerCase()));
 
       const favoriteMatch = activeTab !== 'favorites' || favoriteEntries[moodLog._id];
 
-      return dayMatch && moodMatch && searchMatch && favoriteMatch;
+      return categoryMatch && valenceMatch && searchMatch && favoriteMatch;
     });
 
     filtered.sort((a, b) => {
@@ -307,165 +297,84 @@ const checkLastMoodLogTime = async () => {
       return 0;
     });
 
-    return filtered;
-  }, [moodLogs, selectedDays, selectedMoods, searchTerm, sortOrder, activeTab, favoriteEntries]);
-
-  // Find days in current month that have logs
-  const daysWithLogs = useMemo(() => {
-    const days = {};
-    moodLogs.forEach(log => {
-      const date = new Date(log.date);
-      const day = date.getDate();
-      if (!days[day]) {
-        days[day] = [];
+    // Group by date
+    const grouped = {};
+    filtered.forEach(log => {
+      const dateKey = new Date(log.date).toDateString();
+      if (!grouped[dateKey]) {
+        grouped[dateKey] = [];
       }
-      days[day].push(log);
+      grouped[dateKey].push(log);
     });
-    return days;
-  }, [moodLogs]);
 
-  // Generate days array for calendar view
-  const calendarDays = useMemo(() => {
-    const firstDayOfMonth = new Date(currentYear, currentMonth, 1).getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    
-    const days = [];
-    for (let i = 0; i < firstDayOfMonth; i++) {
-      days.push(null);
-    }
-    
-    for (let i = 1; i <= daysInMonth; i++) {
-      days.push(i);
-    }
-    
-    return days;
-  }, [currentMonth, currentYear]);
+    return grouped;
+  }, [moodLogs, selectedCategories, selectedValences, searchTerm, sortOrder, activeTab, favoriteEntries]);
 
-  // Get mood stats for the current month
-  const moodStats = useMemo(() => {
-    const stats = {};
-    moodLogs.forEach(log => {
-      stats[log.mood] = (stats[log.mood] || 0) + 1;
-    });
-    return stats;
-  }, [moodLogs]);
-
-  const mostCommonMood = Object.keys(moodStats).reduce((a, b) => 
-    moodStats[a] > moodStats[b] ? a : b, 'None'
-  );
-
-  // Mood tips
-  const moodTips = {
-    Happy: "Great job! Try to identify what contributed to your happiness today and incorporate more of it in the future.",
-    Sad: "It's okay to feel sad. Consider reaching out to someone you trust or engaging in an activity that brings you comfort.",
-    Anxious: "Practice deep breathing or try a quick meditation. Physical activity can also help reduce anxiety.",
-    Fine: "Not every day needs to be extraordinary. Take time to appreciate the stability in your life.",
-    Angry: "Try to step back and identify the source of your anger. Consider if there are constructive ways to address the situation."
-  };
+  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-      className="bg-gradient-to-br from-[#e8f5e8] to-[#d4f1d4] min-h-screen flex flex-col"
-    >
-      {/* Enhanced Header */}
-      <nav className="bg-white/90 backdrop-blur-md py-3 shadow-lg sticky top-0 z-20 border-b border-green-100">
+    <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#F1F8E8' }}>
+      {/* Header */}
+      <nav className="bg-white/90 backdrop-blur-md py-3 shadow-lg sticky top-0 z-20 border-b" style={{ borderColor: '#D8EFD3' }}>
         <div className="container mx-auto px-4">
-          {/* Top row - controls */}
           <div className="flex justify-between items-center mb-3">
             <div className="flex items-center space-x-2">
-              <TrendingUpIcon className="text-[#6fba94]" />
-              <span className="font-semibold text-gray-700">Mood Insights</span>
+              <TrendingUpIcon style={{ color: '#55AD9B' }} />
+              <span className="font-semibold text-lg" style={{ color: '#272829' }}>Mood Insights</span>
             </div>
             
             <div className="flex items-center space-x-1">
-              {/* Prominent Add Mood Log Button */}
               <Tooltip title="Log New Mood" arrow>
                 <motion.button
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={handleAddMoodLog}
-                  className="flex items-center space-x-2 bg-gradient-to-r from-[#6fba94] to-[#5aa88f] text-white px-4 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 mr-3"
+                  className="flex items-center space-x-2 text-white px-5 py-2 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 mr-3"
+                  style={{ backgroundColor: '#55AD9B' }}
                 >
-                  <AddCircleIcon style={{ fontSize: 20 }} />
-                  <span className="font-semibold text-sm">Add Entry</span>
+                  <AddCircleIcon style={{ fontSize: 22 }} />
+                  <span className="font-semibold text-base">Add Entry</span>
                 </motion.button>
               </Tooltip>
 
               {hasActiveFilters && (
                 <Tooltip title="Clear all filters" arrow>
                   <IconButton size="small" onClick={clearAllFilters}>
-                    <ClearIcon style={{ color: '#ff6b6b', fontSize: 18 }} />
+                    <ClearIcon style={{ color: '#ff6b6b', fontSize: 20 }} />
                   </IconButton>
                 </Tooltip>
               )}
               
-              <Tooltip title="View Tips" arrow>
-                <IconButton size="small" onClick={toggleTips}>
-                  <InfoIcon style={{ color: showTips ? '#6fba94' : '#a0a0a0', fontSize: 20 }} />
-                </IconButton>
-              </Tooltip>
-
-              <Tooltip title={viewMode === 'list' ? 'Calendar View' : 'List View'} arrow>
-                <IconButton size="small" onClick={toggleViewMode}>
-                  {viewMode === 'list' ? (
-                    <CalendarViewMonthIcon style={{ color: '#a0a0a0', fontSize: 20 }} />
-                  ) : (
-                    <ViewListIcon style={{ color: '#a0a0a0', fontSize: 20 }} />
-                  )}
-                </IconButton>
-              </Tooltip>
-              
               <Tooltip title="Filter" arrow>
                 <IconButton size="small" onClick={handleFilterClick}>
-                  <FilterListIcon style={{ color: hasActiveFilters ? '#6fba94' : '#a0a0a0', fontSize: 20 }} />
+                  <FilterListIcon style={{ color: hasActiveFilters ? '#55AD9B' : '#a0a0a0', fontSize: 22 }} />
                 </IconButton>
               </Tooltip>
               
               <Tooltip title="Sort" arrow>
                 <IconButton size="small" onClick={handleSortClick}>
-                  <SortIcon style={{ color: '#a0a0a0', fontSize: 20 }} />
+                  <SortIcon style={{ color: '#a0a0a0', fontSize: 22 }} />
                 </IconButton>
               </Tooltip>
             </div>
           </div>
           
-          {/* Main header content */}
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 items-center">
-            {/* Search bar */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
             <div className="relative">
-              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" style={{ fontSize: 18 }} />
+              <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" style={{ fontSize: 20 }} />
               <input
                 type="text"
-                placeholder="Search moods, activities..."
+                placeholder="Search entries..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 text-sm rounded-full border-2 border-green-100 bg-white/80 focus:outline-none focus:ring-2 focus:ring-[#6fba94] focus:border-transparent transition-all"
+                className="w-full pl-11 pr-4 py-3 text-base rounded-full border-2 bg-white/80 focus:outline-none focus:ring-2 transition-all"
+                style={{ 
+                  borderColor: '#D8EFD3',
+                  '--tw-ring-color': '#55AD9B'
+                }}
               />
             </div>
             
-            {/* Month Navigation */}
-            <div className="flex justify-center">
-              <div className="flex items-center bg-white/80 rounded-full px-4 py-2 shadow-sm">
-                <ChevronLeftIcon 
-                  className="cursor-pointer text-[#6fba94] hover:text-[#4e8067] transition-colors p-1 rounded-full hover:bg-green-100" 
-                  onClick={handlePrevMonth}
-                  fontSize="medium" 
-                />
-                <h1 className="text-lg font-bold mx-4 min-w-[180px] text-center">
-                  {months[currentMonth]} {currentYear}
-                </h1>
-                <ChevronRightIcon 
-                  className="cursor-pointer text-[#6fba94] hover:text-[#4e8067] transition-colors p-1 rounded-full hover:bg-green-100" 
-                  onClick={handleNextMonth}
-                  fontSize="medium" 
-                />
-              </div>
-            </div>
-            
-            {/* Tabs */}
             <div className="flex justify-end">
               <div className="bg-white/80 rounded-full p-1">
                 <Tabs 
@@ -474,7 +383,7 @@ const checkLastMoodLogTime = async () => {
                   className="min-h-0"
                   TabIndicatorProps={{
                     style: {
-                      backgroundColor: '#6fba94',
+                      backgroundColor: '#55AD9B',
                       height: 2,
                       borderRadius: '2px'
                     }
@@ -483,426 +392,257 @@ const checkLastMoodLogTime = async () => {
                   <Tab 
                     value="all" 
                     label="All Entries" 
-                    className={`text-xs py-2 px-4 ${activeTab === 'all' ? 'text-[#6fba94]' : 'text-gray-500'}`}
-                    style={{ minHeight: '36px', textTransform: 'none' }}
+                    className={`text-sm py-2 px-5 ${activeTab === 'all' ? 'text-[#55AD9B]' : 'text-gray-500'}`}
+                    style={{ minHeight: '40px', textTransform: 'none' }}
                   />
                   <Tab 
                     value="favorites" 
                     label="Favorites" 
-                    className={`text-xs py-2 px-4 ${activeTab === 'favorites' ? 'text-[#6fba94]' : 'text-gray-500'}`}
-                    style={{ minHeight: '36px', textTransform: 'none' }}
+                    className={`text-sm py-2 px-5 ${activeTab === 'favorites' ? 'text-[#55AD9B]' : 'text-gray-500'}`}
+                    style={{ minHeight: '40px', textTransform: 'none' }}
                   />
                 </Tabs>
               </div>
             </div>
           </div>
-
-          {/* Stats bar */}
-          {moodLogs.length > 0 && (
-            <motion.div 
-              initial={{ opacity: 0, y: -10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="mt-3 flex items-center justify-center space-x-6 text-sm text-gray-600"
-            >
-              <div className="flex items-center space-x-2">
-                <span className="w-2 h-2 bg-[#6fba94] rounded-full"></span>
-                <span>{processedMoodLogs.length} entries this month</span>
-              </div>
-              {mostCommonMood !== 'None' && (
-                <div className="flex items-center space-x-2">
-                  <img src={`/images/${mostCommonMood.toLowerCase()}.gif`} alt={mostCommonMood} className="w-4 h-4" />
-                  <span>Most common: {mostCommonMood}</span>
-                </div>
-              )}
-            </motion.div>
-          )}
         </div>
       </nav>
 
-{/* Time Restriction Modal */}
-<Dialog
-  open={showTimeRestrictionModal}
-  onClose={handleCloseTimeRestrictionModal}
-  PaperProps={{
-    style: {
-      borderRadius: '20px',
-      padding: '16px',
-      maxWidth: '400px',
-      fontFamily: 'inherit'
-    }
-  }}
->
-  <DialogContent style={{ padding: '24px' }}>
-    <div className="text-center">
-      {/* Icon */}
-      <div className="mb-4">
-        <AccessTimeIcon style={{ fontSize: 56, color: '#6fba94' }} />
-      </div>
-      
-      {/* Title */}
-      <h2 className="text-2xl font-bold text-gray-800 mb-3">
-        Please Wait
-      </h2>
-      
-      {/* Message */}
-      <p className="text-gray-600 mb-6 leading-relaxed text-base">
-        You can log a new mood entry every 30 minutes.
-      </p>
-      
-      {/* Time remaining */}
-      <div className="bg-green-50 rounded-2xl p-4 mb-6 border border-green-100">
-        <p className="text-[#6fba94] font-semibold text-lg">
-          {remainingTime} minute{remainingTime !== 1 ? 's' : ''} remaining
-        </p>
-      </div>
-      
-      {/* Button */}
-      <Button
-        onClick={handleCloseTimeRestrictionModal}
-        variant="contained"
-        fullWidth
-        style={{
-          backgroundColor: '#6fba94',
-          color: 'white',
-          borderRadius: '16px',
-          textTransform: 'none',
-          fontWeight: 600,
-          padding: '12px 24px',
-          fontSize: '16px',
-          fontFamily: 'inherit',
-          boxShadow: '0 4px 12px rgba(111, 186, 148, 0.3)'
+      {/* Time Restriction Modal */}
+      <Dialog
+        open={showTimeRestrictionModal}
+        onClose={handleCloseTimeRestrictionModal}
+        PaperProps={{
+          style: {
+            borderRadius: '20px',
+            padding: '16px',
+            maxWidth: '400px',
+            fontFamily: 'inherit'
+          }
         }}
       >
-        Got it
-      </Button>
-    </div>
-  </DialogContent>
-</Dialog>
-
-      {/* Enhanced Tips Section */}
-      <AnimatePresence>
-        {showTips && (
-          <motion.div 
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="bg-gradient-to-r from-green-50 to-blue-50 px-4 py-4 shadow-md border-b border-green-100"
-          >
-            <h3 className="font-semibold text-lg mb-3 text-[#6fba94] flex items-center">
-              <InfoIcon className="mr-2" />
-              Mood Care Tips
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(moodTips).map(([mood, tip]) => (
-                <motion.div 
-                  key={mood} 
-                  whileHover={{ scale: 1.02 }}
-                  className="bg-white rounded-xl p-4 shadow-sm border border-green-100 hover:shadow-md transition-all"
-                >
-                  <div className="flex items-start">
-                    <img src={`/images/${mood.toLowerCase()}.gif`} alt={mood} className="w-12 h-12 mr-3 flex-shrink-0" />
-                    <div>
-                      <p className="font-semibold text-gray-800 mb-1">{mood}</p>
-                      <p className="text-sm text-gray-600 leading-relaxed">{tip}</p>
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
+        <DialogContent style={{ padding: '24px' }}>
+          <div className="text-center">
+            <div className="mb-4">
+              <AccessTimeIcon style={{ fontSize: 56, color: '#55AD9B' }} />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            
+            <h2 className="text-2xl font-bold mb-3" style={{ color: '#272829' }}>
+              Please Wait
+            </h2>
+            
+            <p className="mb-6 leading-relaxed text-base" style={{ color: '#272829' }}>
+              You can log a new mood entry every 30 minutes.
+            </p>
+            
+            <div className="rounded-2xl p-4 mb-6 border" style={{ backgroundColor: '#D8EFD3', borderColor: '#95D2B3' }}>
+              <p className="font-semibold text-lg" style={{ color: '#55AD9B' }}>
+                {remainingTime} minute{remainingTime !== 1 ? 's' : ''} remaining
+              </p>
+            </div>
+            
+            <Button
+              onClick={handleCloseTimeRestrictionModal}
+              variant="contained"
+              fullWidth
+              style={{
+                backgroundColor: '#55AD9B',
+                color: 'white',
+                borderRadius: '16px',
+                textTransform: 'none',
+                fontWeight: 600,
+                padding: '12px 24px',
+                fontSize: '16px',
+                fontFamily: 'inherit',
+                boxShadow: '0 4px 12px rgba(85, 173, 155, 0.3)'
+              }}
+            >
+              Got it
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
-      {/* Main content */}
+      {/* Main Content */}
       <div className="flex-1 pb-16">
-        {viewMode === 'calendar' ? (
-          // Enhanced Calendar View
-          <div className="container mx-auto px-4 py-6">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {loading ? (
+            <div className="flex justify-center my-8">
+              <div className="flex items-center space-x-2 bg-white/80 px-5 py-3 rounded-full shadow-md">
+                <CircularProgress size={24} style={{ color: '#55AD9B' }} />
+                <span className="text-lg" style={{ color: '#272829' }}>Loading entries...</span>
+              </div>
+            </div>
+          ) : Object.keys(groupedMoodLogs).length === 0 ? (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-xl p-6 border border-green-100"
+              className="bg-white/90 backdrop-blur-sm w-full max-w-lg mx-auto p-10 rounded-2xl shadow-xl text-center border"
+              style={{ borderColor: '#D8EFD3' }}
             >
-              {/* Days of week header */}
-              <div className="grid grid-cols-7 mb-4 gap-2">
-                {daysOfWeek.map(day => (
-                  <div key={day} className="text-center font-semibold p-3 text-gray-600 bg-green-50 rounded-lg">
-                    {day.slice(0, 3)}
-                  </div>
-                ))}
-              </div>
-              
-              {/* Calendar grid */}
-              <div className="grid grid-cols-7 gap-2">
-                {calendarDays.map((day, index) => {
-                  if (day === null) {
-                    return <div key={`empty-${index}`} className="aspect-square"></div>;
-                  }
-                  
-                  const hasLogs = daysWithLogs[day] && daysWithLogs[day].length > 0;
-                  const isToday = 
-                    new Date().getDate() === day && 
-                    new Date().getMonth() === currentMonth && 
-                    new Date().getFullYear() === currentYear;
-                  
-                  let mood = "";
-                  if (hasLogs) {
-                    mood = daysWithLogs[day][0].mood.toLowerCase();
-                  }
-                  
-                  return (
-                    <motion.div 
-                      key={`day-${day}`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`aspect-square rounded-xl flex flex-col items-center justify-center p-2 cursor-pointer transition-all
-                        ${hasLogs 
-                          ? 'bg-gradient-to-br from-green-100 to-green-200 shadow-md hover:shadow-lg' 
-                          : 'bg-gray-50 hover:bg-gray-100'}
-                        ${isToday ? 'ring-2 ring-[#6fba94] ring-offset-2' : ''}`}
-                      onClick={() => {
-                        if (hasLogs) {
-                          const element = document.getElementById(`entry-${daysWithLogs[day][0]._id}`);
-                          if (element) {
-                            setViewMode('list');
-                            setTimeout(() => {
-                              element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            }, 100);
-                          }
-                        }
-                      }}
-                    >
-                      <div className={`font-bold ${isToday ? 'text-[#6fba94]' : 'text-gray-700'} text-lg`}>
-                        {day}
-                      </div>
-                      {hasLogs && (
-                        <>
-                          <img 
-                            src={`/images/${mood}.gif`} 
-                            alt={mood} 
-                            className="w-8 h-8 my-1" 
-                          />
-                          <div className="text-xs text-[#6fba94] font-medium bg-white px-2 py-1 rounded-full">
-                            {daysWithLogs[day].length}
-                          </div>
-                        </>
-                      )}
-                    </motion.div>
-                  );
-                })}
-              </div>
+              <div className="text-7xl mb-5">😌</div>
+              <h3 className="text-2xl font-semibold mb-4" style={{ color: '#272829' }}>No entries found</h3>
+              <p className="leading-relaxed mb-8 text-lg" style={{ color: '#272829' }}>
+                {searchTerm || hasActiveFilters || activeTab === 'favorites'
+                  ? "Try adjusting your filters or search term to find more entries."
+                  : "Start your mood tracking journey! Click the 'Add Entry' button above to log your first mood."}
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={handleAddMoodLog}
+                className="text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all text-lg"
+                style={{ backgroundColor: '#55AD9B' }}
+              >
+                Add Your First Entry
+              </motion.button>
             </motion.div>
-          </div>
-        ) : (
-          // Enhanced List View
-          <InfiniteScroll
-            dataLength={processedMoodLogs.length}
-            next={loadMoreLogs}
-            hasMore={hasMore}
-            loader={
-              <div className="flex justify-center my-8">
-                <div className="flex items-center space-x-2 bg-white/80 px-4 py-2 rounded-full shadow-md">
-                  <CircularProgress size={20} style={{ color: '#6fba94' }} />
-                  <span className="text-gray-600">Loading more entries...</span>
-                </div>
-              </div>
-            }
-            endMessage={
-              <div className="text-center my-8">
-                <div className="inline-block bg-white/80 px-6 py-3 rounded-full shadow-md">
-                  <span className="text-gray-500 italic">
-                    {processedMoodLogs.length > 0 ? "You've reached the end ✨" : "No entries found for your filters 📝"}
-                  </span>
-                </div>
-              </div>
-            }
-            className="pb-4"
-          >
-            <div className="flex flex-col items-center justify-center px-4 pt-6 pb-20">
-              <AnimatePresence>
-                {processedMoodLogs.length === 0 && !loading ? (
-                  <motion.div 
+          ) : (
+            <div className="space-y-8">
+              {Object.entries(groupedMoodLogs).map(([dateKey, logs]) => {
+                const date = new Date(dateKey);
+                const formattedDate = date.toLocaleDateString('en-US', { 
+                  weekday: 'long', 
+                  year: 'numeric', 
+                  month: 'long', 
+                  day: 'numeric' 
+                });
+
+                return (
+                  <motion.div
+                    key={dateKey}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="bg-white/90 backdrop-blur-sm w-full max-w-md p-8 rounded-2xl shadow-xl text-center border border-green-100"
+                    className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border p-8"
+                    style={{ borderColor: '#D8EFD3' }}
                   >
-                    <img 
-                      src="/images/fine.gif" 
-                      alt="No entries" 
-                      className="w-24 h-24 mx-auto mb-4"
-                    />
-                    <h3 className="text-xl font-semibold mb-3 text-gray-800">No entries found</h3>
-                    <p className="text-gray-600 leading-relaxed mb-6">
-                      {searchTerm || hasActiveFilters || activeTab === 'favorites'
-                        ? "Try adjusting your filters or search term to find more entries."
-                        : "Start your mood tracking journey! Click the 'Add Entry' button above to log your first mood."}
-                    </p>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={handleAddMoodLog}
-                      className="bg-gradient-to-r from-[#6fba94] to-[#5aa88f] text-white px-6 py-2 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all"
-                    >
-                      Add Your First Entry
-                    </motion.button>
-                  </motion.div>
-                ) : (
-                  processedMoodLogs.map((moodLog, index) => {
-                    const { mood, activities, social, health, sleepQuality, date, time, _id } = moodLog;
-                    const logDate = new Date(date);
-                    const day = daysOfWeek[logDate.getDay()];
-                    const formattedDate = `${months[logDate.getMonth()]} ${logDate.getDate()}`;
-                    const isFavorite = favoriteEntries[_id];
+                    {/* Date Header */}
+                    <div className="mb-8 pb-6 border-b" style={{ borderColor: '#D8EFD3' }}>
+                      <h2 className="text-2xl font-bold flex items-center" style={{ color: '#272829' }}>
+                        <span className="w-4 h-4 rounded-full mr-4" style={{ backgroundColor: '#55AD9B' }}></span>
+                        {formattedDate}
+                        <span className="ml-4 text-base font-normal px-4 py-1 rounded-full" style={{ backgroundColor: '#D8EFD3', color: '#55AD9B' }}>
+                          {logs.length} {logs.length === 1 ? 'entry' : 'entries'}
+                        </span>
+                      </h2>
+                    </div>
 
-                    return (
-                      <motion.div 
-                        id={`entry-${_id}`}
-                        key={_id} 
-                        initial={{ opacity: 0, y: 30 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4, delay: index * 0.05 }}
-                        whileHover={{ y: -5 }}
-                        className="bg-white/90 backdrop-blur-sm w-full max-w-4xl p-6 rounded-2xl shadow-lg mb-6 border border-green-100 hover:shadow-xl transition-all"
-                      >
-                        <div className="flex items-start justify-between mb-6">
-                          <div className="flex items-start">
-                            <div className="relative">
-                              <img src={`/images/${mood.toLowerCase()}.gif`} alt={mood} className="w-16 h-16 mr-4" />
+                    {/* Entries for this date */}
+                    <div className="space-y-6">
+                      {logs.map((log, index) => (
+                        <motion.div
+                          key={log._id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="p-6 rounded-xl border"
+                          style={{ backgroundColor: '#F1F8E8', borderColor: '#D8EFD3' }}
+                        >
+                          <div className="flex justify-between items-start mb-6">
+                            <div className="flex items-center space-x-4">
+                              <div className="w-12 h-12 flex items-center justify-center">
+                                {getActivityIcon(log.activity, log.category)}
+                              </div>
+                              <div>
+                                <h3 className="font-semibold text-xl" style={{ color: '#272829' }}>
+                                  {formatText(log.category)}
+                                </h3>
+                                <p className="text-base" style={{ color: '#55AD9B' }}>
+                                  {formatText(log.activity)} {log.hrs && `• ${log.hrs} hrs`}
+                                </p>
+                              </div>
                             </div>
-                            <div>
-                              <h2 className="text-xl font-bold text-gray-800 mb-1">{mood}</h2>
-                              <p className="text-sm text-gray-500 flex items-center">
-                                <span className="w-2 h-2 bg-[#6fba94] rounded-full mr-2"></span>
-                                {day}, {formattedDate} at {time}
-                              </p>
-                            </div>
+                            
+                            <motion.div whileTap={{ scale: 0.9 }}>
+                              <IconButton 
+                                onClick={() => handleFavoriteToggle(log._id)}
+                                size="medium"
+                              >
+                                {favoriteEntries[log._id] ? (
+                                  <FavoriteIcon style={{ color: '#ff6b6b', fontSize: 24 }} />
+                                ) : (
+                                  <FavoriteBorderIcon style={{ color: '#b1b1b1', fontSize: 24 }} />
+                                )}
+                              </IconButton>
+                            </motion.div>
                           </div>
-                          
-                          <motion.div whileTap={{ scale: 0.9 }}>
-                            <IconButton 
-                              onClick={() => handleFavoriteToggle(_id)}
-                              className="hover:bg-red-50"
-                            >
-                              {isFavorite ? (
-                                <FavoriteIcon style={{ color: '#ff6b6b', fontSize: 22 }} />
-                              ) : (
-                                <FavoriteBorderIcon style={{ color: '#b1b1b1', fontSize: 22 }} />
-                              )}
-                            </IconButton>
-                          </motion.div>
-                        </div>
-                        
-                        {showTips && (
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="bg-gradient-to-r from-green-50 to-blue-50 p-3 rounded-xl mb-4 border border-green-100"
-                          >
-                            <p className="text-sm text-gray-700 leading-relaxed">{moodTips[mood]}</p>
-                          </motion.div>
-                        )}
-                        
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {activities && activities.length > 0 && (
-                            <motion.div 
-                              whileHover={{ scale: 1.02 }}
-                              className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-xl p-4 border border-blue-200"
-                            >
-                              <h3 className="text-base font-semibold mb-3 flex items-center text-blue-700">
-                                <span className="inline-block w-3 h-3 bg-blue-500 rounded-full mr-2"></span>
-                                Activities
-                              </h3>
-                              <div className="flex flex-wrap gap-2">
-                                {activities.map((activity) => (
-                                  <Chip
-                                    key={activity}
-                                    avatar={<img src={`/images/${activity.toLowerCase().replace(/\s+/g, '')}.gif`} alt={activity} className="w-6 h-6" />}
-                                    label={activity}
-                                    variant="filled"
-                                    className="bg-white/80 hover:bg-white transition-colors"
-                                    style={{ fontSize: '0.75rem' }}
-                                  />
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                          
-                          {social && social.length > 0 && (
-                            <motion.div 
-                              whileHover={{ scale: 1.02 }}
-                              className="bg-gradient-to-br from-emerald-50 to-teal-100 rounded-xl p-4 border border-emerald-200"
-                            >
-                              <h3 className="text-base font-semibold mb-3 flex items-center text-emerald-700">
-                                <span className="inline-block w-3 h-3 bg-emerald-500 rounded-full mr-2"></span>
-                                Social
-                              </h3>
-                              <div className="flex flex-wrap gap-2">
-                                {social.map((socialItem) => (
-                                  <Chip
-                                    key={socialItem}
-                                    avatar={<img src={`/images/${socialItem.toLowerCase()}.gif`} alt={socialItem} className="w-6 h-6" />}
-                                    label={socialItem}
-                                    variant="filled"
-                                    className="bg-white/80 hover:bg-white transition-colors"
-                                    style={{ fontSize: '0.75rem' }}
-                                  />
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                          
-                          {health && health.length > 0 && (
-                            <motion.div 
-                              whileHover={{ scale: 1.02 }}
-                              className="bg-gradient-to-br from-orange-50 to-amber-100 rounded-xl p-4 border border-orange-200"
-                            >
-                              <h3 className="text-base font-semibold mb-3 flex items-center text-orange-700">
-                                <span className="inline-block w-3 h-3 bg-orange-500 rounded-full mr-2"></span>
-                                Health
-                              </h3>
-                              <div className="flex flex-wrap gap-2">
-                                {health.map((healthItem) => (
-                                  <Chip
-                                    key={healthItem}
-                                    avatar={<img src={`/images/${healthItem.toLowerCase().replace(/\s+/g, '')}.gif`} alt={healthItem} className="w-6 h-6" />}
-                                    label={healthItem}
-                                    variant="filled"
-                                    className="bg-white/80 hover:bg-white transition-colors"
-                                    style={{ fontSize: '0.75rem' }}
-                                  />
-                                ))}
-                              </div>
-                            </motion.div>
-                          )}
-                          
-                          {sleepQuality && (
-                            <motion.div 
-                              whileHover={{ scale: 1.02 }}
-                              className="bg-gradient-to-br from-violet-50 to-purple-100 rounded-xl p-4 border border-violet-200"
-                            >
-                              <h3 className="text-base font-semibold mb-3 flex items-center text-violet-700">
-                                <span className="inline-block w-3 h-3 bg-violet-500 rounded-full mr-2"></span>
-                                Sleep Hours
-                              </h3>
-                              <div className="flex items-center">
-                                <div className="bg-white/80 px-3 py-2 rounded-full text-sm font-medium text-violet-700">
-                                  {typeof sleepQuality === 'number' ? `${sleepQuality} hours` : sleepQuality}
+
+                          {/* Before and After Emotions */}
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Before Emotions */}
+                            <div className="p-6 rounded-xl" style={{ backgroundColor: '#D8EFD3' }}>
+                              <h4 className="font-semibold mb-3 text-base" style={{ color: '#272829' }}>
+                                Before Activity
+                              </h4>
+                              <div className="flex items-center space-x-3 mb-3">
+                                <span className="text-4xl">
+                                  {emotionEmojis[log.beforeEmotion] || '😐'}
+                                </span>
+                                <div>
+                                  <p className="font-medium text-lg" style={{ color: '#272829' }}>
+                                    {formatText(log.beforeEmotion)}
+                                  </p>
+                                  <p className="text-sm" style={{ color: '#55AD9B' }}>
+                                    {formatText(log.beforeValence)} • Intensity: {log.beforeIntensity}/5
+                                  </p>
                                 </div>
                               </div>
-                            </motion.div>
-                          )}
-                        </div>
-                      </motion.div>
-                    );
-                  })
-                )}
-              </AnimatePresence>
+                              <div className="flex space-x-2">
+                                {[...Array(5)].map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ 
+                                      backgroundColor: i < log.beforeIntensity ? '#55AD9B' : '#95D2B3' 
+                                    }}
+                                  ></div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* After Emotions */}
+                            <div className="p-6 rounded-xl" style={{ backgroundColor: '#95D2B3' }}>
+                              <h4 className="font-semibold mb-3 text-base" style={{ color: '#272829' }}>
+                                After Activity
+                              </h4>
+                              <div className="flex items-center space-x-3 mb-3">
+                                <span className="text-4xl">
+                                  {emotionEmojis[log.afterEmotion] || '😐'}
+                                </span>
+                                <div>
+                                  <p className="font-medium text-lg" style={{ color: '#272829' }}>
+                                    {formatText(log.afterEmotion)}
+                                  </p>
+                                  <p className="text-sm" style={{ color: '#272829' }}>
+                                    {formatText(log.afterValence)} • Intensity: {log.afterIntensity}/5
+                                  </p>
+                                </div>
+                              </div>
+                              <div className="flex space-x-2">
+                                {[...Array(5)].map((_, i) => (
+                                  <div
+                                    key={i}
+                                    className="w-3 h-3 rounded-full"
+                                    style={{ 
+                                      backgroundColor: i < log.afterIntensity ? '#55AD9B' : '#F1F8E8' 
+                                    }}
+                                  ></div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </motion.div>
+                );
+              })}
             </div>
-          </InfiniteScroll>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Enhanced Filter Menu */}
+      {/* Filter Menu */}
       <Menu
         id="filter-menu"
         anchorEl={anchorEl}
@@ -912,20 +652,20 @@ const checkLastMoodLogTime = async () => {
         PaperProps={{
           style: {
             maxHeight: 500,
-            width: '280px',
+            width: '300px',
             borderRadius: '16px',
             boxShadow: '0 10px 25px rgba(0,0,0,0.1)',
           }
         }}
       >
-        <div className="p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-lg text-gray-800">Filters</h3>
+        <div className="p-5">
+          <div className="flex items-center justify-between mb-5">
+            <h3 className="font-semibold text-xl" style={{ color: '#272829' }}>Filters</h3>
             {hasActiveFilters && (
               <Button 
                 size="small" 
                 onClick={clearAllFilters}
-                style={{ color: '#ff6b6b' }}
+                style={{ color: '#ff6b6b', fontSize: '14px' }}
               >
                 Clear All
               </Button>
@@ -933,51 +673,46 @@ const checkLastMoodLogTime = async () => {
           </div>
           
           <div className="mb-6">
-            <h4 className="font-medium mb-3 text-gray-700">Filter by Day</h4>
-            <div className="space-y-2">
-              {daysOfWeek.map((day) => (
+            <h4 className="font-medium mb-4 text-base" style={{ color: '#272829' }}>Filter by Category</h4>
+            <div className="space-y-3">
+              {Object.keys(selectedCategories).map((category) => (
                 <FormControlLabel
-                  key={day}
+                  key={category}
                   control={
                     <Checkbox
-                      checked={selectedDays[day]}
-                      onChange={handleDayChange}
-                      name={day}
-                      size="small"
+                      checked={selectedCategories[category]}
+                      onChange={handleCategoryChange}
+                      name={category}
+                      size="medium"
                       style={{ 
-                        color: selectedDays[day] ? '#6fba94' : undefined 
+                        color: selectedCategories[category] ? '#55AD9B' : undefined 
                       }}
                     />
                   }
-                  label={<span className="text-sm">{day}</span>}
+                  label={<span className="text-base">{category}</span>}
                 />
               ))}
             </div>
           </div>
           
           <div className="mb-6">
-            <h4 className="font-medium mb-3 text-gray-700">Filter by Mood</h4>
-            <div className="space-y-2">
-              {moods.map((mood) => (
+            <h4 className="font-medium mb-4 text-base" style={{ color: '#272829' }}>Filter by Valence</h4>
+            <div className="space-y-3">
+              {Object.keys(selectedValences).map((valence) => (
                 <FormControlLabel
-                  key={mood}
+                  key={valence}
                   control={
                     <Checkbox
-                      checked={selectedMoods[mood]}
-                      onChange={handleMoodChange}
-                      name={mood}
-                      size="small"
+                      checked={selectedValences[valence]}
+                      onChange={handleValenceChange}
+                      name={valence}
+                      size="medium"
                       style={{ 
-                        color: selectedMoods[mood] ? '#6fba94' : undefined 
+                        color: selectedValences[valence] ? '#55AD9B' : undefined 
                       }}
                     />
                   }
-                  label={
-                    <div className="flex items-center">
-                      <img src={`/images/${mood.toLowerCase()}.gif`} alt={mood} className="w-6 h-6 mr-2" />
-                      <span className="text-sm">{mood}</span>
-                    </div>
-                  }
+                  label={<span className="text-base">{valence}</span>}
                 />
               ))}
             </div>
@@ -988,11 +723,13 @@ const checkLastMoodLogTime = async () => {
             fullWidth
             onClick={handleFilterClose}
             style={{ 
-              backgroundColor: '#6fba94', 
+              backgroundColor: '#55AD9B', 
               color: 'white',
               borderRadius: '12px',
               textTransform: 'none',
-              fontWeight: 600
+              fontWeight: 600,
+              fontSize: '16px',
+              padding: '12px 0'
             }}
           >
             Apply Filters
@@ -1000,7 +737,7 @@ const checkLastMoodLogTime = async () => {
         </div>
       </Menu>
 
-      {/* Enhanced Sort Menu */}
+      {/* Sort Menu */}
       <Menu
         id="sort-menu"
         anchorEl={sortAnchorEl}
@@ -1017,10 +754,12 @@ const checkLastMoodLogTime = async () => {
         <MenuItem 
           onClick={() => handleSort('newest')}
           style={{ 
-            backgroundColor: sortOrder === 'newest' ? '#e9f5ef' : 'transparent',
-            color: sortOrder === 'newest' ? '#6fba94' : 'inherit',
+            backgroundColor: sortOrder === 'newest' ? '#D8EFD3' : 'transparent',
+            color: sortOrder === 'newest' ? '#55AD9B' : 'inherit',
             borderRadius: '8px',
-            margin: '4px 8px'
+            margin: '4px 8px',
+            fontSize: '16px',
+            padding: '12px 16px'
           }}
         >
           📅 Newest First
@@ -1028,10 +767,12 @@ const checkLastMoodLogTime = async () => {
         <MenuItem 
           onClick={() => handleSort('oldest')}
           style={{ 
-            backgroundColor: sortOrder === 'oldest' ? '#e9f5ef' : 'transparent',
-            color: sortOrder === 'oldest' ? '#6fba94' : 'inherit',
+            backgroundColor: sortOrder === 'oldest' ? '#D8EFD3' : 'transparent',
+            color: sortOrder === 'oldest' ? '#55AD9B' : 'inherit',
             borderRadius: '8px',
-            margin: '4px 8px'
+            margin: '4px 8px',
+            fontSize: '16px',
+            padding: '12px 16px'
           }}
         >
           📆 Oldest First
@@ -1042,7 +783,7 @@ const checkLastMoodLogTime = async () => {
       <div className="fixed bottom-0 left-0 right-0 z-10">
         <BottomNav value={value} setValue={setValue} />
       </div>
-    </motion.div>
+    </div>
   );
 };
 
