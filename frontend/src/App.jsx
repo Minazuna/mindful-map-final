@@ -159,9 +159,11 @@ const App = () => {
     beforeValence: '',
     beforeEmotion: null,
     beforeIntensity: 0,
+    beforeReason: null,
     afterValence: '',
     afterEmotion: '',
-    afterIntensity: 0
+    afterIntensity: 0,
+    afterReason: ''
   });
 
   return (

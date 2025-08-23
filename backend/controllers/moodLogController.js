@@ -9,10 +9,12 @@ exports.saveMood = async (req, res) => {
       hrs, 
       beforeValence, 
       beforeEmotion, 
-      beforeIntensity, 
+      beforeIntensity,
+      beforeReason, 
       afterValence, 
       afterEmotion, 
-      afterIntensity 
+      afterIntensity,
+      afterReason 
     } = req.body;
 
     if (!req.user) {
@@ -28,8 +30,8 @@ exports.saveMood = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Before and after valence are required.' });
     }
 
-    if (!afterEmotion || !afterIntensity) {
-      return res.status(400).json({ success: false, message: 'After emotion and intensity are required.' });
+    if (!afterEmotion || !afterIntensity || !afterReason) {
+      return res.status(400).json({ success: false, message: 'After emotion, intensity, and reason are required.' });
     }
 
     // Validate category-specific fields
@@ -45,8 +47,8 @@ exports.saveMood = async (req, res) => {
 
     // Validate before emotion and intensity if not "can't remember"
     if (beforeValence !== 'can\'t remember') {
-      if (!beforeEmotion || !beforeIntensity) {
-        return res.status(400).json({ success: false, message: 'Before emotion and intensity are required when valence is specified.' });
+      if (!beforeEmotion || !beforeIntensity || !beforeReason) {
+        return res.status(400).json({ success: false, message: 'Before emotion, intensity, and reason are required when valence is specified.' });
       }
     }
 
@@ -97,9 +99,11 @@ exports.saveMood = async (req, res) => {
       beforeValence,
       beforeEmotion: beforeValence !== 'can\'t remember' ? beforeEmotion : null,
       beforeIntensity: beforeValence !== 'can\'t remember' ? beforeIntensity : 0,
+      beforeReason: beforeValence !== 'can\'t remember' ? beforeReason : null,
       afterValence,
       afterEmotion,
-      afterIntensity
+      afterIntensity,
+      afterReason
     });
 
     await newMoodLog.save();

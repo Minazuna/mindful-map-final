@@ -8,6 +8,7 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
   const [selectedEmotion, setSelectedEmotion] = useState('');
   const [intensity, setIntensity] = useState(0);
+  const [reason, setReason] = useState('');
   const [showContinueModal, setShowContinueModal] = useState(false);
 
   const emotions = [
@@ -40,14 +41,22 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
   };
 
   const handleSubmit = async () => {
-    if (selectedEmotion && intensity > 0) {
+    if (selectedEmotion && intensity > 0 && reason.trim()) {
+      // Count words in reason
+      const wordCount = reason.trim().split(/\s+/).length;
+      if (wordCount > 100) {
+        alert('Please limit your response to 100 words or less.');
+        return;
+      }
+
       try {
         // Update the category form data with after emotions
         const finalFormData = {
           ...categoryFormData,
           afterValence: 'positive',
           afterEmotion: selectedEmotion,
-          afterIntensity: intensity
+          afterIntensity: intensity,
+          afterReason: reason.trim()
         };
 
         console.log('Final category form data:', finalFormData);
@@ -78,9 +87,11 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
             beforeValence: '',
             beforeEmotion: null,
             beforeIntensity: 0,
+            beforeReason: null,
             afterValence: '',
             afterEmotion: '',
-            afterIntensity: 0
+            afterIntensity: 0,
+            afterReason: ''
           });
           
           // Show the continue tracking modal
@@ -220,21 +231,54 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
           </div>
         )}
 
+        {/* Reason Input */}
+        {selectedEmotion && intensity > 0 && (
+          <div className="w-full max-w-md mb-8">
+            <h3 
+              className="text-xl font-semibold mb-4 text-center"
+              style={{ color: '#272829' }}
+            >
+              Why do you feel that way?
+            </h3>
+            <textarea
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Describe what made you feel this way..."
+              className="w-full p-4 rounded-2xl border-2 resize-none"
+              style={{ 
+                backgroundColor: '#D8EFD3',
+                borderColor: '#95D2B3',
+                color: '#272829',
+                minHeight: '120px'
+              }}
+              maxLength={500}
+            />
+            <div className="text-right mt-2">
+              <span 
+                className="text-sm"
+                style={{ color: reason.trim().split(/\s+/).length > 100 ? '#dc2626' : '#272829' }}
+              >
+                {reason.trim() === '' ? 0 : reason.trim().split(/\s+/).length}/100 words
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Continue Button */}
         <button
           onClick={handleSubmit}
-          disabled={!selectedEmotion || intensity === 0}
+          disabled={!selectedEmotion || intensity === 0 || !reason.trim()}
           className={`w-full max-w-md py-4 rounded-2xl text-xl font-bold transition-all duration-300 transform ${
-            selectedEmotion && intensity > 0
+            selectedEmotion && intensity > 0 && reason.trim()
               ? 'hover:scale-105 hover:shadow-lg' 
               : 'opacity-50 cursor-not-allowed'
           }`}
           style={{ 
-            backgroundColor: selectedEmotion && intensity > 0 ? '#55AD9B' : '#D8EFD3',
-            color: selectedEmotion && intensity > 0 ? '#F1F8E8' : '#272829'
+            backgroundColor: selectedEmotion && intensity > 0 && reason.trim() ? '#55AD9B' : '#D8EFD3',
+            color: selectedEmotion && intensity > 0 && reason.trim() ? '#F1F8E8' : '#272829'
           }}
         >
-          {selectedEmotion && intensity > 0 ? 'Continue' : 'Select emotion and intensity'}
+          {selectedEmotion && intensity > 0 && reason.trim() ? 'Continue' : 'Complete all fields to continue'}
         </button>
 
         {/* Helper Text */}
