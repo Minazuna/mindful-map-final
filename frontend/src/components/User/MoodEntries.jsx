@@ -603,7 +603,7 @@ const MoodEntries = () => {
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex space-x-2">
+                              <div className="flex space-x-2 mb-3">
                                 {[...Array(5)].map((_, i) => (
                                   <div
                                     key={i}
@@ -614,6 +614,14 @@ const MoodEntries = () => {
                                   ></div>
                                 ))}
                               </div>
+                              {log.beforeReason && (
+                                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#95D2B3' }}>
+                                  <p className="text-sm font-medium mb-1" style={{ color: '#272829' }}>Reason:</p>
+                                  <p className="text-sm leading-relaxed" style={{ color: '#3a796cff' }}>
+                                    {log.beforeReason}
+                                  </p>
+                                </div>
+                              )}
                             </div>
 
                             {/* After Emotions */}
@@ -634,7 +642,7 @@ const MoodEntries = () => {
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex space-x-2">
+                              <div className="flex space-x-2 mb-3">
                                 {[...Array(5)].map((_, i) => (
                                   <div
                                     key={i}
@@ -645,6 +653,14 @@ const MoodEntries = () => {
                                   ></div>
                                 ))}
                               </div>
+                              {log.afterReason && (
+                                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#55AD9B' }}>
+                                  <p className="text-sm font-medium mb-1" style={{ color: '#272829' }}>Reason:</p>
+                                  <p className="text-sm leading-relaxed" style={{ color: '#272829' }}>
+                                    {log.afterReason}
+                                  </p>
+                                </div>
+                              )}
                             </div>
                           </div>
                         </motion.div>
