@@ -11,6 +11,7 @@ const moodPredictionRoutes = require("./routes/moodPredictionRoutes");
 const adminRoutes = require('./routes/adminRoutes');
 const correlationRoutes = require('./routes/correlationRoutes');
 const forumRoutes = require('./routes/forumRoutes');
+const statisticsRoutes = require('./routes/statisticsRoutes');
 
 const app = express();
 
@@ -29,7 +30,7 @@ app.use('/api', moodPredictionRoutes);
 app.use('/api', correlationRoutes);
 app.use('/api', forumRoutes);
 app.use('/api/admin', adminRoutes);
-
+app.use('/api', statisticsRoutes);
 initScheduledTasks();
 
 mongoose.connect(process.env.MONGO_URI, {

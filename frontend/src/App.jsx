@@ -58,6 +58,9 @@ import BreathingExercise from './components/User/Statistics/Activities/Breathing
 import CompletionModal from './components/User/Statistics/Activities/BreathingExercise/CompletionModal';
 import ProgressModal from './components/User/Statistics/Activities/BreathingExercise/ProgressModal';
 
+//Statistics
+import DailyStatistics from './components/User/Statistics/Daily/DailyStatistics';
+
 const useAuth = () => {
   const token = localStorage.getItem('token');
   const [userRole, setUserRole] = useState(null);
@@ -267,6 +270,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <MoodEntries />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/daily-statistics"
+          element={
+            <UserPrivateRoute>
+              <DailyStatistics />
             </UserPrivateRoute>
           }
         />
