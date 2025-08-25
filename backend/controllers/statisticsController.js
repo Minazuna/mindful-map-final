@@ -172,3 +172,160 @@ exports.getDailyStatistics = async (req, res) => {
     });
   }
 };
+
+exports.getWeeklyStatistics = async (req, res) => {
+  try {
+    console.log('🔍 === getWeeklyStatistics Debug ===');
+    console.log('🔍 User ID:', req.user?._id);
+    console.log('🔍 Query startDate:', req.query.startDate);
+
+    const userId = req.user._id;
+    const { startDate } = req.query;
+
+    // If no startDate provided, use current week start (Monday)
+    let weekStart;
+    if (startDate) {
+      weekStart = new Date(startDate);
+    } else {
+      const now = new Date();
+      const day = now.getDay();
+      const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Get Monday
+      weekStart = new Date(now.setDate(diff));
+    }
+
+    // Set to start of the week (Monday 00:00:00)
+    weekStart.setUTCHours(0, 0, 0, 0);
+
+    // Calculate end of week (Sunday 23:59:59)
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+    weekEnd.setUTCHours(23, 59, 59, 999);
+
+    console.log('🔍 Week range (UTC):', { weekStart, weekEnd });
+    console.log('🔍 Searching for userId:', userId);
+
+    // Fetch mood logs for the week
+    const moodLogs = await MoodLog.find({
+      user: userId,
+      date: {
+        $gte: weekStart,
+        $lte: weekEnd
+      }
+    }).sort({ date: 1 });
+
+    console.log('🔍 Mood logs found for week:', moodLogs.length);
+
+    if (moodLogs.length === 0) {
+      console.log('🔍 No mood logs found - returning empty data');
+      return res.json({
+        success: true,
+        data: {
+          totalEntries: 0,
+          mostProminentValence: null,
+          emotionCounts: {},
+          valenceCounts: { positive: 0, negative: 0 },
+          averageIntensity: 0,
+          dailyBreakdown: {},
+          weekStart: weekStart.toISOString().split('T')[0],
+          weekEnd: weekEnd.toISOString().split('T')[0]
+        }
+      });
+    }
+
+    // Analyze after emotions
+    const afterEmotions = moodLogs.map(log => ({
+      emotion: log.afterEmotion,
+      valence: log.afterValence,
+      intensity: log.afterIntensity,
+      date: new Date(log.date)
+    }));
+
+    console.log('🔍 After emotions extracted:', afterEmotions.length);
+
+    // Calculate most prominent valence
+    const valenceCounts = { positive: 0, negative: 0 };
+    afterEmotions.forEach(emotion => {
+      if (emotion.valence === 'positive') valenceCounts.positive++;
+      if (emotion.valence === 'negative') valenceCounts.negative++;
+    });
+
+    const mostProminentValence = valenceCounts.positive >= valenceCounts.negative ? 'positive' : 'negative';
+
+    // Count emotion occurrences
+    const emotionCounts = {};
+    afterEmotions.forEach(emotion => {
+      emotionCounts[emotion.emotion] = (emotionCounts[emotion.emotion] || 0) + 1;
+    });
+
+    // Calculate average intensity
+    const avgIntensity = afterEmotions.length > 0 
+      ? afterEmotions.reduce((sum, e) => sum + e.intensity, 0) / afterEmotions.length 
+      : 0;
+
+    // Create daily breakdown
+    const dailyBreakdown = {};
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    
+    // Initialize all days
+    daysOfWeek.forEach(day => {
+      dailyBreakdown[day] = {
+        count: 0,
+        emotions: {},
+        dominantEmotion: null
+      };
+    });
+
+    // Group emotions by day of week
+    afterEmotions.forEach(emotion => {
+      const dayOfWeek = emotion.date.toLocaleDateString('en-US', { weekday: 'long' });
+      
+      if (dailyBreakdown[dayOfWeek]) {
+        dailyBreakdown[dayOfWeek].count++;
+        
+        // Count emotions for this day
+        if (!dailyBreakdown[dayOfWeek].emotions[emotion.emotion]) {
+          dailyBreakdown[dayOfWeek].emotions[emotion.emotion] = 0;
+        }
+        dailyBreakdown[dayOfWeek].emotions[emotion.emotion]++;
+      }
+    });
+
+    // Find dominant emotion for each day
+    Object.keys(dailyBreakdown).forEach(day => {
+      const dayData = dailyBreakdown[day];
+      if (dayData.count > 0 && Object.keys(dayData.emotions).length > 0) {
+        dayData.dominantEmotion = Object.keys(dayData.emotions).reduce((a, b) => 
+          dayData.emotions[a] > dayData.emotions[b] ? a : b
+        );
+      }
+      // Remove the detailed emotions object to keep response clean
+      delete dayData.emotions;
+    });
+
+    const responseData = {
+      totalEntries: moodLogs.length,
+      mostProminentValence: mostProminentValence,
+      valenceCounts: valenceCounts,
+      emotionCounts: emotionCounts,
+      averageIntensity: Math.round(avgIntensity * 10) / 10,
+      dailyBreakdown: dailyBreakdown,
+      weekStart: weekStart.toISOString().split('T')[0],
+      weekEnd: weekEnd.toISOString().split('T')[0]
+    };
+
+    console.log('🔍 Final response data:', responseData);
+
+    res.json({
+      success: true,
+      data: responseData
+    });
+
+  } catch (error) {
+    console.error('❌ Error in getWeeklyStatistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching weekly statistics',
+      error: error.message
+    });
+  }
+};

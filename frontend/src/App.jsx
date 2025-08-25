@@ -60,6 +60,7 @@ import ProgressModal from './components/User/Statistics/Activities/BreathingExer
 
 //Statistics
 import DailyStatistics from './components/User/Statistics/Daily/DailyStatistics';
+import WeeklyStatistics from './components/User/Statistics/Activities/Weekly/WeeklyStatistics';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -278,6 +279,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <DailyStatistics />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/weekly-statistics"
+          element={
+            <UserPrivateRoute>
+              <WeeklyStatistics />
             </UserPrivateRoute>
           }
         />

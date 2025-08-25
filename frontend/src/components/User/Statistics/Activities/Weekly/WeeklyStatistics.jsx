@@ -9,7 +9,7 @@ import {
   WbSunny as WbSunnyIcon,
   Brightness3 as Brightness3Icon,
   WbTwilight as WbTwilightIcon,
-  BarChart as BarChartIcon,
+  DateRange as DateRangeIcon,
   EmojiEmotions as EmojiEmotionsIcon,
   AccessTime as AccessTimeIcon,
   Refresh as RefreshIcon,
@@ -17,16 +17,16 @@ import {
   ArrowForward as ArrowForwardIcon,
   TrendingUpOutlined as TrendingUpOutlinedIcon,
   TrendingDownOutlined as TrendingDownOutlinedIcon,
-  TrendingFlatOutlined as TrendingFlatOutlinedIcon,
-  LightbulbOutlined as LightbulbOutlinedIcon
+  LightbulbOutlined as LightbulbOutlinedIcon,
+  Timeline as TimelineIcon
 } from '@mui/icons-material';
 import { CircularProgress, IconButton, Tooltip, Paper } from '@mui/material';
 
-const DailyStatistics = () => {
+const WeeklyStatistics = () => {
   const [statistics, setStatistics] = useState(null);
-  const [previousDayStats, setPreviousDayStats] = useState(null);
+  const [previousWeekStats, setPreviousWeekStats] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [error, setError] = useState(null);
 
   // Emotion emojis mapping
@@ -45,30 +45,48 @@ const DailyStatistics = () => {
     'tense': '😰'
   };
 
-  // Time segment icons
-  const timeSegmentIcons = {
-    morning: <WbSunnyIcon style={{ fontSize: 28, color: '#FFA726' }} />,
-    afternoon: <WbTwilightIcon style={{ fontSize: 28, color: '#FF7043' }} />,
-    evening: <Brightness3Icon style={{ fontSize: 28, color: '#5C6BC0' }} />
+  // Day of week icons
+  const dayIcons = {
+    Monday: <WbSunnyIcon style={{ fontSize: 24, color: '#FF6B6B' }} />,
+    Tuesday: <WbSunnyIcon style={{ fontSize: 24, color: '#4ECDC4' }} />,
+    Wednesday: <WbTwilightIcon style={{ fontSize: 24, color: '#45B7D1' }} />,
+    Thursday: <WbTwilightIcon style={{ fontSize: 24, color: '#96CEB4' }} />,
+    Friday: <WbSunnyIcon style={{ fontSize: 24, color: '#FECA57' }} />,
+    Saturday: <Brightness3Icon style={{ fontSize: 24, color: '#FF9FF3' }} />,
+    Sunday: <Brightness3Icon style={{ fontSize: 24, color: '#54A0FF' }} />
   };
 
-  // Format date for display
-  const formatDate = (date) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
+  // Get start of week (Monday)
+  const getStartOfWeek = (date) => {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(d.setDate(diff));
+  };
+
+  // Get end of week (Sunday)
+  const getEndOfWeek = (date) => {
+    const startOfWeek = getStartOfWeek(date);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    return endOfWeek;
+  };
+
+  // Format week range for display
+  const formatWeekRange = (date) => {
+    const start = getStartOfWeek(date);
+    const end = getEndOfWeek(date);
     
-    if (date.toDateString() === today.toDateString()) {
-      return 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
+    const currentWeekStart = getStartOfWeek(new Date());
+    const lastWeekStart = new Date(currentWeekStart);
+    lastWeekStart.setDate(lastWeekStart.getDate() - 7);
+    
+    if (start.toDateString() === currentWeekStart.toDateString()) {
+      return 'This Week';
+    } else if (start.toDateString() === lastWeekStart.toDateString()) {
+      return 'Last Week';
     } else {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
-      });
+      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
     }
   };
 
@@ -80,35 +98,36 @@ const DailyStatistics = () => {
       .replace(/\b\w/g, (letter) => letter.toUpperCase());
   };
 
-  // Fetch daily statistics
-  const fetchDailyStatistics = async (date) => {
+  // Fetch weekly statistics
+  const fetchWeeklyStatistics = async (date) => {
     try {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('token');
       
-      const formattedDate = date.toISOString().split('T')[0];
+      const startOfWeek = getStartOfWeek(date);
+      const formattedDate = startOfWeek.toISOString().split('T')[0];
       
-      // Fetch current day statistics
-      const fullUrl = `${import.meta.env.VITE_NODE_API}/api/statistics/daily?date=${formattedDate}`;
+      // Fetch current week statistics
+      const fullUrl = `${import.meta.env.VITE_NODE_API}/api/statistics/weekly?startDate=${formattedDate}`;
       const response = await axios.get(fullUrl, { 
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Fetch previous day statistics for comparison
-      const previousDate = new Date(date);
-      previousDate.setDate(previousDate.getDate() - 1);
-      const previousFormattedDate = previousDate.toISOString().split('T')[0];
+      // Fetch previous week statistics for comparison
+      const previousWeekStart = new Date(startOfWeek);
+      previousWeekStart.setDate(previousWeekStart.getDate() - 7);
+      const previousFormattedDate = previousWeekStart.toISOString().split('T')[0];
       
       try {
-        const previousUrl = `${import.meta.env.VITE_NODE_API}/api/statistics/daily?date=${previousFormattedDate}`;
+        const previousUrl = `${import.meta.env.VITE_NODE_API}/api/statistics/weekly?startDate=${previousFormattedDate}`;
         const previousResponse = await axios.get(previousUrl, { 
           headers: { Authorization: `Bearer ${token}` }
         });
-        setPreviousDayStats(previousResponse.data.data);
+        setPreviousWeekStats(previousResponse.data.data);
       } catch (prevError) {
-        console.log('No previous day data available');
-        setPreviousDayStats(null);
+        console.log('No previous week data available');
+        setPreviousWeekStats(null);
       }
       
       setStatistics(response.data.data);
@@ -121,17 +140,17 @@ const DailyStatistics = () => {
         return;
       }
       
-      setError('Failed to load daily statistics');
+      setError('Failed to load weekly statistics');
     } finally {
       setLoading(false);
     }
   };
 
-  // Navigate dates
-  const navigateDate = (direction) => {
-    const newDate = new Date(selectedDate);
-    newDate.setDate(newDate.getDate() + (direction === 'next' ? 1 : -1));
-    setSelectedDate(newDate);
+  // Navigate weeks
+  const navigateWeek = (direction) => {
+    const newDate = new Date(selectedWeek);
+    newDate.setDate(newDate.getDate() + (direction === 'next' ? 7 : -7));
+    setSelectedWeek(newDate);
   };
 
   // Get most frequent emotions (top 3)
@@ -150,115 +169,106 @@ const DailyStatistics = () => {
 
   // Generate comparison insights
   const getComparisonInsights = () => {
-    if (!statistics || !previousDayStats || statistics.totalEntries === 0 || previousDayStats.totalEntries === 0) {
+    if (!statistics || !previousWeekStats || statistics.totalEntries === 0 || previousWeekStats.totalEntries === 0) {
       return null;
     }
 
     const insights = [];
 
     // Total entries comparison
-    const entriesDiff = statistics.totalEntries - previousDayStats.totalEntries;
+    const entriesDiff = statistics.totalEntries - previousWeekStats.totalEntries;
     if (entriesDiff > 0) {
       insights.push({
         type: 'positive',
         icon: <TrendingUpOutlinedIcon />,
-        text: `You logged ${entriesDiff} more mood${entriesDiff > 1 ? 's' : ''} than yesterday! Great self-awareness! 🌟`,
+        text: `You logged ${entriesDiff} more mood${entriesDiff > 1 ? 's' : ''} this week than last week! Excellent consistency! 🌟`,
         color: '#4CAF50'
       });
     } else if (entriesDiff < 0) {
       insights.push({
         type: 'neutral',
         icon: <TrendingDownOutlinedIcon />,
-        text: `You logged ${Math.abs(entriesDiff)} fewer mood${Math.abs(entriesDiff) > 1 ? 's' : ''} than yesterday. Every bit of tracking counts! 📝`,
+        text: `You logged ${Math.abs(entriesDiff)} fewer mood${Math.abs(entriesDiff) > 1 ? 's' : ''} this week. Every entry counts towards your growth! 📝`,
         color: '#FF9800'
       });
     }
 
     // Positive mood comparison
     const currentPositive = statistics.valenceCounts.positive;
-    const previousPositive = previousDayStats.valenceCounts.positive;
+    const previousPositive = previousWeekStats.valenceCounts.positive;
     const positiveDiff = currentPositive - previousPositive;
 
     if (positiveDiff > 0) {
-      const percentage = previousPositive > 0 ? Math.round((positiveDiff / previousPositive) * 100) : 100;
       insights.push({
         type: 'positive',
         icon: <SentimentSatisfiedIcon />,
-        text: `${positiveDiff} more positive mood${positiveDiff > 1 ? 's' : ''} than yesterday! You're on an upward trend! 🚀`,
+        text: `${positiveDiff} more positive moment${positiveDiff > 1 ? 's' : ''} this week! You're building positive momentum! 🚀`,
         color: '#4CAF50'
       });
     } else if (positiveDiff < 0) {
       insights.push({
         type: 'understanding',
         icon: <SentimentDissatisfiedIcon />,
-        text: `Fewer positive moods than yesterday. That's perfectly normal - every day is different! 💙`,
+        text: `This week had fewer positive moments than last week. That's normal - life has its rhythms! 💙`,
         color: '#2196F3'
       });
     }
 
-    // Intensity comparison
-    const intensityDiff = statistics.averageIntensity - previousDayStats.averageIntensity;
-    if (Math.abs(intensityDiff) > 0.5) {
-      if (intensityDiff > 0) {
+    // Weekly activity comparison
+    const currentAvgPerDay = (statistics.totalEntries / 7).toFixed(1);
+    const previousAvgPerDay = (previousWeekStats.totalEntries / 7).toFixed(1);
+    const avgDiff = currentAvgPerDay - previousAvgPerDay;
+
+    if (Math.abs(avgDiff) > 0.5) {
+      if (avgDiff > 0) {
         insights.push({
           type: 'insight',
-          icon: <TrendingUpOutlinedIcon />,
-          text: `Your emotions felt ${intensityDiff.toFixed(1)} points more intense today. You're experiencing life fully! ⚡`,
+          icon: <TimelineIcon />,
+          text: `You've been more active this week with ${currentAvgPerDay} entries per day (vs ${previousAvgPerDay} last week)! 📈`,
           color: '#9C27B0'
         });
       } else {
         insights.push({
-          type: 'positive',
-          icon: <TrendingDownOutlinedIcon />,
-          text: `Your emotions were ${Math.abs(intensityDiff).toFixed(1)} points calmer today. Inner peace is showing! 🧘‍♀️`,
-          color: '#4CAF50'
+          type: 'neutral',
+          icon: <TimelineIcon />,
+          text: `Slightly less active this week with ${currentAvgPerDay} entries per day. Quality over quantity! 🎯`,
+          color: '#FF9800'
         });
       }
     }
 
-    // Dominant mood shift
-    if (statistics.mostProminentValence !== previousDayStats.mostProminentValence) {
-      if (statistics.mostProminentValence === 'positive') {
+    // Most active day comparison
+    if (statistics.dailyBreakdown && previousWeekStats.dailyBreakdown) {
+      const currentMostActiveDay = Object.keys(statistics.dailyBreakdown).reduce((a, b) => 
+        statistics.dailyBreakdown[a].count > statistics.dailyBreakdown[b].count ? a : b
+      );
+      const previousMostActiveDay = Object.keys(previousWeekStats.dailyBreakdown).reduce((a, b) => 
+        previousWeekStats.dailyBreakdown[a].count > previousWeekStats.dailyBreakdown[b].count ? a : b
+      );
+
+      if (currentMostActiveDay !== previousMostActiveDay) {
         insights.push({
-          type: 'celebration',
-          icon: <SentimentSatisfiedIcon />,
-          text: `Your mood shifted from negative to positive today! What a beautiful turnaround! 🌈`,
-          color: '#4CAF50'
-        });
-      } else {
-        insights.push({
-          type: 'understanding',
-          icon: <LightbulbOutlinedIcon />,
-          text: `Today felt more challenging than yesterday. Remember, difficult days make us stronger! 💪`,
-          color: '#2196F3'
+          type: 'insight',
+          icon: <CalendarTodayIcon />,
+          text: `Your most active day shifted from ${previousMostActiveDay} to ${currentMostActiveDay}. Interesting pattern change! 📅`,
+          color: '#FF5722'
         });
       }
-    }
-
-    // Most frequent emotion comparison
-    const currentTopEmotion = Object.keys(statistics.emotionCounts).reduce((a, b) => 
-      statistics.emotionCounts[a] > statistics.emotionCounts[b] ? a : b
-    );
-    const previousTopEmotion = Object.keys(previousDayStats.emotionCounts).reduce((a, b) => 
-      previousDayStats.emotionCounts[a] > previousDayStats.emotionCounts[b] ? a : b
-    );
-
-    if (currentTopEmotion !== previousTopEmotion) {
-      const emoji = emotionEmojis[currentTopEmotion] || '😐';
-      insights.push({
-        type: 'insight',
-        icon: <EmojiEmotionsIcon />,
-        text: `Your primary emotion shifted from ${formatText(previousTopEmotion)} to ${formatText(currentTopEmotion)} ${emoji}. Emotional variety is healthy!`,
-        color: '#FF5722'
-      });
     }
 
     return insights.slice(0, 3); // Return max 3 insights
   };
 
+  // Check if current week
+  const isCurrentWeek = () => {
+    const currentWeekStart = getStartOfWeek(new Date());
+    const selectedWeekStart = getStartOfWeek(selectedWeek);
+    return currentWeekStart.toDateString() === selectedWeekStart.toDateString();
+  };
+
   useEffect(() => {
-    fetchDailyStatistics(selectedDate);
-  }, [selectedDate]);
+    fetchWeeklyStatistics(selectedWeek);
+  }, [selectedWeek]);
 
   if (loading) {
     return (
@@ -269,7 +279,7 @@ const DailyStatistics = () => {
           className="flex items-center space-x-3 bg-white px-8 py-6 rounded-2xl shadow-lg"
         >
           <CircularProgress size={32} style={{ color: '#55AD9B' }} />
-          <span className="text-lg font-medium" style={{ color: '#272829' }}>Loading statistics...</span>
+          <span className="text-lg font-medium" style={{ color: '#272829' }}>Loading weekly statistics...</span>
         </motion.div>
       </div>
     );
@@ -289,7 +299,7 @@ const DailyStatistics = () => {
           <motion.button
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
-            onClick={() => fetchDailyStatistics(selectedDate)}
+            onClick={() => fetchWeeklyStatistics(selectedWeek)}
             className="px-8 py-3 rounded-xl text-white font-semibold shadow-lg transition-all duration-200"
             style={{ backgroundColor: '#55AD9B' }}
           >
@@ -310,15 +320,15 @@ const DailyStatistics = () => {
         <div className="container mx-auto px-6 py-6">
           <div className="flex flex-col items-center space-y-4">
 
-            {/* Centered Date Navigation */}
+            {/* Centered Week Navigation */}
             <Paper 
               elevation={0}
               className="flex items-center space-x-4 px-6 py-3 rounded-2xl border"
-              style={{ backgroundColor: '#F1F8E8', borderColor: '#F1F8E8' }}
+              style={{ backgroundColor: '#F8FBF6', borderColor: '#E8F5E8' }}
             >
-              <Tooltip title="Previous Day">
+              <Tooltip title="Previous Week">
                 <IconButton 
-                  onClick={() => navigateDate('prev')} 
+                  onClick={() => navigateWeek('prev')} 
                   size="small"
                   className="hover:bg-white/70 transition-colors"
                 >
@@ -328,18 +338,18 @@ const DailyStatistics = () => {
               
               <div className="text-center px-4">
                 <div className="text-lg font-semibold" style={{ color: '#272829' }}>
-                  {formatDate(selectedDate)}
+                  {formatWeekRange(selectedWeek)}
                 </div>
                 <div className="text-sm text-gray-500">
-                  {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  {getStartOfWeek(selectedWeek).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {getEndOfWeek(selectedWeek).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                 </div>
               </div>
               
-              <Tooltip title="Next Day">
+              <Tooltip title="Next Week">
                 <IconButton 
-                  onClick={() => navigateDate('next')} 
+                  onClick={() => navigateWeek('next')} 
                   size="small"
-                  disabled={selectedDate.toDateString() === new Date().toDateString()}
+                  disabled={isCurrentWeek()}
                   className="hover:bg-white/70 transition-colors disabled:opacity-50"
                 >
                   <ArrowForwardIcon style={{ color: '#55AD9B' }} />
@@ -358,10 +368,10 @@ const DailyStatistics = () => {
             animate={{ opacity: 1, y: 0 }}
             className="text-center bg-white p-16 rounded-3xl shadow-sm max-w-lg mx-auto border border-gray-100"
           >
-            <div className="text-8xl mb-8">📝</div>
+            <div className="text-8xl mb-8">📅</div>
             <h2 className="text-3xl font-bold mb-4" style={{ color: '#272829' }}>No Mood Entries</h2>
             <p className="text-lg text-gray-600 leading-relaxed">
-              No mood entries found for {formatDate(selectedDate).toLowerCase()}. Start tracking your emotions to see insights here!
+              No mood entries found for {formatWeekRange(selectedWeek).toLowerCase()}. Start tracking your emotions to see insights here!
             </p>
           </motion.div>
         ) : (
@@ -379,7 +389,7 @@ const DailyStatistics = () => {
                     <LightbulbOutlinedIcon style={{ color: '#55AD9B', fontSize: 24 }} />
                   </div>
                   <h2 className="text-xl font-bold" style={{ color: '#272829' }}>
-                    Daily Insights & Comparisons
+                    Weekly Insights & Comparisons
                   </h2>
                 </div>
                 <div className="grid gap-4">
@@ -407,7 +417,7 @@ const DailyStatistics = () => {
             )}
 
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               {/* Total Entries */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -426,9 +436,34 @@ const DailyStatistics = () => {
                     <div className="text-sm text-gray-500">Total Entries</div>
                   </div>
                 </div>
-                {previousDayStats && (
+                {previousWeekStats && (
                   <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
-                    Yesterday: {previousDayStats.totalEntries}
+                    Last week: {previousWeekStats.totalEntries}
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Average Per Day */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.25 }}
+                className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
+                    <TimelineIcon style={{ color: '#55AD9B', fontSize: 32 }} />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-3xl font-bold" style={{ color: '#272829' }}>
+                      {(statistics.totalEntries / 7).toFixed(1)}
+                    </div>
+                    <div className="text-sm text-gray-500">Per Day</div>
+                  </div>
+                </div>
+                {previousWeekStats && (
+                  <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
+                    Last week: {(previousWeekStats.totalEntries / 7).toFixed(1)}
                   </div>
                 )}
               </motion.div>
@@ -459,20 +494,20 @@ const DailyStatistics = () => {
                     }}>
                       {formatText(statistics.mostProminentValence)}
                     </div>
-                    <div className="text-sm text-gray-500">Dominant Mood</div>
+                    <div className="text-sm text-gray-500">Weekly Mood</div>
                   </div>
                 </div>
                 <div className="flex justify-between text-sm mb-4">
                   <span className="text-green-600 font-medium">
-                    Positive: {statistics.valenceCounts.positive}
+                    +{statistics.valenceCounts.positive}
                   </span>
                   <span className="text-orange-500 font-medium">
-                    Negative: {statistics.valenceCounts.negative}
+                    -{statistics.valenceCounts.negative}
                   </span>
                 </div>
-                {previousDayStats && (
+                {previousWeekStats && (
                   <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
-                    Yesterday: {formatText(previousDayStats.mostProminentValence)}
+                    Last week: {formatText(previousWeekStats.mostProminentValence)}
                   </div>
                 )}
               </motion.div>
@@ -481,7 +516,7 @@ const DailyStatistics = () => {
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
+                transition={{ delay: 0.35 }}
                 className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
               >
                 <div className="flex items-center justify-between mb-6">
@@ -506,9 +541,9 @@ const DailyStatistics = () => {
                     />
                   ))}
                 </div>
-                {previousDayStats && (
+                {previousWeekStats && (
                   <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
-                    Yesterday: {previousDayStats.averageIntensity?.toFixed(1) || '0.0'}
+                    Last week: {previousWeekStats.averageIntensity?.toFixed(1) || '0.0'}
                   </div>
                 )}
               </motion.div>
@@ -518,7 +553,7 @@ const DailyStatistics = () => {
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
+              transition={{ delay: 0.4 }}
               className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100"
             >
               <div className="flex items-center space-x-3 mb-8">
@@ -526,7 +561,7 @@ const DailyStatistics = () => {
                   <EmojiEmotionsIcon style={{ color: '#55AD9B', fontSize: 24 }} />
                 </div>
                 <h2 className="text-xl font-bold" style={{ color: '#272829' }}>
-                  Most Frequent Emotions
+                  Most Frequent Emotions This Week
                 </h2>
               </div>
               
@@ -537,7 +572,7 @@ const DailyStatistics = () => {
                       key={item.emotion}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.6 + index * 0.1 }}
+                      transition={{ delay: 0.5 + index * 0.1 }}
                       className="text-center p-6 rounded-2xl border border-gray-100 hover:shadow-sm transition-shadow"
                       style={{ backgroundColor: index === 0 ? '#F0F9F0' : '#FAFAFA' }}
                     >
@@ -564,11 +599,11 @@ const DailyStatistics = () => {
               )}
             </motion.div>
 
-            {/* Time Segment Analysis */}
+            {/* Daily Breakdown */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7 }}
+              transition={{ delay: 0.6 }}
               className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100"
             >
               <div className="flex items-center space-x-3 mb-8">
@@ -576,76 +611,45 @@ const DailyStatistics = () => {
                   <AccessTimeIcon style={{ color: '#55AD9B', fontSize: 24 }} />
                 </div>
                 <h2 className="text-xl font-bold" style={{ color: '#272829' }}>
-                  Mood by Time of Day
+                  Daily Breakdown
                 </h2>
               </div>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {Object.entries({
-                  morning: 'Morning (5:00 AM - 11:59 AM)',
-                  afternoon: 'Afternoon (12:00 PM - 5:59 PM)',  
-                  evening: 'Evening (6:00 PM onwards)'
-                }).map(([segment, label], index) => {
-                  const moodData = statistics.timeSegmentMoods[segment];
-                  
-                  return (
-                    <motion.div
-                      key={segment}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.8 + index * 0.1 }}
-                      className="p-6 rounded-2xl border border-gray-100 hover:shadow-sm transition-shadow"
-                      style={{ backgroundColor: '#FAFAFA' }}
-                    >
-                      <div className="flex items-center justify-between mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+                {statistics.dailyBreakdown && Object.entries(statistics.dailyBreakdown).map(([day, data], index) => (
+                  <motion.div
+                    key={day}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.7 + index * 0.1 }}
+                    className="p-4 rounded-2xl border border-gray-100 hover:shadow-sm transition-shadow"
+                    style={{ backgroundColor: '#FAFAFA' }}
+                  >
+                    <div className="text-center">
+                      <div className="flex justify-center mb-3">
                         <div className="p-2 rounded-xl bg-white">
-                          {timeSegmentIcons[segment]}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-medium" style={{ color: '#272829' }}>
-                            {label.split(' (')[0]}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {label.match(/\(([^)]+)\)/)?.[1]}
-                          </div>
+                          {dayIcons[day]}
                         </div>
                       </div>
-                      
-                      {moodData ? (
-                        <div className="text-center">
-                          <div className="text-4xl mb-4">
-                            {emotionEmojis[moodData.emotion] || '😐'}
+                      <div className="text-sm font-semibold mb-2" style={{ color: '#272829' }}>
+                        {day}
+                      </div>
+                      <div className="text-2xl font-bold mb-2" style={{ color: '#55AD9B' }}>
+                        {data.count}
+                      </div>
+                      {data.dominantEmotion && (
+                        <>
+                          <div className="text-2xl mb-2">
+                            {emotionEmojis[data.dominantEmotion] || '😐'}
                           </div>
-                          <div className="text-lg font-semibold mb-2" style={{ color: '#272829' }}>
-                            {formatText(moodData.emotion)}
+                          <div className="text-xs text-gray-600">
+                            {formatText(data.dominantEmotion)}
                           </div>
-                          <div className="text-sm text-gray-600 mb-4">
-                            {moodData.count} of {moodData.totalEntries} entries
-                          </div>
-                          <div className="flex justify-center space-x-1 mb-2">
-                            {[...Array(5)].map((_, i) => (
-                              <div
-                                key={i}
-                                className="w-2 h-2 rounded-full"
-                                style={{ 
-                                  backgroundColor: i < Math.round(moodData.averageIntensity) ? '#55AD9B' : '#E5E7EB' 
-                                }}
-                              />
-                            ))}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            Intensity: {moodData.averageIntensity}/5
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-center py-8">
-                          <div className="text-3xl mb-3 opacity-30">😴</div>
-                          <div className="text-sm text-gray-400">No entries</div>
-                        </div>
+                        </>
                       )}
-                    </motion.div>
-                  );
-                })}
+                    </div>
+                  </motion.div>
+                ))}
               </div>
             </motion.div>
           </div>
@@ -655,4 +659,4 @@ const DailyStatistics = () => {
   );
 };
 
-export default DailyStatistics;
+export default WeeklyStatistics;
