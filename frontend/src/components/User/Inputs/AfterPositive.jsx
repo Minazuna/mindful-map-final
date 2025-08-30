@@ -91,7 +91,9 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
             afterValence: '',
             afterEmotion: '',
             afterIntensity: 0,
-            afterReason: ''
+            afterReason: '',
+            selectedDate: null, // Reset selectedDate as well
+            selectedTime: null  // Reset selectedTime as well
           });
           
           // Show the continue tracking modal

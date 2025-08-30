@@ -9,6 +9,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import EqualizerIcon from '@mui/icons-material/Equalizer';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import InfoIcon from '@mui/icons-material/Info';
 import { motion } from 'framer-motion';
 
 const CalendarLog = () => {
@@ -26,6 +27,22 @@ const CalendarLog = () => {
   const [longestStreak, setLongestStreak] = useState(0);
   const [weeklyProgress, setWeeklyProgress] = useState([false, false, false, false, false, false, false]);
   const [monthlyCompletion, setMonthlyCompletion] = useState(0);
+
+  // Emotion mapping
+  const emotionMap = {
+    // Negative emotions
+    bored: { emoji: '😑', label: 'Bored' },
+    sad: { emoji: '😢', label: 'Sad' },
+    disappointed: { emoji: '😞', label: 'Disappointed' },
+    angry: { emoji: '😠', label: 'Angry' },
+    tense: { emoji: '😰', label: 'Tense' },
+    // Positive emotions
+    calm: { emoji: '😌', label: 'Calm' },
+    relaxed: { emoji: '😊', label: 'Relaxed' },
+    pleased: { emoji: '🙂', label: 'Pleased' },
+    happy: { emoji: '😄', label: 'Happy' },
+    excited: { emoji: '🤩', label: 'Excited' }
+  };
 
   useEffect(() => {
     const fetchMoodLogs = async () => {
@@ -237,35 +254,150 @@ const CalendarLog = () => {
   currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
   currentWeekEnd.setHours(23, 59, 59, 999);
 
-  // Get mood for a specific date - ONLY return actual logs or plus for days we haven't logged yet
+  // Get mood for a specific date - return most frequent mood or last inputted mood
   const getMoodForDate = (day) => {
-    // Check if there's already a log for this date
-    const log = moodLogs.find(log => {
-      const logDate = new Date(log.date);
-      return logDate.getFullYear() === currentYear && 
-             logDate.getMonth() === currentMonth && 
-             logDate.getDate() === day;
-    });
-
-    // If we have a log, return the mood
-    if (log) return log.mood;
-
-    // Check if this is a day where we should show the + icon
     const dateToCheck = new Date(currentYear, currentMonth, day);
     dateToCheck.setHours(0, 0, 0, 0);
     
-    // Only show plus if:
-    // 1. It's today or a past date (not future)
-    // 2. It's in the current week
-    // 3. We DON'T already have a log for it
-    const isPastOrToday = dateToCheck <= today;
-    const isInCurrentWeek = dateToCheck >= currentWeekStart && dateToCheck <= currentWeekEnd;
-    
-    if (isPastOrToday && isInCurrentWeek) {
-      return 'plus';
+    // Get all logs for this specific date
+    const logsForDate = moodLogs.filter(log => {
+      const logDate = new Date(log.date);
+      logDate.setHours(0, 0, 0, 0);
+      return logDate.getTime() === dateToCheck.getTime();
+    });
+
+    if (logsForDate.length === 0) {
+      // Check if this is a day where we should show the + icon
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      // Get the Monday of current week
+      const currentWeekStart = new Date(today);
+      const dayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+      const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Move back to Monday
+      currentWeekStart.setDate(today.getDate() + offset);
+      currentWeekStart.setHours(0, 0, 0, 0);
+
+      const currentWeekEnd = new Date(currentWeekStart);
+      currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+      currentWeekEnd.setHours(23, 59, 59, 999);
+      
+      // Only show plus if:
+      // 1. It's today or a past date (not future)
+      // 2. It's in the current week
+      const isPastOrToday = dateToCheck <= today;
+      const isInCurrentWeek = dateToCheck >= currentWeekStart && dateToCheck <= currentWeekEnd;
+      
+      if (isPastOrToday && isInCurrentWeek) {
+        return { type: 'plus' };
+      }
+      
+      return { type: 'empty' };
     }
 
-    return 'gray';
+    // Collect all emotions from all logs for this date (both before and after emotions)
+    const allEmotions = [];
+    logsForDate.forEach(log => {
+      // Add afterEmotion (always present and more recent)
+      if (log.afterEmotion) {
+        allEmotions.push({
+          emotion: log.afterEmotion,
+          type: 'after',
+          date: new Date(log.date),
+          logId: log._id
+        });
+      }
+      
+      // Add beforeEmotion if it exists (not "can't remember")
+      if (log.beforeEmotion && log.beforeValence !== "can't remember") {
+        allEmotions.push({
+          emotion: log.beforeEmotion,
+          type: 'before',
+          date: new Date(log.date),
+          logId: log._id
+        });
+      }
+    });
+
+    if (allEmotions.length === 0) {
+      return { type: 'empty' };
+    }
+
+    // Count frequency of each emotion and track latest occurrence
+    const emotionCounts = {};
+    const emotionLatestOccurrence = {};
+    
+    allEmotions.forEach(emotionData => {
+      const emotion = emotionData.emotion;
+      emotionCounts[emotion] = (emotionCounts[emotion] || 0) + 1;
+      
+      // Track the latest occurrence of each emotion
+      if (!emotionLatestOccurrence[emotion] || emotionData.date > emotionLatestOccurrence[emotion]) {
+        emotionLatestOccurrence[emotion] = emotionData.date;
+      }
+    });
+
+    // Find the maximum frequency
+    const maxCount = Math.max(...Object.values(emotionCounts));
+    
+    // Get all emotions that have the maximum frequency
+    const emotionsWithMaxCount = Object.entries(emotionCounts)
+      .filter(([emotion, count]) => count === maxCount)
+      .map(([emotion, count]) => emotion);
+
+    // If there's only one emotion with max count and it appears more than once, it's clearly frequent
+    if (emotionsWithMaxCount.length === 1 && maxCount > 1) {
+      return {
+        type: 'frequent',
+        emotion: emotionsWithMaxCount[0],
+        isFrequent: true,
+        count: logsForDate.length
+      };
+    }
+
+    // If multiple emotions have the same max count and that count is > 1 (tied for most frequent)
+    if (emotionsWithMaxCount.length > 1 && maxCount > 1) {
+      // Find the emotion with the most recent occurrence among the tied emotions
+      let mostRecentEmotion = emotionsWithMaxCount[0];
+      let mostRecentDate = emotionLatestOccurrence[mostRecentEmotion];
+      
+      emotionsWithMaxCount.forEach(emotion => {
+        if (emotionLatestOccurrence[emotion] > mostRecentDate) {
+          mostRecentEmotion = emotion;
+          mostRecentDate = emotionLatestOccurrence[emotion];
+        }
+      });
+
+      return {
+        type: 'frequent',
+        emotion: mostRecentEmotion,
+        isFrequent: true,
+        count: logsForDate.length
+      };
+    }
+
+    // If all emotions appear only once (maxCount === 1), 
+    // return the most recent afterEmotion (since it's more recent than beforeEmotion)
+    const afterEmotions = allEmotions.filter(e => e.type === 'after');
+    if (afterEmotions.length > 0) {
+      // Sort by date descending to get the most recent
+      const mostRecentAfterEmotion = afterEmotions.sort((a, b) => b.date - a.date)[0];
+      return {
+        type: 'last',
+        emotion: mostRecentAfterEmotion.emotion,
+        isFrequent: false,
+        count: logsForDate.length
+      };
+    }
+
+    // Fallback to most recent emotion if no afterEmotions (shouldn't happen normally)
+    const mostRecentEmotion = allEmotions.sort((a, b) => b.date - a.date)[0];
+    return {
+      type: 'last',
+      emotion: mostRecentEmotion.emotion,
+      isFrequent: false,
+      count: logsForDate.length
+    };
   };
 
   const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -290,24 +422,71 @@ const CalendarLog = () => {
     }
   };
 
+  const handleCircleClick = (day, clickCount = 1) => {
+    const dateToCheck = new Date(currentYear, currentMonth, day);
+    dateToCheck.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Get the Monday of current week
+    const currentWeekStart = new Date(today);
+    const dayOfWeek = today.getDay(); // 0 (Sunday) to 6 (Saturday)
+    const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek; // Move back to Monday
+    currentWeekStart.setDate(today.getDate() + offset);
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    const currentWeekEnd = new Date(currentWeekStart);
+    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+    currentWeekEnd.setHours(23, 59, 59, 999);
+
+    const isInCurrentWeek = dateToCheck >= currentWeekStart && dateToCheck <= currentWeekEnd;
+    const isPastOrToday = dateToCheck <= today;
+
+    // Only allow logging for current week and past/today dates
+    if (isPastOrToday && isInCurrentWeek) {
+      const formattedMonth = (currentMonth + 1).toString().padStart(2, '0');
+      const formattedDay = day.toString().padStart(2, '0');
+      const formattedDate = `${currentYear}-${formattedMonth}-${formattedDay}`;
+      
+      // Navigate to time segment selector for missed days, direct to choose-category for today
+      if (dateToCheck.getTime() === today.getTime()) {
+        navigate(`/choose-category?date=${formattedDate}`);
+      } else {
+        navigate(`/time-segment?date=${formattedDate}`);
+      }
+    }
+  };
+
   const handlePlusClick = (day) => {
-    const formattedMonth = (currentMonth + 1).toString().padStart(2, '0');
-    const formattedDay = day.toString().padStart(2, '0');
-    navigate(`/log-mood?date=${currentYear}-${formattedMonth}-${formattedDay}`);
+    handleCircleClick(day);
   };
 
   return (
-    <div className="bg-[#b4ddc8] min-h-screen flex flex-col justify-between">
+    <div className="bg-gradient-to-br from-[#b4ddc8] via-[#a8d5bb] to-[#9ccdae] min-h-screen flex flex-col justify-between">
       <div>
-        <nav className="bg-white py-3 shadow-md">
+        <nav className="bg-white py-4 shadow-md">
           <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between mb-2">
+            <div className="flex items-center justify-between mb-3">
               {/* Centered month header */}
               <div className="flex-1"></div> {/* Spacer */}
               <div className="flex items-center justify-center flex-1">
-                <ChevronLeftIcon className="cursor-pointer text-[#6fba94]" onClick={handlePrevMonth} />
-                <h1 className="text-xl font-bold mx-2">{months[currentMonth]} {currentYear}</h1>
-                <ChevronRightIcon className="cursor-pointer text-[#6fba94]" onClick={handleNextMonth} />
+                <IconButton 
+                  onClick={handlePrevMonth}
+                  className="hover:bg-gray-100 transition-colors"
+                  size="small"
+                >
+                  <ChevronLeftIcon className="text-[#6fba94]" />
+                </IconButton>
+                <h1 className="text-2xl font-bold mx-4 min-w-[200px] text-center text-gray-800">
+                  {months[currentMonth]} {currentYear}
+                </h1>
+                <IconButton 
+                  onClick={handleNextMonth}
+                  className="hover:bg-gray-100 transition-colors"
+                  size="small"
+                >
+                  <ChevronRightIcon className="text-[#6fba94]" />
+                </IconButton>
               </div>
               
               {/* Streak icon with spacer to maintain centering */}
@@ -315,18 +494,18 @@ const CalendarLog = () => {
                 <Tooltip title="View Streak Stats" arrow>
                   <IconButton 
                     onClick={handleOpenStreakModal} 
-                    className="relative"
+                    className="relative hover:scale-105 transition-transform"
                     size="medium"
                   >
                     <div className="w-14 h-14 relative">
                       <img 
                         src="/images/streak.gif" 
                         alt="Streak" 
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-cover rounded-full"
                       />
                     </div>
                     {currentStreak > 0 && (
-                      <div className="absolute top-3 right-2 bg-[#6fba94] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold">
+                      <div className="absolute top-3 right-2 bg-[#6fba94] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-md">
                         {currentStreak}
                       </div>
                     )}
@@ -336,66 +515,175 @@ const CalendarLog = () => {
             </div>
             
             <div className="flex items-center justify-center">
-              <div className="bg-[#f3f9f6] rounded-full px-3 py-1 flex items-center">
-                <span className="text-xs text-gray-500 mr-2">This month:</span>
-                <div className="w-20 bg-gray-200 h-2 rounded-full">
+              <div className="bg-gradient-to-r from-[#f3f9f6] to-[#e8f5ea] rounded-full px-4 py-2 flex items-center shadow-sm">
+                <span className="text-xs text-gray-600 mr-3 font-medium">This month:</span>
+                <div className="w-24 bg-gray-200 h-2.5 rounded-full overflow-hidden">
                   <div 
-                    className="h-full bg-gradient-to-r from-[#6fba94] to-[#4e8067] rounded-full" 
+                    className="h-full bg-gradient-to-r from-[#6fba94] to-[#4e8067] rounded-full transition-all duration-500" 
                     style={{ width: `${monthlyCompletion}%` }}
                   ></div>
                 </div>
-                <span className="text-xs font-medium text-[#6fba94] ml-2">{monthlyCompletion}%</span>
+                <span className="text-xs font-bold text-[#6fba94] ml-3">{monthlyCompletion}%</span>
               </div>
             </div>
           </div>
         </nav>
         
-        <div className="grid grid-cols-7 gap-2 mt-8 max-w-screen-md mx-auto bg-white rounded-lg shadow p-4 mb-20">
-          {/* Sunday first for calendar display */}
-          {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
-            <div key={i} className="text-center font-bold text-gray-500 mb-4">{day}</div>
-          ))}
-          {[...Array(firstDay)].map((_, i) => <div key={i}></div>)}
-          {[...Array(daysInMonth)].map((_, i) => {
-            const day = i + 1;
-            const mood = getMoodForDate(day);
-            const isToday = day === today.getDate() && 
-                           currentMonth === today.getMonth() && 
-                           currentYear === today.getFullYear();
+        <div className="max-w-screen-md mx-auto px-4 mb-6 mt-8">
+          {/* Calendar explanation and legend */}
+          <div className="bg-white rounded-lg shadow-sm p-4 mb-4">
+            <div className="text-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-800 mb-2 flex items-center justify-center gap-2">
+                <span className="text-xl">📅</span>
+                Your Mood Calendar
+              </h2>
+              <p className="text-sm text-gray-600 leading-relaxed max-w-2xl mx-auto mb-4">
+                Track your daily emotions and activities. <strong>Click any circle in the current week</strong> to log a mood. 
+                <strong> Double-click circles with existing moods</strong> to add multiple entries for the same day.
+                The <strong>numbers on circles indicate total logs</strong> for that day.
+              </p>
+            </div>
 
-            return (
-              <div key={day} className="flex flex-col items-center mb-3"> 
-                <div
-                  className={`flex items-center justify-center w-12 h-12 md:w-12 md:h-12 rounded-full shadow 
-                    ${isToday ? 'border-2 border-[#6fba94]' : ''}
-                    ${mood === 'plus' ? 'bg-gray-100' : mood === 'gray' ? 'bg-gray-100' : 'bg-white'}`}
-                >
-                  {mood === 'plus' ? (
-                    <button
-                      className={`text-2xl rounded-full ${isToday ? 'text-[#6fba94]' : 'text-gray-400'} 
-                        ${isToday ? 'bg-transparent' : 'bg-gray-100'}`}
-                      style={{ padding: 0, border: 'none' }} 
-                      onClick={() => handlePlusClick(day)}
-                    >
-                      +
-                    </button>
-                  ) : mood === 'gray' ? null : (
-                    <img
-                      src={`/images/${mood.toLowerCase()}.gif`}
-                      alt={mood}
-                      className="w-16 h-16 object-cover bg-transparent rounded-full"
-                    />
-                  )}
+            {/* Legend */}
+            <div className="flex justify-center items-center gap-6 bg-gray-50 rounded-lg py-3 px-4">
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-white border-2 border-sky-400 flex items-center justify-center shadow-sm">
+                  <span className="text-xs">😊</span>
                 </div>
-                <span 
-                  className={`mt-1 text-sm md:text-base font-semibold ${isToday ? 'text-[#6fba94]' : ''}`}
-                >
-                  {day}
-                </span> 
+                <span className="text-xs text-gray-700 font-medium">Most Frequent</span>
               </div>
-            );
-          })}
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-white border border-gray-400 flex items-center justify-center shadow-sm">
+                  <span className="text-xs">😊</span>
+                </div>
+                <span className="text-xs text-gray-700 font-medium">Latest Entry</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-gray-50 border-2 border-dashed border-gray-400 flex items-center justify-center">
+                  <span className="text-gray-500 text-sm font-bold">+</span>
+                </div>
+                <span className="text-xs text-gray-700 font-medium">Add Mood</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-white border-2 border-[#6fba94] flex items-center justify-center shadow-sm">
+                  <span className="text-xs">😊</span>
+                </div>
+                <span className="text-xs text-gray-700 font-medium">Today</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Calendar Container */}
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
+            <div className="bg-gradient-to-r from-[#6fba94] via-[#5ea983] to-[#6fba94] p-4">
+              <div className="grid grid-cols-7 gap-2">
+                {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day, i) => (
+                  <div key={i} className="text-center font-bold text-white text-sm py-2">
+                    {day}
+                  </div>
+                ))}
+              </div>
+            </div>
+            
+            <div className="p-6 bg-gradient-to-b from-white to-gray-50">
+              <div className="grid grid-cols-7 gap-4">
+                {/* Empty cells for days before the first day of the month */}
+                {[...Array(firstDay)].map((_, i) => (
+                  <div key={`empty-${i}`} className="aspect-square"></div>
+                ))}
+                
+                {/* Calendar days */}
+                {[...Array(daysInMonth)].map((_, i) => {
+                  const day = i + 1;
+                  const moodData = getMoodForDate(day);
+                  const isToday = day === today.getDate() && 
+                                 currentMonth === today.getMonth() && 
+                                 currentYear === today.getFullYear();
+
+                  const today_check = new Date();
+                  today_check.setHours(0, 0, 0, 0);
+                  const dateToCheck = new Date(currentYear, currentMonth, day);
+                  dateToCheck.setHours(0, 0, 0, 0);
+                  
+                  const currentWeekStart = new Date(today_check);
+                  const dayOfWeek = today_check.getDay();
+                  const offset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                  currentWeekStart.setDate(today_check.getDate() + offset);
+                  currentWeekStart.setHours(0, 0, 0, 0);
+
+                  const currentWeekEnd = new Date(currentWeekStart);
+                  currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+                  currentWeekEnd.setHours(23, 59, 59, 999);
+
+                  const isInCurrentWeek = dateToCheck >= currentWeekStart && dateToCheck <= currentWeekEnd;
+                  const isPastOrToday = dateToCheck <= today_check;
+                  const isClickable = (moodData.type === 'plus') || (moodData.type !== 'empty' && isInCurrentWeek && isPastOrToday);
+
+                  return (
+                    <div key={day} className="aspect-square flex flex-col items-center justify-center relative">
+                      {/* Day circle */}
+                      <div
+                        className={`w-14 h-14 rounded-full flex items-center justify-center transition-all duration-300 relative group
+                          ${isToday ? 
+                            'border-[#6fba94] border-2 bg-white shadow-md' :
+                            moodData.type === 'plus' ? 
+                              'bg-gradient-to-br from-gray-50 to-gray-100 hover:from-[#f0f9f5] hover:to-[#e8f5ea] border-2 border-dashed border-gray-400 hover:border-[#6fba94] cursor-pointer' : 
+                              moodData.type === 'empty' ? 'bg-gray-50 border border-gray-200' : 
+                              moodData.isFrequent ? 
+                                'bg-white border-2 border-sky-400 hover:border-sky-500 shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-110' :
+                                'bg-white border-2 border-gray-400 hover:border-gray-500 shadow-md hover:shadow-lg cursor-pointer transform hover:scale-105'
+                          }
+                          ${isClickable ? 'cursor-pointer' : 'cursor-default'}
+                        `}
+                        onDoubleClick={() => isClickable && moodData.type !== 'plus' && moodData.type !== 'empty' && handleCircleClick(day, 2)}
+                        onClick={() => isClickable && moodData.type === 'plus' && handlePlusClick(day)}
+                      >
+                        {moodData.type === 'plus' ? (
+                          <span className="text-xl text-gray-500 group-hover:text-[#6fba94] transition-colors font-bold">+</span>
+                        ) : moodData.type === 'empty' ? null : (
+                          <span className="text-2xl drop-shadow-sm">{emotionMap[moodData.emotion]?.emoji || '😊'}</span>
+                        )}
+                        
+                        {/* Multiple entries indicator */}
+                        {moodData.count > 1 && (
+                          <div className="absolute -top-2 -right-2 bg-gradient-to-r from-[#6fba94] to-[#5ea983] text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-bold shadow-lg border-2 border-white">
+                            {moodData.count}
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Day number */}
+                      <span className={`text-sm font-medium mt-2 ${
+                        isToday ? 'text-[#6fba94] font-bold' : 
+                        moodData.type !== 'empty' ? 'text-gray-700' : 'text-gray-400'
+                      }`}>
+                        {day}
+                      </span>
+                      
+                      {/* Tooltip for mood information */}
+                      {moodData.type !== 'plus' && moodData.type !== 'empty' && (
+                        <div className="opacity-0 group-hover:opacity-100 absolute bottom-full mb-3 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-xs rounded-lg py-2 px-3 whitespace-nowrap transition-opacity z-20 shadow-lg">
+                          <div className="font-medium">{emotionMap[moodData.emotion]?.label}</div>
+                          <div className="text-gray-300">
+                            {moodData.isFrequent ? 'Most Frequent' : 'Latest Entry'}
+                            {moodData.count > 1 && ` • ${moodData.count} entries`}
+                          </div>
+                          <div className="text-gray-400 text-xs mt-1">
+                            {moodData.type !== 'empty' && isInCurrentWeek && isPastOrToday ? 'Double-click to add more' : ''}
+                          </div>
+                          {/* Tooltip arrow */}
+                          <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
         </div>
+
+        <div className="mb-20"></div>
       </div>
       
       {/* Streak Modal */}

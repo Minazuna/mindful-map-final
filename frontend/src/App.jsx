@@ -41,6 +41,7 @@ import StatisticsTable from './components/Admin/StatisticsTable';
 
 //Student's Inputs 
 import ChooseCategory from './components/User/Inputs/ChooseCategory';
+import TimeSegmentSelector from './components/User/Inputs/TimeSegmentSelector';
 import BeforeValence from './components/User/Inputs/BeforeValence';
 import AfterValence from './components/User/Inputs/AfterValence';
 import BeforePositive from './components/User/Inputs/BeforePositive';
@@ -167,7 +168,9 @@ const App = () => {
     afterValence: '',
     afterEmotion: '',
     afterIntensity: 0,
-    afterReason: ''
+    afterReason: '',
+    selectedDate: null,
+    selectedTime: null
   });
 
   return (
@@ -183,6 +186,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <ChooseCategory categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/time-segment"
+          element={
+            <UserPrivateRoute>
+              <TimeSegmentSelector categoryFormData={categoryFormData} setCategoryFormData={setCategoryFormData} />
             </UserPrivateRoute>
           }
         />

@@ -14,7 +14,9 @@ exports.saveMood = async (req, res) => {
       afterValence, 
       afterEmotion, 
       afterIntensity,
-      afterReason 
+      afterReason,
+      selectedDate, // Add selectedDate to destructuring
+      selectedTime  // Add selectedTime to destructuring
     } = req.body;
 
     if (!req.user) {
@@ -53,13 +55,25 @@ exports.saveMood = async (req, res) => {
     }
 
     const now = new Date();
+    
+    // Use selectedTime if provided, otherwise selectedDate with current time, otherwise current date/time
+    let logDate = now;
+    if (selectedTime) {
+      // selectedTime is already in UTC from frontend conversion
+      logDate = new Date(selectedTime);
+    } else if (selectedDate) {
+      const selectedDateObj = new Date(selectedDate);
+      // Preserve the current time but use the selected date
+      logDate = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate(), 
+                        now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+    }
 
     // For sleep category, check if there's already an entry today and update it
     if (category === 'sleep') {
-      const startOfDay = new Date(now);
+      const startOfDay = new Date(logDate);
       startOfDay.setUTCHours(0, 0, 0, 0);
 
-      const endOfDay = new Date(now);
+      const endOfDay = new Date(logDate);
       endOfDay.setUTCHours(23, 59, 59, 999);
 
       const existingSleepLog = await MoodLog.findOne({
@@ -77,7 +91,7 @@ exports.saveMood = async (req, res) => {
         existingSleepLog.afterValence = afterValence;
         existingSleepLog.afterEmotion = afterEmotion;
         existingSleepLog.afterIntensity = afterIntensity;
-        existingSleepLog.date = now;
+        existingSleepLog.date = logDate;
 
         await existingSleepLog.save();
 
@@ -92,7 +106,7 @@ exports.saveMood = async (req, res) => {
     // Create new mood log entry
     const newMoodLog = new MoodLog({
       user: req.user._id,
-      date: now,
+      date: logDate,
       category,
       activity: category !== 'sleep' ? activity : undefined,
       hrs: category === 'sleep' ? hrs : undefined,

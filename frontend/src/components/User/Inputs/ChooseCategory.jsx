@@ -1,8 +1,23 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    // Check if there's a date parameter in the URL
+    const searchParams = new URLSearchParams(location.search);
+    const dateParam = searchParams.get('date');
+    
+    if (dateParam) {
+      // Set the date in the form data if it exists
+      setCategoryFormData(prev => ({
+        ...prev,
+        selectedDate: dateParam
+      }));
+    }
+  }, [location.search, setCategoryFormData]);
 
   const categories = [
     { name: 'Activities', path: '/overall-activities', categoryKey: 'activity' },
@@ -16,7 +31,7 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
     setCategoryFormData(prev => ({
       ...prev,
       category: categoryKey,
-      // Reset other fields when changing category
+      // Reset other fields when changing category but preserve selectedDate
       activity: '',
       hrs: 0,
       beforeValence: '',
