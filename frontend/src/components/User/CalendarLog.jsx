@@ -422,7 +422,7 @@ const CalendarLog = () => {
     }
   };
 
-  const handleCircleClick = (day, clickCount = 1) => {
+  const handleCircleClick = (day) => {
     const dateToCheck = new Date(currentYear, currentMonth, day);
     dateToCheck.setHours(0, 0, 0, 0);
     const today = new Date();
@@ -448,12 +448,9 @@ const CalendarLog = () => {
       const formattedDay = day.toString().padStart(2, '0');
       const formattedDate = `${currentYear}-${formattedMonth}-${formattedDay}`;
       
-      // Navigate to time segment selector for missed days, direct to choose-category for today
-      if (dateToCheck.getTime() === today.getTime()) {
-        navigate(`/choose-category?date=${formattedDate}`);
-      } else {
-        navigate(`/time-segment?date=${formattedDate}`);
-      }
+      // Always navigate to time segment selector for any clickable day (including today)
+      // This ensures proper date handling for all cases
+      navigate(`/time-segment?date=${formattedDate}`);
     }
   };
 
@@ -539,7 +536,7 @@ const CalendarLog = () => {
               </h2>
               <p className="text-sm text-gray-600 leading-relaxed max-w-2xl mx-auto mb-4">
                 Track your daily emotions and activities. <strong>Click any circle in the current week</strong> to log a mood. 
-                <strong> Double-click circles with existing moods</strong> to add multiple entries for the same day.
+                <strong>Click circles with existing moods</strong> to add multiple entries for the same day.
                 The <strong>numbers on circles indicate total logs</strong> for that day.
               </p>
             </div>
@@ -635,8 +632,7 @@ const CalendarLog = () => {
                           }
                           ${isClickable ? 'cursor-pointer' : 'cursor-default'}
                         `}
-                        onDoubleClick={() => isClickable && moodData.type !== 'plus' && moodData.type !== 'empty' && handleCircleClick(day, 2)}
-                        onClick={() => isClickable && moodData.type === 'plus' && handlePlusClick(day)}
+                        onClick={() => isClickable && handleCircleClick(day)}
                       >
                         {moodData.type === 'plus' ? (
                           <span className="text-xl text-gray-500 group-hover:text-[#6fba94] transition-colors font-bold">+</span>
@@ -669,7 +665,7 @@ const CalendarLog = () => {
                             {moodData.count > 1 && ` • ${moodData.count} entries`}
                           </div>
                           <div className="text-gray-400 text-xs mt-1">
-                            {moodData.type !== 'empty' && isInCurrentWeek && isPastOrToday ? 'Double-click to add more' : ''}
+                            {moodData.type !== 'empty' && isInCurrentWeek && isPastOrToday ? 'Click to add more' : ''}
                           </div>
                           {/* Tooltip arrow */}
                           <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
