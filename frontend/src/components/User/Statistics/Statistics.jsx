@@ -22,9 +22,12 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import DownloadIcon from '@mui/icons-material/Download';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import AssessmentIcon from '@mui/icons-material/Assessment';
+import CalendarViewDayIcon from '@mui/icons-material/CalendarViewDay';
+import DateRangeIcon from '@mui/icons-material/DateRange';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
 import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import InsightsIcon from '@mui/icons-material/Insights';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 ChartJS.register(
@@ -43,9 +46,12 @@ const Statistics = () => {
   const navigate = useNavigate();
   const [navValue, setNavValue] = useState('statistics');
   const [moodCounts, setMoodCounts] = useState({});
+  const [beforeMoodCounts, setBeforeMoodCounts] = useState({});
+  const [afterMoodCounts, setAfterMoodCounts] = useState({});
   const [sleepQualityData, setSleepQualityData] = useState([]);
   const [moodPeriod, setMoodPeriod] = useState('monthly');
   const [sleepPeriod, setSleepPeriod] = useState('monthly');
+  const [moodType, setMoodType] = useState('after'); // 'before' or 'after'
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const moodChartRef = useRef(null);
   const sleepChartRef = useRef(null);
@@ -70,8 +76,11 @@ const Statistics = () => {
         // Calculate mood counts based on the selected period
         let startOfPeriod, endOfPeriod;
         if (moodPeriod === 'weekly') {
-          startOfPeriod = moment().startOf('isoWeek'); // Monday
-          endOfPeriod = moment().endOf('isoWeek'); // Sunday
+          startOfPeriod = moment().startOf('isoWeek');
+          endOfPeriod = moment().endOf('isoWeek');
+        } else if (moodPeriod === 'daily') {
+          startOfPeriod = moment().startOf('day');
+          endOfPeriod = moment().endOf('day');
         } else {
           startOfPeriod = moment().startOf('month');
           endOfPeriod = moment().endOf('month');
@@ -82,24 +91,39 @@ const Statistics = () => {
           return logDate.isBetween(startOfPeriod, endOfPeriod, null, '[]');
         });
 
-        const moodCountMap = {};
+        const beforeMoodCountMap = {};
+        const afterMoodCountMap = {};
 
         periodLogs.forEach(log => {
-          const { mood } = log;
-          if (!moodCountMap[mood]) {
-            moodCountMap[mood] = 0;
+          // Count before emotions
+          const beforeEmotion = log.beforeEmotion;
+          if (beforeEmotion) {
+            if (!beforeMoodCountMap[beforeEmotion]) {
+              beforeMoodCountMap[beforeEmotion] = 0;
+            }
+            beforeMoodCountMap[beforeEmotion]++;
           }
-          moodCountMap[mood]++;
+
+          // Count after emotions
+          const afterEmotion = log.afterEmotion;
+          if (afterEmotion) {
+            if (!afterMoodCountMap[afterEmotion]) {
+              afterMoodCountMap[afterEmotion] = 0;
+            }
+            afterMoodCountMap[afterEmotion]++;
+          }
         });
 
-        setMoodCounts(moodCountMap);
+        setBeforeMoodCounts(beforeMoodCountMap);
+        setAfterMoodCounts(afterMoodCountMap);
+        setMoodCounts(moodType === 'before' ? beforeMoodCountMap : afterMoodCountMap);
       } catch (error) {
         console.error('Error fetching mood data:', error);
       }
     };
 
     fetchMoodData();
-  }, [moodPeriod]); // Re-fetch mood data when the mood period changes
+  }, [moodPeriod, moodType]);
 
   useEffect(() => {
     const fetchSleepData = async () => {
@@ -120,8 +144,11 @@ const Statistics = () => {
         // Calculate sleep quality based on the selected period
         let startOfPeriod, endOfPeriod;
         if (sleepPeriod === 'weekly') {
-          startOfPeriod = moment().startOf('isoWeek'); // Monday
-          endOfPeriod = moment().endOf('isoWeek'); // Sunday
+          startOfPeriod = moment().startOf('isoWeek');
+          endOfPeriod = moment().endOf('isoWeek');
+        } else if (sleepPeriod === 'daily') {
+          startOfPeriod = moment().startOf('day');
+          endOfPeriod = moment().endOf('day');
         } else {
           startOfPeriod = moment().startOf('month');
           endOfPeriod = moment().endOf('month');
@@ -161,54 +188,95 @@ const Statistics = () => {
     };
 
     fetchSleepData();
-  }, [sleepPeriod]); // Re-fetch sleep data when the sleep period changes
+  }, [sleepPeriod]);
 
-  const moodColors = {
-    relaxed: '#67b88f',
-    happy: '#5dc791',
-    fine: '#68d076',
-    anxious: '#ebe153',
-    sad: '#f7a046',
-    angry: '#f75646'
+  // Updated emotion colors with appropriate mood-based colors
+  const emotionColors = {
+    // Positive emotions - warm and bright colors
+    'calm': '#87CEEB',      // Sky blue - peaceful
+    'relaxed': '#98D8C8',   // Mint green - soothing
+    'pleased': '#DDA0DD',   // Plum - gentle satisfaction
+    'happy': '#FFD700',     // Gold - bright and cheerful
+    'excited': '#FF69B4',   // Hot pink - energetic
+    // Negative emotions - appropriate emotional colors
+    'bored': '#A9A9A9',     // Dark gray - dull/lifeless
+    'sad': '#4682B4',       // Steel blue - melancholy
+    'disappointed': '#CD853F', // Peru brown - muted disappointment
+    'angry': '#DC143C',     // Crimson red - intense anger
+    'tense': '#8B008B'      // Dark magenta - stress/anxiety
   };
 
+  // Background colors for mood containers - lighter versions
+  const moodBackgroundColors = {
+    // Positive emotions - light, warm backgrounds
+    'calm': '#E6F3FF',      // Very light sky blue
+    'relaxed': '#E8F5F0',   // Very light mint
+    'pleased': '#F0E6F7',   // Very light plum
+    'happy': '#FFF9E6',     // Very light gold
+    'excited': '#FFE6F1',   // Very light pink
+    // Negative emotions - muted, appropriate backgrounds
+    'bored': '#F0F0F0',     // Light gray
+    'sad': '#E6F0F8',       // Very light steel blue
+    'disappointed': '#F5EFE7', // Very light brown
+    'angry': '#FFE6EA',     // Very light red
+    'tense': '#F0E6F0'      // Very light magenta
+  };
+
+  const currentMoodCounts = moodType === 'before' ? beforeMoodCounts : afterMoodCounts;
+
   const chartData = {
-    labels: Object.keys(moodCounts),
+    labels: Object.keys(currentMoodCounts),
     datasets: [
       {
-        data: Object.values(moodCounts),
-        backgroundColor: Object.keys(moodCounts).map(mood => moodColors[mood.toLowerCase()]),
-        hoverBackgroundColor: Object.keys(moodCounts).map(mood => moodColors[mood.toLowerCase()]),
-        borderWidth: 1,
+        data: Object.values(currentMoodCounts),
+        backgroundColor: Object.keys(currentMoodCounts).map(emotion => emotionColors[emotion.toLowerCase()] || '#95A5A6'),
+        hoverBackgroundColor: Object.keys(currentMoodCounts).map(emotion => emotionColors[emotion.toLowerCase()] || '#95A5A6'),
+        borderWidth: 3,
         borderColor: '#fff',
         hoverBorderColor: '#fff'
       }
     ]
   };
 
-  const chartOptions = {
-    cutout: '50%',
+  // Function to capitalize text
+  const capitalizeText = (text) => {
+    return text.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+
+    const chartOptions = {
+    cutout: '60%',
     plugins: {
       legend: {
         display: false
       },
       tooltip: {
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
+        titleColor: '#333',
+        bodyColor: '#333',
+        borderColor: '#55AD9B',
+        borderWidth: 1,
+        cornerRadius: 12,
+        displayColors: true,
         callbacks: {
           label: function (context) {
-            const label = context.label || '';
+            const label = capitalizeText(context.label || ''); // Capitalize the label
             const value = context.raw || 0;
             const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-            const percentage = ((value / total) * 100).toFixed(2);
-            return `${label}: ${value} (${percentage}%)`;
+            const percentage = ((value / total) * 100).toFixed(1);
+            return `${label}: ${value} entries (${percentage}%)`;
           }
         }
       },
       datalabels: {
-        color: '#fff',
+        color: '#000000', // Changed from '#fff' to black
+        font: {
+          weight: 'bold',
+          size: 12
+        },
         formatter: (value, context) => {
           const total = context.dataset.data.reduce((acc, val) => acc + val, 0);
-          const percentage = ((value / total) * 100).toFixed(2);
-          return `${percentage}%`;
+          const percentage = ((value / total) * 100).toFixed(0);
+          return `${percentage}%`; // Removed the condition, now shows percentage for all values
         }
       }
     }
@@ -219,15 +287,15 @@ const Statistics = () => {
     datasets: [
       {
         data: sleepQualityData.map(data => data.avgSleepQuality),
-        borderColor: '#6fba94',
-        backgroundColor: 'rgba(111, 186, 148, 0.2)',
+        borderColor: '#FFFFFF',
+        backgroundColor: 'rgba(255, 255, 255, 0.1)',
         fill: true,
-        tension: 0.4, // Makes the line smoother
-        pointBackgroundColor: '#6fba94',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
-        pointRadius: 4,
-        pointHoverRadius: 6
+        tension: 0.4,
+        pointBackgroundColor: '#FFFFFF',
+        pointBorderColor: '#55AD9B',
+        pointBorderWidth: 3,
+        pointRadius: 6,
+        pointHoverRadius: 8
       }
     ]
   };
@@ -240,12 +308,12 @@ const Statistics = () => {
         display: false
       },
       tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.9)',
+        backgroundColor: 'rgba(255, 255, 255, 0.95)',
         titleColor: '#333',
         bodyColor: '#333',
-        borderColor: '#6fba94',
+        borderColor: '#55AD9B',
         borderWidth: 1,
-        cornerRadius: 8,
+        cornerRadius: 12,
         displayColors: false
       }
     },
@@ -261,11 +329,12 @@ const Statistics = () => {
           },
           font: {
             family: "'Inter', sans-serif",
-            size: 11
-          }
+            size: 12
+          },
+          color: '#FFFFFF'
         },
         grid: {
-          color: 'rgba(0, 0, 0, 0.05)'
+          color: 'rgba(255, 255, 255, 0.1)'
         }
       },
       x: {
@@ -277,23 +346,20 @@ const Statistics = () => {
           minRotation: 45,
           font: {
             family: "'Inter', sans-serif",
-            size: 10
-          }
+            size: 11
+          },
+          color: '#FFFFFF'
         }
       }
     }
   };
 
-  const handleViewClick = () => {
-    navigate('/correlation');
+  const handleDailyStatisticsClick = () => {
+    navigate('/daily-statistics');
   };
 
   const handleWeeklyStatisticsClick = () => {
-    navigate('/correlation-statistics');
-  };
-
-  const handleMoodClick = (mood) => {
-    navigate(`/mood-statistics/${mood}?period=${moodPeriod}`);
+    navigate('/weekly-statistics');
   };
 
   const handleDownloadPDF = async () => {
@@ -302,13 +368,13 @@ const Statistics = () => {
     const moodInput = moodChartRef.current;
     const sleepInput = sleepChartRef.current;
     const pdfIcon = pdfIconRef.current;
-    pdfIcon.style.display = 'none'; // Hide the PDF icon before capturing the screenshot
+    pdfIcon.style.display = 'none';
   
     try {
       const moodCanvas = await html2canvas(moodInput, { scale: 4 });
       const sleepCanvas = await html2canvas(sleepInput, { scale: 1 });
     
-      pdfIcon.style.display = 'block'; // Show the PDF icon again after capturing the screenshot
+      pdfIcon.style.display = 'block';
     
       const moodImgData = moodCanvas.toDataURL('image/png');
       const sleepImgData = sleepCanvas.toDataURL('image/png');
@@ -324,7 +390,7 @@ const Statistics = () => {
       const logoWidth = 25; 
       const logoHeight = 25;
       const margin = 15;
-      const lineY = 42;  // Adjusted line position
+      const lineY = 42;
       
       const tupLogo = new Image();
       const rightLogo = new Image();
@@ -334,14 +400,13 @@ const Statistics = () => {
       Promise.all([
         new Promise((resolve) => {
           tupLogo.onload = resolve;
-          tupLogo.onerror = resolve; // Continue even if image fails to load
+          tupLogo.onerror = resolve;
         }),
         new Promise((resolve) => {
           rightLogo.onload = resolve;
-          rightLogo.onerror = resolve; // Continue even if image fails to load
+          rightLogo.onerror = resolve;
         })
       ]).then(() => {
-        // Add logos if they loaded successfully
         if (tupLogo.complete) {
           pdf.addImage(tupLogo, 'PNG', margin, 10, logoWidth, logoHeight);
         }
@@ -354,33 +419,28 @@ const Statistics = () => {
         const textStart = margin + logoWidth + 10;
         const textWidth = pageWidth - margin - logoWidth - textStart;
         
-        // University name 
         pdf.setFontSize(11);
         pdf.setFont('helvetica', 'bold');
         const universityName = "TECHNOLOGICAL UNIVERSITY OF THE PHILIPPINES-TAGUIG";
         const universityX = textStart + (textWidth - pdf.getTextWidth(universityName)) / 2 - 5;
         pdf.text(universityName, universityX, 20);
         
-        // Program name
         pdf.setFontSize(11);
         const program = "BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY";
         const programX = textStart + (textWidth - pdf.getTextWidth(program)) / 2 - 5;
         pdf.text(program, programX, 27);
         
-        // Address
         pdf.setFontSize(9);
         pdf.setFont('helvetica', 'normal');
         const address = "Km. 14 East Service Road, Western Bicutan, Taguig City 1630, Metro Manila, Philippines";
         const addressX = textStart + (textWidth - pdf.getTextWidth(address)) / 2 - 5;
         pdf.text(address, addressX, 34);
         
-        // Horizontal line
         pdf.setLineWidth(0.6);
-        pdf.setDrawColor(100, 179, 138);  
+        pdf.setDrawColor(85, 173, 155);  
         pdf.line(35, lineY, pageWidth - 35, lineY);
         
-        // Add report title with background
-        pdf.setFillColor(100, 179, 138, 0.8);
+        pdf.setFillColor(85, 173, 155, 0.8);
         pdf.roundedRect(margin, lineY + 10, pageWidth - (margin * 2), 15, 3, 3, 'F');
         
         pdf.setFontSize(11);
@@ -392,15 +452,12 @@ const Statistics = () => {
         pdf.setTextColor(33, 33, 33);
         pdf.setFontSize(14);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('Mood and Sleep Quality Report', pageWidth / 2, lineY + 40, { align: 'center' });
+        pdf.text(`${moodType.charAt(0).toUpperCase() + moodType.slice(1)}-Activity Mood Report (${moodPeriod})`, pageWidth / 2, lineY + 40, { align: 'center' });
         
-        // Add mood chart
         pdf.addImage(moodImgData, 'PNG', centerX, 70, imgWidth, moodImgHeight);
-    
-        // Add sleep quality chart
         pdf.addImage(sleepImgData, 'PNG', centerX, 70 + moodImgHeight + 20, imgWidth, sleepImgHeight);
     
-        pdf.save(`Mood_and_Sleep_Quality_${moodPeriod}.pdf`);
+        pdf.save(`${moodType}_Activity_Mood_Report_${moodPeriod}.pdf`);
         setGeneratingPDF(false);
       }).catch(error => {
         console.error('Error loading images:', error);
@@ -412,16 +469,23 @@ const Statistics = () => {
     }
   };
 
-  const moodIcons = {
-    relaxed: '/images/relaxed.gif',
-    happy: '/images/happy.gif',
-    fine: '/images/fine.gif',
-    anxious: '/images/anxious.gif',
-    sad: '/images/sad.gif',
-    angry: '/images/angry.gif'
+  // Emotion emojis mapping
+  const emotionEmojis = {
+    // Positive emotions
+    'calm': '😌',
+    'relaxed': '😊',
+    'pleased': '🙂',
+    'happy': '😄',
+    'excited': '🤩',
+    // Negative emotions
+    'bored': '😑',
+    'sad': '😢',
+    'disappointed': '😞',
+    'angry': '😠',
+    'tense': '😰'
   };
 
-  const sortedMoods = Object.keys(moodCounts).sort((a, b) => moodCounts[b] - moodCounts[a]);
+  const sortedMoods = Object.keys(currentMoodCounts).sort((a, b) => currentMoodCounts[b] - currentMoodCounts[a]);
 
   const IOSSwitch = styled((props) => (
     <Switch focusVisibleClassName=".Mui-focusVisible" disableRipple {...props} />
@@ -437,27 +501,10 @@ const Statistics = () => {
         transform: 'translateX(16px)',
         color: '#fff',
         '& + .MuiSwitch-track': {
-          backgroundColor: theme.palette.mode === 'dark' ? '#2ECA45' : '#65C466',
+          backgroundColor: '#FFFFFF',
           opacity: 1,
           border: 0,
         },
-        
-        '&.Mui-disabled + .MuiSwitch-track': {
-          opacity: 0.5,
-        },
-      },
-      '&.Mui-focusVisible .MuiSwitch-thumb': {
-        color: '#33cf4d',
-        border: '6px solid #fff',
-      },
-      '&.Mui-disabled .MuiSwitch-thumb': {
-        color:
-          theme.palette.mode === 'light'
-            ? theme.palette.grey[100]
-            : theme.palette.grey[600],
-      },
-      '&.Mui-disabled + .MuiSwitch-track': {
-        opacity: theme.palette.mode === 'light' ? 0.7 : 0.3,
       },
     },
     '& .MuiSwitch-thumb': {
@@ -467,7 +514,7 @@ const Statistics = () => {
     },
     '& .MuiSwitch-track': {
       borderRadius: 26 / 2,
-      backgroundColor: theme.palette.mode === 'light' ? '#E9E9EA' : '#39393D',
+      backgroundColor: theme.palette.mode === 'light' ? 'rgba(255, 255, 255, 0.3)' : '#39393D',
       opacity: 1,
       transition: theme.transitions.create(['background-color'], {
         duration: 500,
@@ -480,7 +527,8 @@ const Statistics = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
-      className="bg-gradient-to-b from-green-50 to-teal-50 min-h-screen pb-20"
+      className="min-h-screen pb-20"
+      style={{ backgroundColor: '#55AD9B' }}
     >
       <div className="max-w-4xl mx-auto pt-6 px-4">
         {/* Download PDF button */}
@@ -493,195 +541,302 @@ const Statistics = () => {
             whileTap={{ scale: 0.95 }}
             onClick={handleDownloadPDF}
             disabled={generatingPDF}
-            className="flex items-center bg-teal-600 hover:bg-teal-700 text-white py-2 px-4 rounded-full shadow transition duration-200"
+            className="flex items-center text-gray-800 py-3 px-6 rounded-2xl shadow-lg transition-all duration-200 bg-white hover:bg-gray-50"
           >
             {generatingPDF ? (
               <span className="inline-block animate-pulse">Generating PDF...</span>
             ) : (
               <>
-                <DownloadIcon style={{ fontSize: 20, marginRight: 6 }} />
-                <span>Download PDF Report</span>
+                <DownloadIcon style={{ fontSize: 20, marginRight: 8 }} />
+                <span className="font-medium">Download Report</span>
               </>
             )}
           </motion.button>
         </div>
 
-        {/* Correlation Analysis Card */}
+        {/* Detailed Statistics Navigation Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.1 }}
-          className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6"
+          className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8"
         >
-          <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-6">
-            <div className="flex items-center space-x-3 mb-2">
-              <div className="w-10 h-10 rounded-full bg-white bg-opacity-20 flex items-center justify-center">
-                <AssessmentIcon className="text-white" />
+          <div className="bg-gradient-to-br from-blue-50 via-white to-purple-50 p-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
+                <InsightsIcon style={{ color: '#55AD9B', fontSize: 28 }} />
               </div>
-              <h2 className="text-white text-2xl font-bold">Correlation Analysis</h2>
+              <div>
+                <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>Detailed Mood Analysis</h2>
+                <p className="text-gray-600">Get comprehensive insights into your emotional patterns</p>
+              </div>
             </div>
-            <p className="text-white text-opacity-80 ml-13 pl-1">
-              Understand how your activities impact your mood patterns
+            
+            <p className="text-gray-700 mb-8 leading-relaxed">
+              Explore in-depth statistics about your daily and weekly mood patterns. Discover trends, 
+              compare time periods, and gain valuable insights into your emotional journey.
             </p>
-          </div>
-
-          <div className="p-6">
-            <p className="text-gray-600 mb-6">
-              Dive deeper into the connections between your activities, social interactions, 
-              and mood changes to better understand your emotional patterns.
-            </p>
-            <div className="flex flex-col sm:flex-row justify-center space-y-3 sm:space-y-0 sm:space-x-4">
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                onClick={handleViewClick}
-                className="flex items-center justify-center bg-teal-600 hover:bg-teal-700 text-white py-3 px-6 rounded-full shadow transition-colors"
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleDailyStatisticsClick}
+                className="flex items-center justify-center bg-white border-2 border-gray-200 hover:border-blue-300 text-gray-800 py-4 px-6 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md"
               >
-                <BarChartIcon className="mr-2" />
-                View Correlations
+                <CalendarViewDayIcon className="mr-3" style={{ color: '#55AD9B' }} />
+                <div className="text-left">
+                  <div className="font-semibold">Daily Statistics</div>
+                  <div className="text-sm text-gray-600">Day-by-day mood insights</div>
+                </div>
               </motion.button>
+              
               <motion.button
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={handleWeeklyStatisticsClick}
-                className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-full shadow transition-colors"
+                className="flex items-center justify-center bg-white border-2 border-gray-200 hover:border-purple-300 text-gray-800 py-4 px-6 rounded-2xl shadow-sm transition-all duration-200 hover:shadow-md"
               >
-                <AssessmentIcon className="mr-2" />
-                Detailed Statistics
+                <DateRangeIcon className="mr-3" style={{ color: '#55AD9B' }} />
+                <div className="text-left">
+                  <div className="font-semibold">Weekly Statistics</div>
+                  <div className="text-sm text-gray-600">Weekly patterns & trends</div>
+                </div>
               </motion.button>
             </div>
           </div>
         </motion.div>
 
-        {/* Mood Count Card */}
+        {/* Enhanced Mood Count Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="bg-white rounded-2xl shadow-lg overflow-hidden mb-6"
+          className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8"
         >
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-teal-100 flex items-center justify-center">
-                  <SentimentSatisfiedIcon className="text-teal-600" />
+                <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
+                  <SentimentSatisfiedIcon style={{ color: '#55AD9B', fontSize: 28 }} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Mood Count</h2>
-                  <p className="text-gray-500 text-sm">Click on mood to view related activities</p>
+                  <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>Mood Analysis</h2>
+                  <p className="text-gray-600">Track your emotions before and after activities</p>
                 </div>
-              </div>
-              
-              <div className="flex items-center bg-gray-50 px-3 py-1 rounded-full">
-                <span className="text-sm font-medium text-gray-700 mr-2">Weekly</span>
-                <IOSSwitch 
-                  checked={moodPeriod === 'monthly'} 
-                  onChange={() => setMoodPeriod(moodPeriod === 'weekly' ? 'monthly' : 'weekly')} 
-                />
-                <span className="text-sm font-medium text-gray-700 ml-2">Monthly</span>
               </div>
             </div>
 
-<div 
-  ref={moodChartRef} 
-  className="flex flex-col items-center"
->
-  <div className="relative w-64 h-64 my-4">
-    {Object.keys(moodCounts).length > 0 ? (
-      <Doughnut data={chartData} options={chartOptions} />
-    ) : (
-      <div className="absolute inset-0 flex items-center justify-center">
-        <p className="text-gray-500 italic">No mood data available</p>
-      </div>
-    )}
-  </div>
+            {/* Controls */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
+              {/* Before/After Toggle */}
+              <div className="flex items-center bg-gray-50 px-4 py-2 rounded-2xl border border-gray-200">
+                <span className="text-sm font-medium text-gray-700 mr-3">Before Activity</span>
+                <IOSSwitch 
+                  checked={moodType === 'after'} 
+                  onChange={() => setMoodType(moodType === 'before' ? 'after' : 'before')} 
+                />
+                <span className="text-sm font-medium text-gray-700 ml-3">After Activity</span>
+              </div>
 
-  <div className="w-full flex justify-center mt-4">
-    <div className="inline-grid grid-cols-3 sm:grid-cols-4 gap-4">
-      {sortedMoods.map((mood, index) => (
-        <motion.div
-          key={index}
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => handleMoodClick(mood)}
-          className="flex flex-col items-center cursor-pointer p-2 rounded-lg hover:bg-teal-50"
-        >
-          <div className="relative w-14 h-14 mb-2 overflow-hidden rounded-full border-2" style={{ borderColor: moodColors[mood.toLowerCase()] }}>
-            <img 
-              src={moodIcons[mood.toLowerCase()]} 
-              alt={mood} 
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <p className="font-medium text-gray-800">{mood.charAt(0).toUpperCase() + mood.slice(1)}</p>
-          <p className="font-bold text-lg text-teal-600">{moodCounts[mood]}</p>
-        </motion.div>
-      ))}
-    </div>
-  </div>
-</div>
+              {/* Period Toggle */}
+              <div className="flex items-center bg-gray-50 px-4 py-2 rounded-2xl border border-gray-200">
+                <button
+                  onClick={() => setMoodPeriod('daily')}
+                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
+                    moodPeriod === 'daily' 
+                      ? 'bg-white text-gray-800 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Daily
+                </button>
+                <button
+                  onClick={() => setMoodPeriod('weekly')}
+                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
+                    moodPeriod === 'weekly' 
+                      ? 'bg-white text-gray-800 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  onClick={() => setMoodPeriod('monthly')}
+                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
+                    moodPeriod === 'monthly' 
+                      ? 'bg-white text-gray-800 shadow-sm' 
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
+
+            <div 
+              ref={moodChartRef} 
+              className="flex flex-col items-center"
+            >
+              <div className="relative w-80 h-80 my-6">
+                {Object.keys(currentMoodCounts).length > 0 ? (
+                  <Doughnut data={chartData} options={chartOptions} />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50 rounded-full">
+                    <div className="text-center">
+                      <div className="text-4xl mb-2 opacity-50">😐</div>
+                      <p className="text-gray-500 italic">No mood data available</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Centered Mood Legend with Color Coding - Always centered regardless of count */}
+              <div className="w-full flex justify-center mt-6">
+                <div className="flex flex-wrap justify-center gap-4 max-w-5xl">
+                  {sortedMoods.map((emotion, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.3 + index * 0.1 }}
+                      className="flex flex-col items-center p-5 rounded-2xl border-2 hover:shadow-md transition-all duration-200 transform hover:scale-105"
+                      style={{ 
+                        backgroundColor: moodBackgroundColors[emotion.toLowerCase()] || '#F5F5F5',
+                        borderColor: emotionColors[emotion.toLowerCase()] || '#95A5A6',
+                        minWidth: '140px', // Ensures consistent card width
+                        width: '140px'     // Fixed width for uniformity
+                      }}
+                    >
+                      {/* Removed the smaller emoji container - emoji is now directly in the main container */}
+                      <div className="text-4xl mb-3">
+                        {emotionEmojis[emotion.toLowerCase()] || '😐'}
+                      </div>
+                      <p className="font-semibold text-gray-800 capitalize text-sm text-center">
+                        {capitalizeText(emotion)}
+                      </p>
+                      <p className="font-bold text-lg mt-1" style={{ color: emotionColors[emotion.toLowerCase()] || '#95A5A6' }}>
+                        {currentMoodCounts[emotion]}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+
+              {/* Summary Stats */}
+              {Object.keys(currentMoodCounts).length > 0 && (
+                <div className="mt-8 grid grid-cols-1 sm:grid-cols-3 gap-4 w-full max-w-2xl">
+                  <div className="text-center p-4 bg-gray-50 rounded-2xl">
+                    <div className="text-2xl font-bold" style={{ color: '#55AD9B' }}>
+                      {Object.values(currentMoodCounts).reduce((a, b) => a + b, 0)}
+                    </div>
+                    <div className="text-sm text-gray-600">Total Entries</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-2xl">
+                    <div className="text-2xl font-bold" style={{ color: '#55AD9B' }}>
+                      {sortedMoods[0] ? capitalizeText(sortedMoods[0]) : 'N/A'}
+                    </div>
+                    <div className="text-sm text-gray-600">Most Frequent</div>
+                  </div>
+                  <div className="text-center p-4 bg-gray-50 rounded-2xl">
+                    <div className="text-2xl font-bold" style={{ color: '#55AD9B' }}>
+                      {Object.keys(currentMoodCounts).length}
+                    </div>
+                    <div className="text-sm text-gray-600">Unique Emotions</div>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </motion.div>
 
-        {/* Sleep Quality Card */}
+        {/* Enhanced Sleep Quality Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="bg-white rounded-2xl shadow-lg overflow-hidden mb-20"
+          className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-sm border border-white/20 overflow-hidden mb-20"
         >
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
+          <div className="p-8">
+            <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                  <BedtimeIcon className="text-indigo-600" />
+                <div className="p-3 rounded-2xl bg-white/20">
+                  <BedtimeIcon style={{ color: '#FFFFFF', fontSize: 28 }} />
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold text-gray-800">Sleep Quality</h2>
-                  <p className="text-gray-500 text-sm">Track your sleep patterns over time</p>
+                  <h2 className="text-2xl font-bold text-white">Sleep Quality</h2>
+                  <p className="text-white/80">Monitor your sleep patterns over time</p>
                 </div>
               </div>
               
-              <div className="flex items-center bg-gray-50 px-3 py-1 rounded-full">
-                <span className="text-sm font-medium text-gray-700 mr-2">Weekly</span>
-                <IOSSwitch 
-                  checked={sleepPeriod === 'monthly'} 
-                  onChange={() => setSleepPeriod(sleepPeriod === 'weekly' ? 'monthly' : 'weekly')} 
-                />
-                <span className="text-sm font-medium text-gray-700 ml-2">Monthly</span>
+              <div className="flex items-center bg-white/10 px-4 py-2 rounded-2xl border border-white/20">
+                <button
+                  onClick={() => setSleepPeriod('daily')}
+                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
+                    sleepPeriod === 'daily' 
+                      ? 'bg-white text-gray-800 shadow-sm' 
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  Daily
+                </button>
+                <button
+                  onClick={() => setSleepPeriod('weekly')}
+                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
+                    sleepPeriod === 'weekly' 
+                      ? 'bg-white text-gray-800 shadow-sm' 
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  Weekly
+                </button>
+                <button
+                  onClick={() => setSleepPeriod('monthly')}
+                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
+                    sleepPeriod === 'monthly' 
+                      ? 'bg-white text-gray-800 shadow-sm' 
+                      : 'text-white/80 hover:text-white'
+                  }`}
+                >
+                  Monthly
+                </button>
               </div>
             </div>
 
             <div 
               ref={sleepChartRef} 
-              className="mt-6"
+              className="mt-8"
             >
-              <div className="h-64 w-full">
+              <div className="h-80 w-full rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm">
                 {sleepQualityData.length > 0 ? (
                   <Line data={sleepQualityChartData} options={sleepQualityChartOptions} />
                 ) : (
-                  <div className="h-full flex items-center justify-center bg-gray-50 rounded-lg">
-                    <p className="text-gray-500 italic">No sleep data available</p>
+                  <div className="h-full flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-4xl mb-4 opacity-50">😴</div>
+                      <p className="text-white/70 italic">No sleep data available</p>
+                    </div>
                   </div>
                 )}
               </div>
               
-              <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-                <div className="bg-red-50 border border-red-100 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">No Sleep</p>
-                  <p className="font-semibold text-red-700">1</p>
+              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div className="bg-red-100/90 border-2 border-red-200 rounded-2xl py-3 px-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">No Sleep</p>
+                  <p className="font-bold text-red-700 text-lg">1</p>
                 </div>
-                <div className="bg-orange-50 border border-orange-100 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">Poor Sleep</p>
-                  <p className="font-semibold text-orange-700">2</p>
+                <div className="bg-orange-100/90 border-2 border-orange-200 rounded-2xl py-3 px-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">Poor Sleep</p>
+                  <p className="font-bold text-orange-700 text-lg">2</p>
                 </div>
-                <div className="bg-yellow-50 border border-yellow-100 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">Medium Sleep</p>
-                  <p className="font-semibold text-yellow-700">3</p>
+                <div className="bg-yellow-100/90 border-2 border-yellow-200 rounded-2xl py-3 px-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">Medium Sleep</p>
+                  <p className="font-bold text-yellow-700 text-lg">3</p>
                 </div>
-                <div className="bg-green-50 border border-green-100 rounded-lg py-2">
-                  <p className="text-xs text-gray-500">Good Sleep</p>
-                  <p className="font-semibold text-green-700">4</p>
+                <div className="bg-green-100/90 border-2 border-green-200 rounded-2xl py-3 px-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">Good Sleep</p>
+                  <p className="font-bold text-green-700 text-lg">4</p>
                 </div>
               </div>
             </div>
