@@ -32,12 +32,32 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
 
   const handleContinueTracking = () => {
     setShowContinueModal(false);
-    navigate('/choose-category');
+    
+    // Check if this was initiated from calendar (missed day logging)
+    const isFromCalendar = categoryFormData.selectedDate !== null;
+    
+    if (isFromCalendar) {
+      // For missed days, redirect to time segment selector with the same date
+      navigate(`/time-segment?date=${categoryFormData.selectedDate}`);
+    } else {
+      // For normal flow, go to choose category
+      navigate('/choose-category');
+    }
   };
 
   const handleFinishTracking = () => {
     setShowContinueModal(false);
-    navigate('/mood-entries');
+    
+    // Check if this was initiated from calendar (missed day logging)
+    const isFromCalendar = categoryFormData.selectedDate !== null;
+    
+    if (isFromCalendar) {
+      // For missed days, redirect back to calendar
+      navigate('/mood-entries');
+    } else {
+      // For normal flow, go to mood entries
+      navigate('/mood-entries');
+    }
   };
 
   const handleSubmit = async () => {
@@ -79,8 +99,8 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
         if (response.data.success) {
           toast.success('Mood log saved successfully!');
           
-          // Reset category form data
-          setCategoryFormData({
+          // Reset category form data except selectedDate for missed day logging
+          setCategoryFormData(prev => ({
             category: '',
             activity: '',
             hrs: 0,
@@ -92,11 +112,11 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
             afterEmotion: '',
             afterIntensity: 0,
             afterReason: '',
-            selectedDate: null, // Reset selectedDate as well
-            selectedTime: null  // Reset selectedTime as well
-          });
+            selectedDate: prev.selectedDate, // Keep selectedDate for missed day tracking
+            selectedTime: null  // Reset selectedTime for new time selection
+          }));
           
-          // Show the continue tracking modal
+          // Always show the continue tracking modal
           setShowContinueModal(true);
         } else {
           toast.error('Failed to save mood log');
