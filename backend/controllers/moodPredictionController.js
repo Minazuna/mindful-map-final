@@ -97,3 +97,121 @@ exports.getMoodLogs = async (req, res) => {
         });
     }
 };
+
+exports.getMoodLogsForCategory = async (req, res) => {
+    try {
+        const moodLogs = await MoodLog.find({ 
+            user: req.user._id,
+            date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+        }).select('category activity hrs afterEmotion afterValence afterIntensity afterReason date -_id');
+
+        return res.status(200).json({
+            success: true,
+            logs: moodLogs.map(log => ({
+                category: log.category,
+                activity: log.activity,
+                hrs: log.hrs,
+                afterEmotion: log.afterEmotion,
+                afterValence: log.afterValence,
+                afterIntensity: log.afterIntensity,
+                afterReason: log.afterReason,
+                timestamp: log.date.toISOString()
+            }))
+        });
+    } catch (error) {
+        console.error('Error fetching category mood logs:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error fetching category mood logs',
+            error: error.message
+        });
+    }
+};
+
+exports.predictCategoryMood = async (req, res) => {
+    try {
+        const { category } = req.query;
+        
+        if (!category || !['activity', 'social', 'health', 'sleep'].includes(category)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid or missing category parameter'
+            });
+        }
+
+        // Forward the request to the Python service
+        const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:5001';
+        const token = req.headers.authorization;
+        
+        const pythonResponse = await fetch(`${pythonApiUrl}/api/predict-category-mood?category=${category}`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+            }
+        });
+
+        const pythonData = await pythonResponse.json();
+        console.log("Python service response:", pythonData);
+
+        if (!pythonData.success) {
+            return res.status(pythonResponse.status).json({
+                success: false,
+                message: pythonData.message
+            });
+        }
+
+        res.json({
+            success: true,
+            category: pythonData.category,
+            predictions: pythonData.predictions
+        });
+
+    } catch (error) {
+        console.error('Controller Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while generating category predictions',
+            error: error.message
+        });
+    }
+};
+
+exports.checkCategoryData = async (req, res) => {
+    try {
+        // Forward the request to the Python service
+        const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:5001';
+        const token = req.headers.authorization;
+        
+        const pythonResponse = await fetch(`${pythonApiUrl}/api/check-category-data`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+            }
+        });
+
+        const pythonData = await pythonResponse.json();
+        console.log("Python service response:", pythonData);
+
+        if (!pythonData.success) {
+            return res.status(pythonResponse.status).json({
+                success: false,
+                message: pythonData.message
+            });
+        }
+
+        res.json({
+            success: true,
+            availability: pythonData.availability
+        });
+
+    } catch (error) {
+        console.error('Controller Error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Server error while checking category data',
+            error: error.message
+        });
+    }
+};

@@ -43,7 +43,7 @@ const BottomNav = ({ value, setValue }) => {
         navigate('/journal-logs');
         break;
       case 'prediction':
-        navigate('/main-predictions');
+        navigate('/prediction');
         break;
       case 'logout':
         handleLogoutClick();
@@ -68,7 +68,12 @@ const BottomNav = ({ value, setValue }) => {
 
   return (
     <>
-      <BottomNavigation value={value} onChange={handleChange} className="fixed bottom-0 left-0 right-0 bg-white shadow-md">
+      <BottomNavigation 
+        value={value} 
+        onChange={handleChange} 
+        className="fixed bottom-0 left-0 right-0 bg-white shadow-md"
+        sx={{ zIndex: 50 }}
+      >
         <BottomNavigationAction
           label="Entries"
           value="entries"

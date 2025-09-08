@@ -17,9 +17,10 @@ import Statistics from './components/User/Statistics/Statistics';
 import CorrelationStatistics from './components/User/Statistics/CorrelationStatistics';
 import Correlation from './components/User/Statistics/Correlation';
 import MoodStatistics from './components/User/Statistics/MoodStatistics';
-import WeeklyPredictions from './components/User/WeeklyPredictions';
-import DailyPrediction from './components/User/DailyPrediction';
-import MainPredictions from './components/User/MainPredictions';
+import WeeklyPredictions from './components/User/Prediction/WeeklyPredictions';
+import DailyPrediction from './components/User/Prediction/DailyPrediction';
+import Prediction from './components/User/Prediction/Prediction';
+import CategoryPrediction from './components/User/Prediction/CategoryPrediction';
 import Recommendations from './components/User/Statistics/Recommendations';
 import Pomodoro from './components/User/Statistics/Activities/Pomodoro';
 import Affirmation from './components/User/Statistics/Activities/Affirmation';
@@ -390,10 +391,10 @@ const App = () => {
           }
         />
         <Route
-          path="/main-predictions"
+          path="/prediction"
           element={
             <UserPrivateRoute>
-              <MainPredictions formData={formData} setFormData={setFormData} />
+              <Prediction formData={formData} setFormData={setFormData} />
             </UserPrivateRoute>
           }
         />
@@ -410,6 +411,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <DailyPrediction formData={formData} setFormData={setFormData} />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/category-prediction/:category"
+          element={
+            <UserPrivateRoute>
+              <CategoryPrediction />
             </UserPrivateRoute>
           }
         />

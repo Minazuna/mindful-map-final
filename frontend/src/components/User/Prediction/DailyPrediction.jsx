@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
-// Material UI imports
 import { 
   Typography, 
   Box, 
@@ -99,7 +98,7 @@ const DailyPrediction = () => {
   const moodColor = getMoodColor(prediction.mood);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#67b88f] via-[#93c4ab] to-[#fdffff] py-10 px-4 font-nunito">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-b from-[#67b88f] via-[#93c4ab] to-[#fdffff] py-10 px-4 pb-20 font-nunito">
       {/* Decorative background elements */}
       <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <motion.div 
@@ -129,7 +128,7 @@ const DailyPrediction = () => {
         />
       </div>
       
-      <Container maxWidth="md" className="relative z-10">
+      <Container maxWidth="md" className="relative z-1">
         <motion.div
           initial={{ x: -20, opacity: 0 }}
           animate={{ x: 0, opacity: 1 }}
