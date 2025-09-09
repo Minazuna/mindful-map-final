@@ -1,111 +1,103 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
-import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
-import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import BottomNav from '../BottomNav';
-import InfiniteScroll from 'react-infinite-scroll-component';
 import CircularProgress from '@mui/material/CircularProgress';
-import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Chip, Tooltip, IconButton, Dialog, DialogContent, DialogActions } from '@mui/material';
+import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Tooltip, IconButton, Dialog, DialogContent } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
-import InfoIcon from '@mui/icons-material/Info';
 import SearchIcon from '@mui/icons-material/Search';
 import SortIcon from '@mui/icons-material/Sort';
-import CalendarViewMonthIcon from '@mui/icons-material/CalendarViewMonth';
-import ViewListIcon from '@mui/icons-material/ViewList';
 import ClearIcon from '@mui/icons-material/Clear';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import AddCircleIcon from '@mui/icons-material/AddCircle';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Tabs from '@mui/material/Tabs';
 import Tab from '@mui/material/Tab';
 import { useNavigate } from 'react-router-dom';
 
+// Days of week for filter
+const DAYS_OF_WEEK = [
+  'Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'
+];
+
+// Map for pretty category names
+const CATEGORY_LABELS = {
+  activity: 'Activities',
+  social: 'Social',
+  health: 'Health',
+  sleep: 'Sleep'
+};
+
 const MoodEntries = () => {
   const navigate = useNavigate();
   const [moodLogs, setMoodLogs] = useState([]);
-  const [currentMonth, setCurrentMonth] = useState(new Date().getMonth());
-  const [currentYear, setCurrentYear] = useState(new Date().getFullYear());
   const [value, setValue] = useState('entries');
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
   const [sortAnchorEl, setSortAnchorEl] = useState(null);
-  const [viewMode, setViewMode] = useState('list');
   const [favoriteEntries, setFavoriteEntries] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [showTimeRestrictionModal, setShowTimeRestrictionModal] = useState(false);
   const [remainingTime, setRemainingTime] = useState(0);
-  const [selectedCategories, setSelectedCategories] = useState({
-    'Overall Activities': false,
-    'Social': false,
-    'Health': false,
-    'Sleep': false,
-  });
-  const [selectedValences, setSelectedValences] = useState({
-    'Positive': false,
-    'Negative': false,
-  });
   const [sortOrder, setSortOrder] = useState('newest');
 
-  // Emotion emojis mapping
+  // Dynamically set categories based on fetched data
+  const [availableCategories, setAvailableCategories] = useState([]);
+  const [selectedCategories, setSelectedCategories] = useState({});
+  // Days of week filter
+  const [selectedDays, setSelectedDays] = useState({});
+
+  const [selectedValences, setSelectedValences] = useState({
+    Positive: false,
+    Negative: false,
+  });
+
+  // Emojis for emotions
   const emotionEmojis = {
-    // Positive emotions
-    'calm': '😌',
-    'relaxed': '😊',
-    'pleased': '🙂',
-    'happy': '😄',
-    'excited': '🤩',
-    // Negative emotions
-    'bored': '😑',
-    'sad': '😢',
-    'disappointed': '😞',
-    'angry': '😠',
-    'tense': '😰'
+    calm: '😌',
+    relaxed: '😊',
+    pleased: '🙂',
+    happy: '😄',
+    excited: '🤩',
+    bored: '😑',
+    sad: '😢',
+    disappointed: '😞',
+    angry: '😠',
+    tense: '😰'
   };
 
   // Activity icons mapping (PNG for most, emoji for sleep)
   const getActivityIcon = (activity, category) => {
-    // Sleep category uses emojis
-    if (category === 'Sleep') {
-      return <span className="text-3xl">😴</span>;
-    }
-
-    // All other categories use PNG images
+    if (category === 'sleep') return <span className="text-3xl">😴</span>;
     const activityImages = {
-      // Overall Activities
-      'study': '/images/study.png',
-      'read': '/images/read.png',
-      'extracurricular': '/images/extraCurricularActivities.png',
-      'relax': '/images/relax.png',
+      study: '/images/study.png',
+      read: '/images/read.png',
+      extracurricular: '/images/extraCurricularActivities.png',
+      relax: '/images/relax.png',
       'watch-movie': '/images/watchMovie.png',
       'listen-music': '/images/listenToMusic.png',
-      'gaming': '/images/gaming.png',
+      gaming: '/images/gaming.png',
       'browse-internet': '/images/browseInternet.png',
-      'shopping': '/images/shopping.png',
-      'travel': '/images/travel.png',
-      // Social
-      'alone': '/images/alone.png',
-      'friends': '/images/friend.png',
-      'family': '/images/family.png',
-      'classmates': '/images/classmate.png',
-      'relationship': '/images/relationship.png',
-      'pet': '/images/pet.png',
-      // Health
-      'jog': '/images/jog.png',
-      'walk': '/images/walk.png',
-      'exercise': '/images/exercise.png',
-      'meditate': '/images/meditate.png',
+      shopping: '/images/shopping.png',
+      travel: '/images/travel.png',
+      alone: '/images/alone.png',
+      friends: '/images/friend.png',
+      family: '/images/family.png',
+      classmates: '/images/classmate.png',
+      relationship: '/images/relationship.png',
+      pet: '/images/pet.png',
+      jog: '/images/jog.png',
+      walk: '/images/walk.png',
+      exercise: '/images/exercise.png',
+      meditate: '/images/meditate.png',
       'eat-healthy': '/images/eatHealthy.png',
       'no-physical': '/images/noPhysicalActivity.png',
       'eat-unhealthy': '/images/eatUnhealthy.png',
       'drink-alcohol': '/images/alcoho.png'
     };
-
     const imageSrc = activityImages[activity];
     if (imageSrc) {
       return (
@@ -116,28 +108,17 @@ const MoodEntries = () => {
         />
       );
     }
-
-    // Fallback
     return <span className="text-3xl">📝</span>;
   };
 
-  // Format text function to handle uppercase and remove special characters
   const formatText = (text) => {
     if (!text) return '';
-    
-    return text
-      .replace(/[-_]/g, ' ') // Replace hyphens and underscores with spaces
-      .replace(/\b\w/g, (letter) => letter.toUpperCase()); // Capitalize first letter of each word
+    return text.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   };
 
-  // Format timestamp function
   const formatTimestamp = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { 
-      hour: 'numeric', 
-      minute: '2-digit',
-      hour12: true 
-    });
+    return date.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
   };
 
   const fetchMoodLogs = async () => {
@@ -145,11 +126,24 @@ const MoodEntries = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setMoodLogs(response.data);
+
+      // Dynamically get available categories from fetched data
+      const categories = Array.from(new Set(response.data.map(log => log.category)));
+      setAvailableCategories(categories);
+
+      // Set up selectedCategories state for all found categories
+      const catObj = {};
+      categories.forEach(cat => { catObj[cat] = false; });
+      setSelectedCategories(catObj);
+
+      // Set up selectedDays state for all days of week
+      const daysObj = {};
+      DAYS_OF_WEEK.forEach(day => { daysObj[day] = false; });
+      setSelectedDays(daysObj);
+
       setLoading(false);
     } catch (error) {
       console.error('Error fetching mood logs:', error);
@@ -161,17 +155,13 @@ const MoodEntries = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log/today-last`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
-      
       if (response.data.success && response.data.lastLog && response.data.lastLog.date) {
         const lastLogTime = new Date(response.data.lastLog.date);
         const currentTime = new Date();
         const timeDifference = currentTime - lastLogTime;
         const thirtyMinutesInMs = 30 * 60 * 1000;
-        
         if (timeDifference < thirtyMinutesInMs) {
           const remainingMs = thirtyMinutesInMs - timeDifference;
           const remainingMinutes = Math.ceil(remainingMs / (60 * 1000));
@@ -179,7 +169,6 @@ const MoodEntries = () => {
           return false;
         }
       }
-      
       return true;
     } catch (error) {
       console.error('Error checking last mood log time:', error);
@@ -190,49 +179,38 @@ const MoodEntries = () => {
   useEffect(() => {
     fetchMoodLogs();
     const savedFavorites = localStorage.getItem('favoriteMoodEntries');
-    if (savedFavorites) {
-      setFavoriteEntries(JSON.parse(savedFavorites));
-    }
+    if (savedFavorites) setFavoriteEntries(JSON.parse(savedFavorites));
   }, []);
 
-  const handleFilterClick = (event) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleFilterClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleSortClick = (event) => {
-    setSortAnchorEl(event.currentTarget);
-  };
-
-  const handleSortClose = () => {
-    setSortAnchorEl(null);
-  };
-
-  const handleSort = (order) => {
-    setSortOrder(order);
-    handleSortClose();
-  };
+  const handleFilterClick = (event) => setAnchorEl(event.currentTarget);
+  const handleFilterClose = () => setAnchorEl(null);
+  const handleSortClick = (event) => setSortAnchorEl(event.currentTarget);
+  const handleSortClose = () => setSortAnchorEl(null);
+  const handleSort = (order) => { setSortOrder(order); handleSortClose(); };
 
   const clearAllFilters = () => {
-    setSelectedCategories({
-      'Overall Activities': false,
-      'Social': false,
-      'Health': false,
-      'Sleep': false,
-    });
-    setSelectedValences({
-      'Positive': false,
-      'Negative': false,
-    });
+    const clearedCats = {};
+    availableCategories.forEach(cat => { clearedCats[cat] = false; });
+    setSelectedCategories(clearedCats);
+
+    const clearedDays = {};
+    DAYS_OF_WEEK.forEach(day => { clearedDays[day] = false; });
+    setSelectedDays(clearedDays);
+
+    setSelectedValences({ Positive: false, Negative: false });
     setSearchTerm('');
   };
 
   const handleCategoryChange = (event) => {
     setSelectedCategories({
       ...selectedCategories,
+      [event.target.name]: event.target.checked,
+    });
+  };
+
+  const handleDayChange = (event) => {
+    setSelectedDays({
+      ...selectedDays,
       [event.target.name]: event.target.checked,
     });
   };
@@ -251,59 +229,63 @@ const MoodEntries = () => {
     localStorage.setItem('favoriteMoodEntries', JSON.stringify(newFavorites));
   };
 
-  const handleTabChange = (event, newValue) => {
-    setActiveTab(newValue);
-  };
+  const handleTabChange = (event, newValue) => setActiveTab(newValue);
 
   const handleAddMoodLog = async () => {
     const canLog = await checkLastMoodLogTime();
-    
-    if (!canLog) {
-      setShowTimeRestrictionModal(true);
-    } else {
-      navigate('/choose-category');
-    }
+    if (!canLog) setShowTimeRestrictionModal(true);
+    else navigate('/choose-category');
   };
 
-  const handleCloseTimeRestrictionModal = () => {
-    setShowTimeRestrictionModal(false);
-  };
+  const handleCloseTimeRestrictionModal = () => setShowTimeRestrictionModal(false);
 
   // Check if any filters are active
-  const hasActiveFilters = Object.values(selectedCategories).some(Boolean) || 
-                          Object.values(selectedValences).some(Boolean) || 
-                          searchTerm.length > 0;
+  const hasActiveFilters =
+    Object.values(selectedCategories).some(Boolean) ||
+    Object.values(selectedValences).some(Boolean) ||
+    Object.values(selectedDays).some(Boolean) ||
+    searchTerm.length > 0;
 
-  // Group mood logs by date
+  // Filtering and grouping logic
   const groupedMoodLogs = useMemo(() => {
     let filtered = moodLogs.filter((moodLog) => {
-      const categoryMatch = !Object.values(selectedCategories).some(Boolean) || 
-                           selectedCategories[moodLog.category];
-      
-      const valenceMatch = !Object.values(selectedValences).some(Boolean) || 
-                          (selectedValences['Positive'] && moodLog.beforeValence === 'positive') ||
-                          (selectedValences['Negative'] && moodLog.beforeValence === 'negative');
-      
-      const searchMatch = !searchTerm || 
-        moodLog.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      // Category filter
+      const categoryMatch =
+        !Object.values(selectedCategories).some(Boolean) ||
+        selectedCategories[moodLog.category];
+
+      // Day of week filter
+      const logDay = DAYS_OF_WEEK[new Date(moodLog.date).getDay()];
+      const dayMatch =
+        !Object.values(selectedDays).some(Boolean) ||
+        selectedDays[logDay];
+
+      // Valence filter
+      const valenceMatch =
+        !Object.values(selectedValences).some(Boolean) ||
+        (selectedValences['Positive'] && moodLog.beforeValence === 'positive') ||
+        (selectedValences['Negative'] && moodLog.beforeValence === 'negative');
+
+      // Search filter
+      const searchMatch =
+        !searchTerm ||
+        (moodLog.category && moodLog.category.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (moodLog.activity && moodLog.activity.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (moodLog.beforeEmotion && moodLog.beforeEmotion.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (moodLog.afterEmotion && moodLog.afterEmotion.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const favoriteMatch = activeTab !== 'favorites' || favoriteEntries[moodLog._id];
+      // Favorites tab filter
+      const favoriteMatch =
+        activeTab !== 'favorites' || favoriteEntries[moodLog._id];
 
-      return categoryMatch && valenceMatch && searchMatch && favoriteMatch;
+      return categoryMatch && dayMatch && valenceMatch && searchMatch && favoriteMatch;
     });
 
     filtered.sort((a, b) => {
       const dateA = new Date(a.date);
       const dateB = new Date(b.date);
-      
-      if (sortOrder === 'newest') {
-        return dateB - dateA;
-      } else if (sortOrder === 'oldest') {
-        return dateA - dateB;
-      }
+      if (sortOrder === 'newest') return dateB - dateA;
+      else if (sortOrder === 'oldest') return dateA - dateB;
       return 0;
     });
 
@@ -311,16 +293,12 @@ const MoodEntries = () => {
     const grouped = {};
     filtered.forEach(log => {
       const dateKey = new Date(log.date).toDateString();
-      if (!grouped[dateKey]) {
-        grouped[dateKey] = [];
-      }
+      if (!grouped[dateKey]) grouped[dateKey] = [];
       grouped[dateKey].push(log);
     });
 
     return grouped;
-  }, [moodLogs, selectedCategories, selectedValences, searchTerm, sortOrder, activeTab, favoriteEntries]);
-
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  }, [moodLogs, selectedCategories, selectedValences, selectedDays, searchTerm, sortOrder, activeTab, favoriteEntries]);
 
   return (
     <div className="min-h-screen relative overflow-hidden" style={{ backgroundColor: '#F1F8E8' }}>
@@ -332,7 +310,6 @@ const MoodEntries = () => {
               <TrendingUpIcon style={{ color: '#55AD9B' }} />
               <span className="font-semibold text-lg" style={{ color: '#272829' }}>Mood Insights</span>
             </div>
-            
             <div className="flex items-center space-x-1">
               <Tooltip title="Log New Mood" arrow>
                 <motion.button
@@ -346,7 +323,6 @@ const MoodEntries = () => {
                   <span className="font-semibold text-base">Add Entry</span>
                 </motion.button>
               </Tooltip>
-
               {hasActiveFilters && (
                 <Tooltip title="Clear all filters" arrow>
                   <IconButton size="small" onClick={clearAllFilters}>
@@ -354,13 +330,11 @@ const MoodEntries = () => {
                   </IconButton>
                 </Tooltip>
               )}
-              
               <Tooltip title="Filter" arrow>
                 <IconButton size="small" onClick={handleFilterClick}>
                   <FilterListIcon style={{ color: hasActiveFilters ? '#55AD9B' : '#a0a0a0', fontSize: 22 }} />
                 </IconButton>
               </Tooltip>
-              
               <Tooltip title="Sort" arrow>
                 <IconButton size="small" onClick={handleSortClick}>
                   <SortIcon style={{ color: '#a0a0a0', fontSize: 22 }} />
@@ -368,7 +342,6 @@ const MoodEntries = () => {
               </Tooltip>
             </div>
           </div>
-          
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 items-center">
             <div className="relative">
               <SearchIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" style={{ fontSize: 20 }} />
@@ -378,16 +351,12 @@ const MoodEntries = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full pl-11 pr-4 py-3 text-base rounded-full border-2 bg-white/80 focus:outline-none focus:ring-2 transition-all"
-                style={{ 
-                  borderColor: '#D8EFD3',
-                  '--tw-ring-color': '#55AD9B'
-                }}
+                style={{ borderColor: '#D8EFD3', '--tw-ring-color': '#55AD9B' }}
               />
             </div>
-            
             <div className="flex justify-end">
               <div className="bg-white/80 rounded-full p-1">
-                <Tabs 
+                <Tabs
                   value={activeTab}
                   onChange={handleTabChange}
                   className="min-h-0"
@@ -399,15 +368,15 @@ const MoodEntries = () => {
                     }
                   }}
                 >
-                  <Tab 
-                    value="all" 
-                    label="All Entries" 
+                  <Tab
+                    value="all"
+                    label="All Entries"
                     className={`text-sm py-2 px-5 ${activeTab === 'all' ? 'text-[#55AD9B]' : 'text-gray-500'}`}
                     style={{ minHeight: '40px', textTransform: 'none' }}
                   />
-                  <Tab 
-                    value="favorites" 
-                    label="Favorites" 
+                  <Tab
+                    value="favorites"
+                    label="Favorites"
                     className={`text-sm py-2 px-5 ${activeTab === 'favorites' ? 'text-[#55AD9B]' : 'text-gray-500'}`}
                     style={{ minHeight: '40px', textTransform: 'none' }}
                   />
@@ -436,21 +405,17 @@ const MoodEntries = () => {
             <div className="mb-4">
               <AccessTimeIcon style={{ fontSize: 56, color: '#272829' }} />
             </div>
-            
             <h2 className="text-2xl font-bold mb-3" style={{ color: '#272829' }}>
               Please Wait
             </h2>
-            
             <p className="mb-6 leading-relaxed text-base" style={{ color: '#272829' }}>
               You can log a new mood entry every 30 minutes.
             </p>
-            
             <div className="rounded-2xl p-4 mb-6 border" style={{ backgroundColor: '#D8EFD3', borderColor: '#95D2B3' }}>
               <p className="font-semibold text-lg" style={{ color: '#55AD9B' }}>
                 {remainingTime} minute{remainingTime !== 1 ? 's' : ''} remaining
               </p>
             </div>
-            
             <Button
               onClick={handleCloseTimeRestrictionModal}
               variant="contained"
@@ -484,7 +449,7 @@ const MoodEntries = () => {
               </div>
             </div>
           ) : Object.keys(groupedMoodLogs).length === 0 ? (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-white/90 backdrop-blur-sm w-full max-w-lg mx-auto p-10 rounded-2xl shadow-xl text-center border"
@@ -511,13 +476,12 @@ const MoodEntries = () => {
             <div className="space-y-8">
               {Object.entries(groupedMoodLogs).map(([dateKey, logs]) => {
                 const date = new Date(dateKey);
-                const formattedDate = date.toLocaleDateString('en-US', { 
-                  weekday: 'long', 
-                  year: 'numeric', 
-                  month: 'long', 
-                  day: 'numeric' 
+                const formattedDate = date.toLocaleDateString('en-US', {
+                  weekday: 'long',
+                  year: 'numeric',
+                  month: 'long',
+                  day: 'numeric'
                 });
-
                 return (
                   <motion.div
                     key={dateKey}
@@ -526,7 +490,6 @@ const MoodEntries = () => {
                     className="bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg border p-8"
                     style={{ borderColor: '#D8EFD3' }}
                   >
-                    {/* Date Header */}
                     <div className="mb-8 pb-6 border-b" style={{ borderColor: '#D8EFD3' }}>
                       <h2 className="text-2xl font-bold flex items-center" style={{ color: '#272829' }}>
                         <span className="w-4 h-4 rounded-full mr-4" style={{ backgroundColor: '#55AD9B' }}></span>
@@ -536,8 +499,6 @@ const MoodEntries = () => {
                         </span>
                       </h2>
                     </div>
-
-                    {/* Entries for this date */}
                     <div className="space-y-6">
                       {logs.map((log, index) => (
                         <motion.div
@@ -555,7 +516,7 @@ const MoodEntries = () => {
                               </div>
                               <div>
                                 <h3 className="font-semibold text-xl" style={{ color: '#272829' }}>
-                                  {formatText(log.category)}
+                                  {CATEGORY_LABELS[log.category] || formatText(log.category)}
                                 </h3>
                                 <p className="text-base" style={{ color: '#3a796cff', fontWeight: 'bold' }}>
                                   {formatText(log.activity)} {log.hrs && `• ${log.hrs} hrs`}
@@ -568,9 +529,8 @@ const MoodEntries = () => {
                                 </div>
                               </div>
                             </div>
-                            
                             <motion.div whileTap={{ scale: 0.9 }}>
-                              <IconButton 
+                              <IconButton
                                 onClick={() => handleFavoriteToggle(log._id)}
                                 size="medium"
                               >
@@ -582,14 +542,11 @@ const MoodEntries = () => {
                               </IconButton>
                             </motion.div>
                           </div>
-
-                          {/* Before and After Emotions */}
                           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {/* Before Emotions */}
-                            <div className="p-6 rounded-xl" style={{ backgroundColor: '#D8EFD3' }}>
-                              <h4 className="font-semibold mb-3 text-base" style={{ color: '#272829' }}>
+                            <div className="p-6 rounded-xl" style={{ backgroundColor: '#95D2B3' }}>
+                              <h2 className="font-bold mb-3 text-base" style={{ color: '#fffffeff' }}>
                                 Before Activity
-                              </h4>
+                              </h2>
                               <div className="flex items-center space-x-3 mb-3">
                                 <span className="text-4xl">
                                   {emotionEmojis[log.beforeEmotion] || '😐'}
@@ -598,7 +555,7 @@ const MoodEntries = () => {
                                   <p className="font-medium text-lg" style={{ color: '#272829' }}>
                                     {formatText(log.beforeEmotion)}
                                   </p>
-                                  <p className="text-sm" style={{ color: '#55AD9B' }}>
+                                  <p className="text-mg" style={{ color: '#272829' }}>
                                     {formatText(log.beforeValence)} • Intensity: {log.beforeIntensity}/5
                                   </p>
                                 </div>
@@ -608,27 +565,25 @@ const MoodEntries = () => {
                                   <div
                                     key={i}
                                     className="w-3 h-3 rounded-full"
-                                    style={{ 
-                                      backgroundColor: i < log.beforeIntensity ? '#55AD9B' : '#95D2B3' 
+                                    style={{
+                                      backgroundColor: i < log.beforeIntensity ? '#55AD9B' : '#F1F8E8'
                                     }}
                                   ></div>
                                 ))}
                               </div>
                               {log.beforeReason && (
-                                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#95D2B3' }}>
-                                  <p className="text-sm font-medium mb-1" style={{ color: '#272829' }}>Reason:</p>
-                                  <p className="text-sm leading-relaxed" style={{ color: '#3a796cff' }}>
+                                <div className="mt-3 pt-3 border-t" style={{ borderColor: '#55AD9B' }}>
+                                  <p className="text-mg font-medium mb-1" style={{ color: '#272829' }}>Reason:</p>
+                                  <p className="text-mg leading-relaxed" style={{ color: '#272829' }}>
                                     {log.beforeReason}
                                   </p>
                                 </div>
                               )}
                             </div>
-
-                            {/* After Emotions */}
                             <div className="p-6 rounded-xl" style={{ backgroundColor: '#95D2B3' }}>
-                              <h4 className="font-semibold mb-3 text-base" style={{ color: '#272829' }}>
+                              <h2 className="font-bold mb-3 text-base" style={{ color: '#fffffeff' }}>
                                 After Activity
-                              </h4>
+                              </h2>
                               <div className="flex items-center space-x-3 mb-3">
                                 <span className="text-4xl">
                                   {emotionEmojis[log.afterEmotion] || '😐'}
@@ -647,16 +602,16 @@ const MoodEntries = () => {
                                   <div
                                     key={i}
                                     className="w-3 h-3 rounded-full"
-                                    style={{ 
-                                      backgroundColor: i < log.afterIntensity ? '#55AD9B' : '#F1F8E8' 
+                                    style={{
+                                      backgroundColor: i < log.afterIntensity ? '#55AD9B' : '#F1F8E8'
                                     }}
                                   ></div>
                                 ))}
                               </div>
                               {log.afterReason && (
                                 <div className="mt-3 pt-3 border-t" style={{ borderColor: '#55AD9B' }}>
-                                  <p className="text-sm font-medium mb-1" style={{ color: '#272829' }}>Reason:</p>
-                                  <p className="text-sm leading-relaxed" style={{ color: '#272829' }}>
+                                  <p className="text-mg font-medium mb-1" style={{ color: '#272829' }}>Reason:</p>
+                                  <p className="text-mg leading-relaxed" style={{ color: '#272829' }}>
                                     {log.afterReason}
                                   </p>
                                 </div>
@@ -694,8 +649,8 @@ const MoodEntries = () => {
           <div className="flex items-center justify-between mb-5">
             <h3 className="font-semibold text-xl" style={{ color: '#272829' }}>Filters</h3>
             {hasActiveFilters && (
-              <Button 
-                size="small" 
+              <Button
+                size="small"
                 onClick={clearAllFilters}
                 style={{ color: '#ff6b6b', fontSize: '14px' }}
               >
@@ -703,59 +658,58 @@ const MoodEntries = () => {
               </Button>
             )}
           </div>
-          
+          {/* Category Filter */}
           <div className="mb-6">
             <h4 className="font-medium mb-4 text-base" style={{ color: '#272829' }}>Filter by Category</h4>
             <div className="space-y-3">
-              {Object.keys(selectedCategories).map((category) => (
+              {availableCategories.map((cat) => (
                 <FormControlLabel
-                  key={category}
+                  key={cat}
                   control={
                     <Checkbox
-                      checked={selectedCategories[category]}
+                      checked={selectedCategories[cat]}
                       onChange={handleCategoryChange}
-                      name={category}
+                      name={cat}
                       size="medium"
-                      style={{ 
-                        color: selectedCategories[category] ? '#55AD9B' : undefined 
+                      style={{
+                        color: selectedCategories[cat] ? '#55AD9B' : undefined
                       }}
                     />
                   }
-                  label={<span className="text-base">{category}</span>}
+                  label={<span className="text-base">{CATEGORY_LABELS[cat] || formatText(cat)}</span>}
                 />
               ))}
             </div>
           </div>
-          
+          {/* Day of Week Filter */}
           <div className="mb-6">
-            <h4 className="font-medium mb-4 text-base" style={{ color: '#272829' }}>Filter by Valence</h4>
-            <div className="space-y-3">
-              {Object.keys(selectedValences).map((valence) => (
+            <h4 className="font-medium mb-4 text-base" style={{ color: '#272829' }}>Filter by Day of Week</h4>
+            <div className="flex flex-wrap gap-2">
+              {DAYS_OF_WEEK.map((day) => (
                 <FormControlLabel
-                  key={valence}
+                  key={day}
                   control={
                     <Checkbox
-                      checked={selectedValences[valence]}
-                      onChange={handleValenceChange}
-                      name={valence}
+                      checked={selectedDays[day]}
+                      onChange={handleDayChange}
+                      name={day}
                       size="medium"
-                      style={{ 
-                        color: selectedValences[valence] ? '#55AD9B' : undefined 
+                      style={{
+                        color: selectedDays[day] ? '#55AD9B' : undefined
                       }}
                     />
                   }
-                  label={<span className="text-base">{valence}</span>}
+                  label={<span className="text-base">{day}</span>}
                 />
               ))}
             </div>
           </div>
-          
-          <Button 
-            variant="contained" 
+          <Button
+            variant="contained"
             fullWidth
             onClick={handleFilterClose}
-            style={{ 
-              backgroundColor: '#55AD9B', 
+            style={{
+              backgroundColor: '#55AD9B',
               color: 'white',
               borderRadius: '12px',
               textTransform: 'none',
@@ -783,9 +737,9 @@ const MoodEntries = () => {
           }
         }}
       >
-        <MenuItem 
+        <MenuItem
           onClick={() => handleSort('newest')}
-          style={{ 
+          style={{
             backgroundColor: sortOrder === 'newest' ? '#D8EFD3' : 'transparent',
             color: sortOrder === 'newest' ? '#55AD9B' : 'inherit',
             borderRadius: '8px',
@@ -796,9 +750,9 @@ const MoodEntries = () => {
         >
           📅 Newest First
         </MenuItem>
-        <MenuItem 
+        <MenuItem
           onClick={() => handleSort('oldest')}
-          style={{ 
+          style={{
             backgroundColor: sortOrder === 'oldest' ? '#D8EFD3' : 'transparent',
             color: sortOrder === 'oldest' ? '#55AD9B' : 'inherit',
             borderRadius: '8px',
