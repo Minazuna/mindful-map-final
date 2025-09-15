@@ -22,12 +22,12 @@ import DailyPrediction from './components/User/Prediction/DailyPrediction';
 import Prediction from './components/User/Prediction/Prediction';
 import CategoryPrediction from './components/User/Prediction/CategoryPrediction';
 import Recommendations from './components/User/Statistics/Recommendations';
-import Pomodoro from './components/User/Statistics/Activities/Pomodoro';
-import Affirmation from './components/User/Statistics/Activities/Affirmation';
-import ListTask from './components/User/Statistics/Activities/ListTask';
-import CalmingMusic from './components/User/Statistics/Activities/CalmingMusic';
+import Pomodoro from './components/User/Activities/Pomodoro';
+import Affirmation from './components/User/Activities/Affirmation';
+import ListTask from './components/User/Activities/ListTask';
+import CalmingMusic from './components/User/Activities/CalmingMusic';
 import Activities from './components/User/Activities';
-import Meditation from './components/User/Statistics/Activities/Meditation';
+import Meditation from './components/User/Activities/Meditation';
 import ForumDiscussion from './components/User/Forum';
 import PersonalJournal from './components/User/Journal/PersonalJournal';
 import { ToastContainer, toast } from 'react-toastify';
@@ -56,13 +56,14 @@ import Social from './components/User/Inputs/Social';
 import Sleep from './components/User/Inputs/Sleep';
 
 //Breathing Exercise
-import BreathingExercise from './components/User/Statistics/Activities/BreathingExercise/BreathingExercise';
-import CompletionModal from './components/User/Statistics/Activities/BreathingExercise/CompletionModal';
-import ProgressModal from './components/User/Statistics/Activities/BreathingExercise/ProgressModal';
+import BreathingExercise from './components/User/Activities/BreathingExercise/BreathingExercise';
+import CompletionModal from './components/User/Activities/BreathingExercise/CompletionModal';
+import ProgressModal from './components/User/Activities/BreathingExercise/ProgressModal';
 
 //Statistics
 import DailyStatistics from './components/User/Statistics/Daily/DailyStatistics';
-import WeeklyStatistics from './components/User/Statistics/Activities/Weekly/WeeklyStatistics';
+import WeeklyStatistics from './components/User/Statistics/Weekly/WeeklyStatistics';
+import DailyAnova from './components/User/Statistics/Daily/DailyAnova';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -299,6 +300,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <WeeklyStatistics />
+            </UserPrivateRoute>
+          }
+        />
+       <Route
+          path="/daily-anova"
+          element={
+            <UserPrivateRoute>
+              <DailyAnova />
             </UserPrivateRoute>
           }
         />
