@@ -64,6 +64,7 @@ import ProgressModal from './components/User/Activities/BreathingExercise/Progre
 import DailyStatistics from './components/User/Statistics/Daily/DailyStatistics';
 import WeeklyStatistics from './components/User/Statistics/Weekly/WeeklyStatistics';
 import DailyAnova from './components/User/Statistics/Daily/DailyAnova';
+import WeeklyAnova from './components/User/Statistics/Weekly/WeeklyAnova';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -308,6 +309,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <DailyAnova />
+            </UserPrivateRoute>
+          }
+        />
+       <Route
+          path="/weekly-anova"
+          element={
+            <UserPrivateRoute>
+              <WeeklyAnova />
             </UserPrivateRoute>
           }
         />

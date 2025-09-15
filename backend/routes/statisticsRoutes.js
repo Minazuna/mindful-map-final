@@ -1,5 +1,5 @@
 const express = require('express');
-const { getDailyStatistics, getWeeklyStatistics, calculateDailyAnova } = require('../controllers/statisticsController');
+const { getDailyStatistics, getWeeklyStatistics, calculateDailyAnova, calculateWeeklyAnova } = require('../controllers/statisticsController');
 const { authMiddleware, userMiddleware } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -7,4 +7,5 @@ const router = express.Router();
 router.get('/statistics/daily', authMiddleware, userMiddleware, getDailyStatistics);
 router.get('/statistics/weekly', authMiddleware, userMiddleware, getWeeklyStatistics);
 router.get('/statistics/daily-anova', authMiddleware, userMiddleware, calculateDailyAnova);
+router.get('/statistics/weekly-anova', authMiddleware, userMiddleware, calculateWeeklyAnova);
 module.exports = router;

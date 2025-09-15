@@ -28,6 +28,8 @@ import BedtimeIcon from '@mui/icons-material/Bedtime';
 import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import InsightsIcon from '@mui/icons-material/Insights';
+import TimelineIcon from '@mui/icons-material/Timeline';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 ChartJS.register(
@@ -362,6 +364,14 @@ const Statistics = () => {
     navigate('/weekly-statistics');
   };
 
+  const handleDailyAnovaClick = () => {
+    navigate('/daily-anova');
+  };
+
+  const handleWeeklyAnovaClick = () => {
+    navigate('/weekly-anova');
+  };
+
   const handleDownloadPDF = async () => {
     setGeneratingPDF(true);
     
@@ -553,6 +563,102 @@ const Statistics = () => {
             )}
           </motion.button>
         </div>
+
+        {/* ANOVA Analysis Section */}
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.05 }}
+          className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-8"
+        >
+          <div className="bg-gradient-to-br from-indigo-50 via-white to-cyan-50 p-8">
+            <div className="flex items-center space-x-3 mb-4">
+              <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
+                <AssessmentIcon style={{ color: '#55AD9B', fontSize: 28 }} />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>ANOVA Mood Analysis</h2>
+                <p className="text-gray-600">Advanced statistical insights into activity impact</p>
+              </div>
+            </div>
+            
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-3" style={{ color: '#272829' }}>What is ANOVA?</h3>
+              <p className="text-gray-700 leading-relaxed mb-4">
+                <strong>Analysis of Variance (ANOVA)</strong> is a statistical method that helps us understand how different activities 
+                affect your mood by comparing the variance in your emotional states before and after engaging in various activities.
+              </p>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                <div className="bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-lg">
+                  <h4 className="font-semibold text-blue-800 mb-2">📊 How It Works</h4>
+                  <p className="text-sm text-blue-700 leading-relaxed">
+                    ANOVA calculates the percentage change in your mood intensity from before to after each activity, 
+                    then aggregates similar activities to show their overall impact on your well-being.
+                  </p>
+                </div>
+                
+                <div className="bg-green-50 border-l-4 border-green-400 p-4 rounded-r-lg">
+                  <h4 className="font-semibold text-green-800 mb-2">🎯 Why It Matters</h4>
+                  <p className="text-sm text-green-700 leading-relaxed">
+                    By identifying which activities consistently improve or worsen your mood, you can make informed 
+                    decisions about how to spend your time for optimal mental well-being.
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-xl p-6">
+                <h4 className="font-semibold text-purple-800 mb-3">🔍 What You'll Discover</h4>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                  <div className="flex items-start space-x-2">
+                    <span className="text-purple-600 font-bold">•</span>
+                    <span className="text-purple-700">Top 3 mood-boosting activities per category</span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="text-purple-600 font-bold">•</span>
+                    <span className="text-purple-700">Percentage impact of each activity on your mood</span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="text-purple-600 font-bold">•</span>
+                    <span className="text-purple-700">Sleep quality correlation with daily mood</span>
+                  </div>
+                  <div className="flex items-start space-x-2">
+                    <span className="text-purple-600 font-bold">•</span>
+                    <span className="text-purple-700">Personalized insights and recommendations</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleDailyAnovaClick}
+                className="flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-6 rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl"
+              >
+                <CalendarViewDayIcon className="mr-3" style={{ fontSize: 24 }} />
+                <div className="text-left">
+                  <div className="font-semibold">Daily ANOVA</div>
+                  <div className="text-sm opacity-90">Today's activity impact analysis</div>
+                </div>
+              </motion.button>
+              
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleWeeklyAnovaClick}
+                className="flex items-center justify-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-6 rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl"
+              >
+                <TimelineIcon className="mr-3" style={{ fontSize: 24 }} />
+                <div className="text-left">
+                  <div className="font-semibold">Weekly ANOVA</div>
+                  <div className="text-sm opacity-90">Weekly patterns & trends analysis</div>
+                </div>
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Detailed Statistics Navigation Card */}
         <motion.div
