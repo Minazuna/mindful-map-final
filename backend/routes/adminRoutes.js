@@ -32,4 +32,12 @@ router.get('/correlation-values', authMiddleware, adminMiddleware, adminControll
 router.get('/weekly-correlation-values', authMiddleware, adminMiddleware, adminController.getWeeklyCorrelationValues);
 router.get('/weekly-forum-posts', authMiddleware, adminMiddleware, adminController.getWeeklyForumPosts);
 router.get('/active-vs-inactive-users', authMiddleware, adminMiddleware, adminController.getActiveVsInactiveUsers);
+
+// Teacher Management Routes
+router.get('/teachers', authMiddleware, adminMiddleware, adminController.getAllTeachers);
+router.post('/teachers', authMiddleware, adminMiddleware, adminController.createTeacher);
+router.put('/teachers/:teacherId', authMiddleware, adminMiddleware, adminController.updateTeacher);
+router.delete('/teachers/:teacherId', authMiddleware, adminMiddleware, adminController.deleteTeacher);
+router.get('/teacher-stats', authMiddleware, adminMiddleware, adminController.getTeacherStats);
+
 module.exports = router;

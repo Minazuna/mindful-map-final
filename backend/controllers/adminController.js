@@ -13,6 +13,7 @@ const {
   processExpiredGracePeriods, 
   reactivateUser 
 } = require("../utils/accountService");
+const admin = require('../config/firebaseConfig');
 
 exports.dashboard = (req, res) => {
   res.status(200).json({
@@ -191,13 +192,14 @@ exports.getUsers = async (req, res) => {
 
     const activeUserIds = activeUsers.map(user => user._id.toString());
 
-    const users = await User.find({ role: 'user' }).select('name email avatar isDeactivated pendingDeactivation createdAt deactivatedAt deactivateAt');
+    const users = await User.find({ role: 'user' }).select('firstName lastName email avatar section isDeactivated pendingDeactivation createdAt deactivatedAt deactivateAt');
 
     const usersWithStatus = users.map(user => ({
       id: user._id,
-      name: user.name,
+      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'No Name',
       email: user.email,
       avatar: user.avatar,
+      section: user.section || 'Not Assigned',
       isDeactivated: user.isDeactivated,
       pendingDeactivation: user.pendingDeactivation || false,
       createdAt: user.createdAt.toISOString(),
@@ -563,5 +565,212 @@ exports.getActiveVsInactiveUsers = async (req, res) => {
   } catch (error) {
     console.error('Error fetching active vs inactive users:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Teacher Management Functions
+
+exports.getAllTeachers = async (req, res) => {
+  try {
+    const teachers = await User.find({ role: 'teacher' })
+      .select('firstName lastName middleInitial email assignedSections subject avatar createdAt')
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: teachers,
+      count: teachers.length
+    });
+  } catch (error) {
+    console.error('Error fetching teachers:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.createTeacher = async (req, res) => {
+  try {
+    const { firstName, lastName, middleInitial, email, assignedSections, subject, password } = req.body;
+
+    // Validation
+    if (!firstName || !lastName || !email || !assignedSections || !Array.isArray(assignedSections) || assignedSections.length === 0 || !subject || !password) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'First name, last name, email, assigned sections (at least one), subject, and password are required.' 
+      });
+    }
+
+    // Check if we already have 3 teachers
+    const teacherCount = await User.countDocuments({ role: 'teacher' });
+    if (teacherCount >= 3) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Maximum limit of 3 teacher accounts reached.' 
+      });
+    }
+
+    // Check if user already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ success: false, message: 'User with this email already exists.' });
+    }
+
+    try {
+      // Create user in Firebase first
+      const userRecord = await admin.auth().createUser({
+        email,
+        password,
+        displayName: `${firstName} ${middleInitial ? middleInitial + ' ' : ''}${lastName}`,
+      });
+
+      // Create user in MongoDB
+      const newTeacher = new User({
+        firstName,
+        lastName,
+        middleInitial: middleInitial || '',
+        email,
+        assignedSections,
+        subject,
+        password, // Will be hashed by pre-save hook
+        role: 'teacher',
+        firebaseUid: userRecord.uid,
+        verified: true,
+      });
+
+      await newTeacher.save();
+
+      // Remove password from response
+      const teacherResponse = newTeacher.toObject();
+      delete teacherResponse.password;
+
+      res.status(201).json({
+        success: true,
+        message: 'Teacher account created successfully.',
+        data: teacherResponse
+      });
+
+    } catch (firebaseError) {
+      console.error('Firebase error:', firebaseError);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Error creating Firebase user account.',
+        error: firebaseError.message 
+      });
+    }
+
+  } catch (error) {
+    console.error('Error creating teacher:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.updateTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+    const { firstName, lastName, middleInitial, assignedSections, subject } = req.body;
+
+    // Validation
+    if (!firstName || !lastName || !assignedSections || !Array.isArray(assignedSections) || assignedSections.length === 0 || !subject) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'First name, last name, assigned sections (at least one), and subject are required.' 
+      });
+    }
+
+    const updatedTeacher = await User.findByIdAndUpdate(
+      teacherId,
+      {
+        firstName,
+        lastName,
+        middleInitial: middleInitial || '',
+        assignedSections,
+        subject
+      },
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    if (!updatedTeacher) {
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Teacher updated successfully.',
+      data: updatedTeacher
+    });
+
+  } catch (error) {
+    console.error('Error updating teacher:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.deleteTeacher = async (req, res) => {
+  try {
+    const { teacherId } = req.params;
+
+    const teacher = await User.findById(teacherId);
+    if (!teacher || teacher.role !== 'teacher') {
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    }
+
+    // Delete from Firebase
+    if (teacher.firebaseUid) {
+      try {
+        await admin.auth().deleteUser(teacher.firebaseUid);
+      } catch (firebaseError) {
+        console.error('Error deleting Firebase user:', firebaseError);
+        // Continue with MongoDB deletion even if Firebase deletion fails
+      }
+    }
+
+    // Delete from MongoDB
+    await User.findByIdAndDelete(teacherId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Teacher account deleted successfully.'
+    });
+
+  } catch (error) {
+    console.error('Error deleting teacher:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.getTeacherStats = async (req, res) => {
+  try {
+    const totalTeachers = await User.countDocuments({ role: 'teacher' });
+    const availableSlots = 3 - totalTeachers;
+    
+    // Get sections and their assigned teachers
+    const sections = ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'];
+    const teachers = await User.find({ role: 'teacher' })
+      .select('assignedSections firstName lastName')
+      .lean();
+
+    const sectionStatus = sections.map(section => {
+      const assignedTeachers = teachers.filter(teacher => 
+        teacher.assignedSections && teacher.assignedSections.includes(section)
+      );
+      return {
+        section,
+        assigned: assignedTeachers.length > 0,
+        teacherNames: assignedTeachers.map(teacher => `${teacher.firstName} ${teacher.lastName}`)
+      };
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        totalTeachers,
+        availableSlots,
+        maxTeachers: 3,
+        sectionStatus
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching teacher stats:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };

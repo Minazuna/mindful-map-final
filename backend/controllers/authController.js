@@ -146,8 +146,6 @@ exports.googleAuth = async (req, res) => {
   }
 };
 
-// ...existing code... (login, getMe, requestReactivation functions remain the same)
-
 exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -219,6 +217,8 @@ exports.login = async (req, res) => {
       console.log('Admin user created:', user);
     }
 
+
+
     if (!user) {
       console.error('User not found in MongoDB.');
       return res.status(404).json({ success: false, message: 'Invalid email or password.' });
@@ -247,6 +247,16 @@ exports.login = async (req, res) => {
         message: 'Admin logged in successfully',
         token,
         redirectUrl: '/admin/dashboard',
+      });
+    }
+
+    // Redirect to teacher dashboard if the user is a teacher
+    if (user.role === 'teacher') {
+      return res.status(200).json({
+        success: true,
+        message: 'Teacher logged in successfully',
+        token,
+        redirectUrl: '/teacher/dashboard',
       });
     }
 

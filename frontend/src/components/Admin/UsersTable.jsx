@@ -57,8 +57,9 @@ const UsersTable = () => {
 
   useEffect(() => {
     const filtered = users.filter((user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.section && user.section.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     
   setFilteredUsers(filtered);
@@ -221,10 +222,11 @@ const UsersTable = () => {
       }
       
       doc.autoTable({
-        head: [["Name", "Email", "Status", "Created At"]],
+        head: [["Name", "Email", "Section", "Status", "Created At"]],
         body: [[
           user.name || "N/A",
           user.email,
+          user.section || "Not Assigned",
           user.status,
           new Date(user.createdAt).toLocaleDateString(),
         ]],
@@ -409,6 +411,24 @@ const UsersTable = () => {
       flex: 1,
     },
     {
+      field: "section",
+      headerName: "Section",
+      flex: 1,
+      renderCell: (params) => (
+        <Typography
+          sx={{
+            bgcolor: params.value === "Not Assigned" ? '#FFF3E0' : '#E3F2FD',
+            color: params.value === "Not Assigned" ? '#FF9800' : '#1976D2',
+            px: 2,
+            py: 0.5,
+            borderRadius: 1,
+          }}
+        >
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
       field: "status",
       headerName: "Status",
       flex: 1,
@@ -536,27 +556,28 @@ const UsersTable = () => {
             <Table aria-label="collapsible table">
               <TableHead>
                 <TableRow>
-                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Select</TableCell>
-                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Details</TableCell>
-                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Avatar</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Account Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Created At</TableCell>
-                  <TableCell width="100px" sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Actions</TableCell>
+                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Select</TableCell>
+                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Details</TableCell>
+                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Avatar</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Section</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Account Status</TableCell>
+                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Created At</TableCell>
+                  <TableCell width="100px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <Typography>Loading users...</Typography>
+                    <TableCell colSpan={9} align="center" sx={{ fontSize: '0.875rem' }}>
+                      <Typography sx={{ fontSize: '0.875rem' }}>Loading users...</Typography>
                     </TableCell>
                   </TableRow>
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center">
-                      <Typography>No users found</Typography>
+                    <TableCell colSpan={9} align="center" sx={{ fontSize: '0.875rem' }}>
+                      <Typography sx={{ fontSize: '0.875rem' }}>No users found</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
@@ -587,12 +608,27 @@ const UsersTable = () => {
                             }
                           </IconButton>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem' }}>
                           <Avatar src={user.avatar} alt="User Avatar" />
                         </TableCell>
-                        <TableCell>{user.name}</TableCell>
-                        <TableCell>{user.email}</TableCell>
-                        <TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem' }}>{user.name}</TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem' }}>{user.email}</TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem' }}>
+                          <Typography
+                            sx={{
+                              bgcolor: user.section === "Not Assigned" ? '#FFF3E0' : '#E3F2FD',
+                              color: user.section === "Not Assigned" ? '#FF9800' : '#1976D2',
+                              px: 2,
+                              py: 0.5,
+                              borderRadius: 1,
+                              display: 'inline-block',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            {user.section || 'Not Assigned'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem' }}>
                           <Typography
                             sx={{
                               bgcolor: user.status === "Active" ? '#E8F5E9' : '#FFEBEE',
@@ -600,13 +636,14 @@ const UsersTable = () => {
                               px: 2,
                               py: 0.5,
                               borderRadius: 1,
-                              display: 'inline-block'
+                              display: 'inline-block',
+                              fontSize: '0.875rem'
                             }}
                           >
                             {user.status}
                           </Typography>
                         </TableCell>
-                        <TableCell>
+                        <TableCell sx={{ fontSize: '0.875rem' }}>
                           {user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "No Date Available"}
                         </TableCell>
                         <TableCell>
@@ -622,35 +659,35 @@ const UsersTable = () => {
                         </TableCell>
                       </TableRow>
                       <TableRow>
-                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
+                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
                           <Collapse in={expandedRowId === user.id} timeout="auto" unmountOnExit>
                             <Box sx={{ margin: 2, marginBottom: 4 }}>
                               {loadingMoodLogs[user.id] ? (
-                                <Typography variant="body2" color="text.secondary">Loading mood logs...</Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>Loading mood logs...</Typography>
                               ) : moodLogs[user.id]?.length === 0 ? (
-                                <Typography variant="body2" color="text.secondary">No mood logs found for this user.</Typography>
+                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>No mood logs found for this user.</Typography>
                               ) : (
                                 <TableContainer component={Paper} sx={{ maxHeight: 300, overflowY: 'auto', boxShadow: 'none' }}>
                                   <Table size="small" aria-label="mood logs">
                                     <TableHead>
                                       <TableRow>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394' }}>Date</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394' }}>Mood</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394' }}>Activities</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394' }}>Social</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394' }}>Health</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394' }}>Sleep Quality</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Date</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Mood</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Activities</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Social</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Health</TableCell>
+                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Sleep Quality</TableCell>
                                       </TableRow>
                                     </TableHead>
                                     <TableBody>
                                       {moodLogs[user.id]?.map((log, index) => (
                                         <TableRow key={index} hover>
-                                          <TableCell>{new Date(log.date).toLocaleDateString()}</TableCell>
-                                          <TableCell>{log.mood}</TableCell>
-                                          <TableCell>{Array.isArray(log.activities) ? log.activities.join(', ') : log.activities}</TableCell>
-                                          <TableCell>{Array.isArray(log.social) ? log.social.join(', ') : log.social}</TableCell>
-                                          <TableCell>{Array.isArray(log.health) ? log.health.join(', ') : log.health}</TableCell>
-                                          <TableCell>{log.sleepQuality}</TableCell>
+                                          <TableCell sx={{ fontSize: '0.875rem' }}>{new Date(log.date).toLocaleDateString()}</TableCell>
+                                          <TableCell sx={{ fontSize: '0.875rem' }}>{log.mood}</TableCell>
+                                          <TableCell sx={{ fontSize: '0.875rem' }}>{Array.isArray(log.activities) ? log.activities.join(', ') : log.activities}</TableCell>
+                                          <TableCell sx={{ fontSize: '0.875rem' }}>{Array.isArray(log.social) ? log.social.join(', ') : log.social}</TableCell>
+                                          <TableCell sx={{ fontSize: '0.875rem' }}>{Array.isArray(log.health) ? log.health.join(', ') : log.health}</TableCell>
+                                          <TableCell sx={{ fontSize: '0.875rem' }}>{log.sleepQuality}</TableCell>
                                         </TableRow>
                                       ))}
                                     </TableBody>
