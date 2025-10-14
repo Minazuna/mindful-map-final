@@ -121,9 +121,7 @@ const StudentLogs = () => {
       filtered = filtered.filter(log => 
         log.activity?.toLowerCase().includes(searchLower) ||
         log.beforeEmotion?.toLowerCase().includes(searchLower) ||
-        log.afterEmotion?.toLowerCase().includes(searchLower) ||
-        log.beforeReason?.toLowerCase().includes(searchLower) ||
-        log.afterReason?.toLowerCase().includes(searchLower)
+        log.afterEmotion?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -182,9 +180,14 @@ const StudentLogs = () => {
           {/* Header */}
           <Box sx={{ mb: 3 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <IconButton onClick={() => navigate('/admin/users')} sx={{ mr: 2 }}>
-                <ArrowBackIcon />
-              </IconButton>
+              <button
+                onClick={() => navigate('/admin/users')}
+                className="mr-4 p-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+              >
+                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
               <Typography variant="h4" sx={{ fontWeight: "bold", color: "#333" }}>
                 Student Mood Logs
               </Typography>
@@ -269,17 +272,17 @@ const StudentLogs = () => {
             {showFilters && (
               <Paper sx={{ p: 3, mb: 2 }}>
                 <Grid container spacing={2}>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={2}>
                     <TextField
                       label="Search"
-                      placeholder="Search in activities, emotions, reasons..."
+                      placeholder="Search activities, emotions..."
                       value={filters.searchTerm}
                       onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
                       fullWidth
                       size="small"
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={2}>
                     <FormControl fullWidth size="small">
                       <InputLabel>Category</InputLabel>
                       <Select
@@ -295,7 +298,7 @@ const StudentLogs = () => {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} md={4}>
+                  <Grid item xs={12} md={2}>
                     <FormControl fullWidth size="small">
                       <InputLabel>Before Valence</InputLabel>
                       <Select
@@ -310,7 +313,7 @@ const StudentLogs = () => {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} md={4}>
+                  <Grid item xs={12} md={2}>
                     <FormControl fullWidth size="small">
                       <InputLabel>After Valence</InputLabel>
                       <Select
@@ -324,10 +327,7 @@ const StudentLogs = () => {
                       </Select>
                     </FormControl>
                   </Grid>
-                  <Grid item xs={12} md={4}>
-                    {/* Empty grid item for spacing */}
-                  </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={2}>
                     <DatePicker
                       label="Start Date"
                       value={filters.startDate}
@@ -335,7 +335,7 @@ const StudentLogs = () => {
                       slotProps={{ textField: { size: 'small', fullWidth: true } }}
                     />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  <Grid item xs={12} md={2}>
                     <DatePicker
                       label="End Date"
                       value={filters.endDate}
@@ -374,15 +374,31 @@ const StudentLogs = () => {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredLogs.map((log, index) => (
+                  filteredLogs.map((log, index) => {
+                    const getCategoryColor = (category) => {
+                      const colors = {
+                        activity: '#2196F3',  // Blue
+                        social: '#9C27B0',    // Violet
+                        health: '#4CAF50',    // Green
+                        sleep: '#FF9800'      // Orange
+                      };
+                      return colors[category] || '#95A5A6';
+                    };
+                    
+                    return (
                     <TableRow key={index} hover>
-                      <TableCell>{new Date(log.date).toLocaleDateString()}</TableCell>
+                      <TableCell>
+                        {new Date(log.date).toLocaleDateString()} {new Date(log.date).toLocaleTimeString()}
+                      </TableCell>
                       <TableCell>
                         <Chip 
                           label={log.category} 
                           size="small" 
                           variant="outlined"
-                          color="primary"
+                          sx={{
+                            borderColor: getCategoryColor(log.category),
+                            color: getCategoryColor(log.category),
+                          }}
                         />
                       </TableCell>
                       <TableCell>
@@ -407,7 +423,8 @@ const StudentLogs = () => {
                       <TableCell>{log.afterEmotion}</TableCell>
                       <TableCell>{log.afterIntensity}</TableCell>
                     </TableRow>
-                  ))
+                    );
+                  })
                 )}
               </TableBody>
             </Table>

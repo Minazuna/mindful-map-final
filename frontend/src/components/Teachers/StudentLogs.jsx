@@ -1,21 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import TeacherSidebar from './Sidebar';
 
 const StudentLogs = () => {
   const { section } = useParams();
+  const navigate = useNavigate();
   const [moodLogs, setMoodLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [teacher, setTeacher] = useState(null);
   const [filteredLogs, setFilteredLogs] = useState([]);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState('all');
-  const [emotionFilter, setEmotionFilter] = useState('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [logsPerPage] = useState(10);
   const [currentSection, setCurrentSection] = useState(null);
+  const [showFilters, setShowFilters] = useState(false);
+  
+  // Filter states
+  const [filters, setFilters] = useState({
+    category: '',
+    beforeValence: '',
+    afterValence: '',
+    startDate: null,
+    endDate: null,
+    searchTerm: ''
+  });
 
   useEffect(() => {
     fetchTeacherProfile();
@@ -23,8 +32,72 @@ const StudentLogs = () => {
   }, [section]);
 
   useEffect(() => {
-    filterLogs();
-  }, [moodLogs, categoryFilter, emotionFilter]);
+    applyFilters();
+  }, [filters, moodLogs]);
+
+  const applyFilters = () => {
+    let filtered = [...moodLogs];
+
+    // Category filter
+    if (filters.category) {
+      filtered = filtered.filter(log => log.category === filters.category);
+    }
+
+    // Before valence filter
+    if (filters.beforeValence) {
+      filtered = filtered.filter(log => log.beforeValence === filters.beforeValence);
+    }
+
+    // After valence filter
+    if (filters.afterValence) {
+      filtered = filtered.filter(log => log.afterValence === filters.afterValence);
+    }
+
+    // Date range filter
+    if (filters.startDate) {
+      filtered = filtered.filter(log => new Date(log.date) >= filters.startDate);
+    }
+    if (filters.endDate) {
+      filtered = filtered.filter(log => new Date(log.date) <= filters.endDate);
+    }
+
+    // Search term filter
+    if (filters.searchTerm) {
+      const searchLower = filters.searchTerm.toLowerCase();
+      filtered = filtered.filter(log => 
+        log.activity?.toLowerCase().includes(searchLower) ||
+        log.beforeEmotion?.toLowerCase().includes(searchLower) ||
+        log.afterEmotion?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    setFilteredLogs(filtered);
+    setCurrentPage(1);
+  };
+
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      category: '',
+      beforeValence: '',
+      afterValence: '',
+      startDate: null,
+      endDate: null,
+      searchTerm: ''
+    });
+  };
+
+  const getActiveFiltersCount = () => {
+    return Object.values(filters).filter(value => 
+      value !== '' && value !== null && value !== undefined
+    ).length;
+  };
 
   const fetchTeacherProfile = async () => {
     try {
@@ -83,22 +156,7 @@ const StudentLogs = () => {
     }
   };
 
-  const filterLogs = () => {
-    let filtered = moodLogs;
 
-    // Category filter
-    if (categoryFilter !== 'all') {
-      filtered = filtered.filter(log => log.category === categoryFilter);
-    }
-
-    // Emotion filter
-    if (emotionFilter !== 'all') {
-      filtered = filtered.filter(log => log.afterEmotion === emotionFilter);
-    }
-
-    setFilteredLogs(filtered);
-    setCurrentPage(1); // Reset to first page when filtering
-  };
 
   // Pagination
   const indexOfLastLog = currentPage * logsPerPage;
@@ -135,11 +193,6 @@ const StudentLogs = () => {
     return icons[category] || '📝';
   };
 
-  const getUniqueEmotions = () => {
-    const emotions = new Set(moodLogs.map(log => log.afterEmotion));
-    return Array.from(emotions).sort();
-  };
-
   if (loading) {
     return (
       <div className="flex">
@@ -158,7 +211,43 @@ const StudentLogs = () => {
         <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-800 mb-2">Student Mood Logs</h1>
+          <div className="flex items-center mb-2">
+            <button
+              onClick={() => navigate(-1)}
+              className="mr-4 p-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+              title="Go back to previous page"
+            >
+              <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <h1 className="text-3xl font-bold text-gray-800">Student Mood Logs</h1>
+          </div>
+          
+          {/* Student Info Card - only show when viewing individual student */}
+          {moodLogs.length > 0 && !currentSection && (
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Name</p>
+                  <p className="text-base font-medium text-gray-900">{moodLogs[0]?.studentName || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Email</p>
+                  <p className="text-base text-gray-900">{moodLogs[0]?.studentEmail || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Section</p>
+                  <p className="text-base text-gray-900">{currentSection || 'N/A'}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Total Logs</p>
+                  <p className="text-base text-gray-900">{moodLogs.length}</p>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {teacher && currentSection && (
             <div>
               <p className="text-lg text-gray-600">
@@ -189,57 +278,116 @@ const StudentLogs = () => {
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Category Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Category
-              </label>
-              <select
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Categories</option>
-                <option value="activity">Activity</option>
-                <option value="social">Social</option>
-                <option value="health">Health</option>
-                <option value="sleep">Sleep</option>
-              </select>
-            </div>
-
-            {/* Emotion Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Emotion
-              </label>
-              <select
-                value={emotionFilter}
-                onChange={(e) => setEmotionFilter(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="all">All Emotions</option>
-                {getUniqueEmotions().map(emotion => (
-                  <option key={emotion} value={emotion}>{emotion}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Clear Filters */}
-            <div className="flex items-end">
+        {/* Controls */}
+        <div className="mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <div className="flex items-center gap-4">
               <button
-                onClick={() => {
-                  setCategoryFilter('all');
-                  setEmotionFilter('all');
-                }}
-                className="w-full px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                onClick={() => setShowFilters(!showFilters)}
+                className={`px-4 py-2 rounded-md border transition-colors ${
+                  showFilters 
+                    ? 'bg-blue-500 text-white border-blue-500' 
+                    : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'
+                }`}
               >
-                Clear Filters
+                <div className="flex items-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.414A1 1 0 013 6.707V4z" />
+                  </svg>
+                  Filters
+                  {getActiveFiltersCount() > 0 && (
+                    <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                      {getActiveFiltersCount()}
+                    </span>
+                  )}
+                </div>
               </button>
+              
+              {getActiveFiltersCount() > 0 && (
+                <button
+                  onClick={clearFilters}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm"
+                >
+                  Clear Filters
+                </button>
+              )}
             </div>
           </div>
+
+          {/* Filters Panel */}
+          {showFilters && (
+            <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              <div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+                  <input
+                    type="text"
+                    placeholder="Search activities, emotions..."
+                    value={filters.searchTerm}
+                    onChange={(e) => handleFilterChange('searchTerm', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                  <select
+                    value={filters.category}
+                    onChange={(e) => handleFilterChange('category', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">All Categories</option>
+                    <option value="activity">Activity</option>
+                    <option value="social">Social</option>
+                    <option value="health">Health</option>
+                    <option value="sleep">Sleep</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Before Valence</label>
+                  <select
+                    value={filters.beforeValence}
+                    onChange={(e) => handleFilterChange('beforeValence', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">All</option>
+                    <option value="positive">Positive</option>
+                    <option value="negative">Negative</option>
+                    <option value="can't remember">Can't Remember</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">After Valence</label>
+                  <select
+                    value={filters.afterValence}
+                    onChange={(e) => handleFilterChange('afterValence', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  >
+                    <option value="">All</option>
+                    <option value="positive">Positive</option>
+                    <option value="negative">Negative</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Start Date</label>
+                  <input
+                    type="date"
+                    value={filters.startDate ? filters.startDate.toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleFilterChange('startDate', e.target.value ? new Date(e.target.value) : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">End Date</label>
+                  <input
+                    type="date"
+                    value={filters.endDate ? filters.endDate.toISOString().split('T')[0] : ''}
+                    onChange={(e) => handleFilterChange('endDate', e.target.value ? new Date(e.target.value) : null)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Data Table */}
@@ -248,9 +396,6 @@ const StudentLogs = () => {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Student
-                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Date & Time
                   </th>
@@ -266,27 +411,23 @@ const StudentLogs = () => {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Before Intensity
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '400px' }}>
+                    Before Reason
+                  </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     After Emotion
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     After Intensity
                   </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '400px' }}>
+                    After Reason
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {currentLogs.map((log) => (
                   <tr key={log._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">
-                          {log.studentName}
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          {log.studentEmail}
-                        </div>
-                      </div>
-                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {formatDate(log.date)}
                     </td>
@@ -325,6 +466,11 @@ const StudentLogs = () => {
                         <span className="text-gray-400 text-sm">N/A</span>
                       )}
                     </td>
+                    <td className="px-6 py-4 text-sm text-gray-900" style={{ width: '400px' }}>
+                      <div className="break-words" style={{ maxWidth: '380px' }}>
+                        {log.beforeReason || 'N/A'}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEmotionColor(log.afterEmotion, log.afterValence)}`}>
                         {log.afterEmotion}
@@ -339,6 +485,11 @@ const StudentLogs = () => {
                           ></div>
                         </div>
                         <span className="text-xs">{log.afterIntensity}/5</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-900" style={{ width: '400px' }}>
+                      <div className="break-words" style={{ maxWidth: '380px' }}>
+                        {log.afterReason || 'N/A'}
                       </div>
                     </td>
                   </tr>
