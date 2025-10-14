@@ -255,9 +255,6 @@ const StudentLogs = () => {
               </p>
             </div>
           )}
-          <p className="text-sm text-gray-500 mt-1">
-            Total logs: {filteredLogs.length} of {moodLogs.length}
-          </p>
         </div>
 
         {/* Legend */}
@@ -311,6 +308,10 @@ const StudentLogs = () => {
                   Clear Filters
                 </button>
               )}
+              
+              <div className="text-sm text-gray-600">
+                Showing <span className="font-medium">{filteredLogs.length}</span> of <span className="font-medium">{moodLogs.length}</span> logs
+              </div>
             </div>
           </div>
 
