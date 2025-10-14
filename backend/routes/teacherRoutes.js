@@ -22,6 +22,12 @@ router.get('/student-mood-logs', teacherController.getStudentMoodLogs);
 // Get mood logs by specific section
 router.get('/mood-logs/:section', teacherController.getMoodLogsBySection);
 
+// Get students in a specific section with mood log counts
+router.get('/section-students/:section', teacherController.getSectionStudents);
+
+// Get mood logs for a specific student
+router.get('/student-mood-logs/:studentId', teacherController.getStudentMoodLogsById);
+
 // Get dashboard statistics
 router.get('/dashboard-stats', teacherController.getTeacherDashboardStats);
 

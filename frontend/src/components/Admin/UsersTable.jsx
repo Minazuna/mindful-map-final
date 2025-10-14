@@ -1,15 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { DataGrid } from "@mui/x-data-grid";
-import { Box, Avatar, Typography, TextField, IconButton, Button, Checkbox, Collapse } from "@mui/material";
+import { Box, Avatar, Typography, TextField, IconButton, Button, Checkbox, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import DownloadIcon from '@mui/icons-material/Download';
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import axios from "axios";
 import DeleteIcon from '@mui/icons-material/Delete';
-import RestoreIcon from '@mui/icons-material/Restore';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
-import KeyboardArrowUpIcon from '@mui/icons-material/KeyboardArrowUp';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -20,17 +18,17 @@ import Paper from '@mui/material/Paper';
 import Navbar from './Navbar';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useNavigate } from "react-router-dom";
 
 const UsersTable = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]); 
   const [selectedUsers, setSelectedUsers] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
-  const [expandedRowId, setExpandedRowId] = useState(null);
-  const [moodLogs, setMoodLogs] = useState({});
-  const [loadingMoodLogs, setLoadingMoodLogs] = useState({});
+  const [sectionFilter, setSectionFilter] = useState("");
 
    const fetchUsers = async () => {
     try {
@@ -56,14 +54,25 @@ const UsersTable = () => {
   }, []);
 
   useEffect(() => {
-    const filtered = users.filter((user) =>
-      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (user.section && user.section.toLowerCase().includes(searchTerm.toLowerCase()))
-    );
+    const filtered = users.filter((user) => {
+      const matchesSearch = (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                           (user.section && user.section.toLowerCase().includes(searchTerm.toLowerCase()));
+      
+      const matchesSection = sectionFilter === "" || 
+                            (sectionFilter === "Not Assigned" && (!user.section || user.section === "Not Assigned")) ||
+                            (user.section && user.section === sectionFilter);
+      
+      return matchesSearch && matchesSection;
+    });
     
-  setFilteredUsers(filtered);
-  }, [searchTerm, users]);
+    setFilteredUsers(filtered);
+  }, [searchTerm, sectionFilter, users]);
+
+  const getUniqueSections = () => {
+    const sections = users.map(user => user.section || "Not Assigned");
+    return ["", ...new Set(sections)].sort();
+  };
 
   const handleSelectUser = (id) => {
     setSelectedUsers((prevSelected) => 
@@ -123,35 +132,124 @@ const UsersTable = () => {
     }
   };
 
-  const fetchMoodLogs = async (userId) => {
-    setLoadingMoodLogs(prev => ({ ...prev, [userId]: true }));
+  const handleViewLogs = (userId) => {
+    navigate(`/admin/student-logs/${userId}`);
+  };
+
+  const handleDownloadStudentLogs = async (user) => {
     try {
       const token = localStorage.getItem("token");
-      const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/user/${userId}/moodlogs`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/user/${user.id}/moodlogs`, {
+        headers: { Authorization: `Bearer ${token}` },
       });
-      setMoodLogs(prev => ({ ...prev, [userId]: response.data }));
+
+      if (response.data && response.data.length > 0) {
+        generateStudentLogsPDF(user, response.data);
+      } else {
+        toast.info("No mood logs found for this student.");
+      }
     } catch (error) {
-      console.error("Error fetching mood logs:", error);
-      toast.error("Failed to load mood logs");
-    } finally {
-      setLoadingMoodLogs(prev => ({ ...prev, [userId]: false }));
+      console.error("Error downloading student logs:", error);
+      toast.error("Failed to download student logs");
     }
   };
 
-  const handleExpandClick = async (event, id) => {
-    event.stopPropagation();
+  const generateStudentLogsPDF = (user, logs) => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 20;
     
-    if (expandedRowId === id) {
-      setExpandedRowId(null);
+    // Professional Header with Date and Time
+    doc.setFontSize(18);
+    doc.setFont('helvetica', 'bold');
+    doc.text('MINDFUL MAP', pageWidth / 2, 25, { align: 'center' });
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Student Mood Logs Report', pageWidth / 2, 35, { align: 'center' });
+    
+    // Date and Time
+    const now = new Date();
+    const dateTime = `Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(dateTime, pageWidth - margin, 15, { align: 'right' });
+    
+    // Line separator
+    doc.setLineWidth(0.5);
+    doc.setDrawColor(0, 0, 0);
+    doc.line(margin, 45, pageWidth - margin, 45);
+    
+    // Professional Student Information Layout
+    const leftColX = margin;
+    const rightColX = pageWidth / 2 + 10;
+    const startY = 60;
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Student Information', leftColX, startY);
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    doc.text(`Name: ${user.name}`, leftColX, startY + 15);
+    doc.text(`Email: ${user.email}`, leftColX, startY + 25);
+    
+    doc.text(`Section: ${user.section || 'Not Assigned'}`, rightColX, startY + 15);
+    doc.text(`Total Logs: ${logs.length}`, rightColX, startY + 25);
+
+    if (logs.length === 0) {
+      doc.setFontSize(12);
+      doc.text('No mood logs found for this student.', margin, startY + 50);
     } else {
-      setExpandedRowId(id);
-      if (!moodLogs[id]) {
-        fetchMoodLogs(id);
-      }
+      // Table data with date and time
+      const tableData = logs.map(log => {
+        const logDate = new Date(log.date);
+        const dateTimeStr = `${logDate.toLocaleDateString()} ${logDate.toLocaleTimeString()}`;
+        return [
+          dateTimeStr,
+          log.category || 'N/A',
+          log.category === 'sleep' ? `${log.hrs} hours` : log.activity || 'N/A',
+          log.beforeValence || 'N/A',
+          log.beforeEmotion || 'N/A',
+          log.beforeIntensity || 'N/A',
+          log.afterValence || 'N/A',
+          log.afterEmotion || 'N/A',
+          log.afterIntensity || 'N/A'
+        ];
+      });
+
+      doc.autoTable({
+        head: [['Date & Time', 'Category', 'Activity', 'Before Valence', 'Before Emotion', 'Before Intensity', 'After Valence', 'After Emotion', 'After Intensity']],
+        body: tableData,
+        startY: startY + 40,
+        margin: { left: 10, right: 10 },
+        styles: { 
+          fontSize: 7,
+          cellPadding: 2
+        },
+        headStyles: { 
+          fillColor: [76, 175, 80],
+          textColor: 255,
+          fontSize: 8,
+          fontStyle: 'bold'
+        },
+        columnStyles: {
+          0: { cellWidth: 25 },
+          1: { cellWidth: 20 },
+          2: { cellWidth: 28 },
+          3: { cellWidth: 20 },
+          4: { cellWidth: 20 },
+          5: { cellWidth: 18 },
+          6: { cellWidth: 20 },
+          7: { cellWidth: 20 },
+          8: { cellWidth: 18 }
+        }
+      });
     }
+
+    // Save the PDF
+    doc.save(`${user.name.replace(/\s+/g, '_')}_mood_logs.pdf`);
+    toast.success('Student logs downloaded successfully!');
   };
 
   const exportPDF = () => {
@@ -208,29 +306,30 @@ const UsersTable = () => {
       doc.setDrawColor(100, 179, 138);  
       doc.line(35, lineY, pageWidth - 35, lineY);
       
+      // Date and Time
+      const now = new Date();
+      const dateTime = `Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'normal');
+      doc.text(dateTime, pageWidth - margin, lineY - 5, { align: 'right' });
+      
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text("Users Report", margin, lineY + 20);
       
-      let currentY = lineY + 30;
-    
-    // Process each user and their mood logs
-    filteredUsers.forEach((user, index) => {
-      if (currentY > doc.internal.pageSize.getHeight() - 30) {
-        doc.addPage();
-        currentY = 20;
-      }
-      
+      // Create users table data
+      const usersData = filteredUsers.map(user => [
+        user.name || "N/A",
+        user.email,
+        user.section || "Not Assigned",
+        user.status,
+        new Date(user.createdAt).toLocaleDateString(),
+      ]);
+
       doc.autoTable({
         head: [["Name", "Email", "Section", "Status", "Created At"]],
-        body: [[
-          user.name || "N/A",
-          user.email,
-          user.section || "Not Assigned",
-          user.status,
-          new Date(user.createdAt).toLocaleDateString(),
-        ]],
-        startY: currentY,
+        body: usersData,
+        startY: lineY + 30,
         margin: { left: margin, right: margin },
         styles: {
           fontSize: 9,
@@ -244,56 +343,6 @@ const UsersTable = () => {
         },
       });
       
-      currentY = doc.autoTable.previous.finalY + 5;
-      
-      const userMoodLogs = moodLogs[user.id] || [];
-      
-      if (userMoodLogs.length === 0) {
-        doc.setFontSize(8);
-        doc.setFont('helvetica', 'italic');
-        doc.text("No mood logs found for this user.", margin + 10, currentY);
-        currentY += 10;
-      } else {
-        const moodLogData = userMoodLogs.map(log => [
-          new Date(log.date).toLocaleDateString(),
-          log.mood,
-          Array.isArray(log.activities) ? log.activities.join(', ') : log.activities,
-          Array.isArray(log.social) ? log.social.join(', ') : log.social,
-          Array.isArray(log.health) ? log.health.join(', ') : log.health,
-          log.sleepQuality
-        ]);
-        
-        // Add mood logs table
-        doc.autoTable({
-          head: [["Date", "Mood", "Activities", "Social", "Health", "Sleep Quality"]],
-          body: moodLogData,
-          startY: currentY,
-          margin: { left: margin + 5, right: margin },
-          styles: {
-            fontSize: 8,
-            cellPadding: 2,
-            overflow: 'linebreak'
-          },
-          headStyles: {
-            fillColor: null,
-            textColor: [76, 175, 80],
-            fontSize: 8,
-            fontStyle: 'bold',
-          },
-          columnStyles: {
-            0: { cellWidth: 20 },  // Date
-            1: { cellWidth: 20 },  // Mood
-            2: { cellWidth: 35 },  // Activities
-            3: { cellWidth: 35 },  // Social
-            4: { cellWidth: 35 },  // Health
-            5: { cellWidth: 20 }   // Sleep Quality
-          }
-        });
-        
-        currentY = doc.autoTable.previous.finalY + 15;
-      }
-    });
-      
       doc.save("users_report.pdf");
     }).catch(error => {
       console.error('Error loading images:', error);
@@ -301,64 +350,7 @@ const UsersTable = () => {
   };
   
 
-  // Custom row rendering to add collapsible panel
-  function CustomRow(props) {
-    const { row } = props;
-    const isExpanded = expandedRowId === row.id;
-    const userMoodLogs = moodLogs[row.id] || [];
-    const isLoading = loadingMoodLogs[row.id] || false;
 
-    return (
-      <React.Fragment>
-        <TableRow {...props}>
-          {props.children}
-        </TableRow>
-        <TableRow>
-          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={8}>
-            <Collapse in={isExpanded} timeout="auto" unmountOnExit>
-              <Box sx={{ margin: 2, marginBottom: 4 }}>
-                <Typography variant="h6" gutterBottom component="div" sx={{ fontWeight: 'bold', color: '#1565C0' }}>
-                  Mood Logs
-                </Typography>
-                {isLoading ? (
-                  <Typography variant="body2" color="text.secondary">Loading mood logs...</Typography>
-                ) : userMoodLogs.length === 0 ? (
-                  <Typography variant="body2" color="text.secondary">No mood logs found for this user.</Typography>
-                ) : (
-                  <TableContainer component={Paper} sx={{ maxHeight: 300, overflowY: 'auto' }}>
-                    <Table size="small" aria-label="mood logs">
-                      <TableHead>
-                        <TableRow sx={{ bgcolor: '#E3F2FD' }}>
-                          <TableCell sx={{ fontWeight: 'bold', color: '#1565C0' }}>Date</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold', color: '#1565C0' }}>Mood</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold', color: '#1565C0' }}>Activities</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold', color: '#1565C0' }}>Social</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold', color: '#1565C0' }}>Health</TableCell>
-                          <TableCell sx={{ fontWeight: 'bold', color: '#1565C0' }}>Sleep Quality</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {userMoodLogs.map((log, index) => (
-                          <TableRow key={index} hover>
-                            <TableCell>{new Date(log.date).toLocaleDateString()}</TableCell>
-                            <TableCell>{log.mood}</TableCell>
-                            <TableCell>{Array.isArray(log.activities) ? log.activities.join(', ') : log.activities}</TableCell>
-                            <TableCell>{Array.isArray(log.social) ? log.social.join(', ') : log.social}</TableCell>
-                            <TableCell>{Array.isArray(log.health) ? log.health.join(', ') : log.health}</TableCell>
-                            <TableCell>{log.sleepQuality}</TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </Box>
-            </Collapse>
-          </TableCell>
-        </TableRow>
-      </React.Fragment>
-    );
-  }
 
   const columns = [
     {
@@ -524,11 +516,31 @@ const UsersTable = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 sx={{
-                  width: 280,
+                  width: 200,
                   bgcolor: "#F5F5F5",
                   borderRadius: 1,
                 }}
               />
+
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Section</InputLabel>
+                <Select
+                  value={sectionFilter}
+                  onChange={(e) => setSectionFilter(e.target.value)}
+                  label="Section"
+                  sx={{
+                    bgcolor: "#F5F5F5",
+                    borderRadius: 1,
+                  }}
+                >
+                  <MenuItem value="">All Sections</MenuItem>
+                  {getUniqueSections().slice(1).map((section) => (
+                    <MenuItem key={section} value={section}>
+                      {section}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
 
               <Button
                 variant="contained"
@@ -557,148 +569,113 @@ const UsersTable = () => {
               <TableHead>
                 <TableRow>
                   <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Select</TableCell>
-                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Details</TableCell>
                   <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Avatar</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Email</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Section</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Account Status</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Created At</TableCell>
-                  <TableCell width="100px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Actions</TableCell>
+                  <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Created At</TableCell>
+                  <TableCell width="180px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ fontSize: '0.875rem' }}>
+                    <TableCell colSpan={8} align="center" sx={{ fontSize: '0.875rem' }}>
                       <Typography sx={{ fontSize: '0.875rem' }}>Loading users...</Typography>
                     </TableCell>
                   </TableRow>
                 ) : filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center" sx={{ fontSize: '0.875rem' }}>
+                    <TableCell colSpan={8} align="center" sx={{ fontSize: '0.875rem' }}>
                       <Typography sx={{ fontSize: '0.875rem' }}>No users found</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredUsers.map(user => (
-                    <React.Fragment key={user.id}>
-                      <TableRow 
-                        hover 
-                        sx={{
-                          borderBottom: expandedRowId === user.id ? '0' : '1px solid #E0E0E0',
-                          '&:hover': { bgcolor: '#FAFAFA' }
-                        }}
-                      >
-                        <TableCell>
-                          <Checkbox
-                            checked={selectedUsers.includes(user.id)}
-                            onChange={() => handleSelectUser(user.id)}
-                            sx={{ color: '#4CAF50' }}
-                          />
-                        </TableCell>
-                        <TableCell>
+                    <TableRow 
+                      key={user.id}
+                      hover 
+                      sx={{ '&:hover': { bgcolor: '#FAFAFA' } }}
+                    >
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedUsers.includes(user.id)}
+                          onChange={() => handleSelectUser(user.id)}
+                          sx={{ color: '#4CAF50' }}
+                        />
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>
+                        <Avatar src={user.avatar} alt="User Avatar" />
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>{user.name}</TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>{user.email}</TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>
+                        <Typography
+                          sx={{
+                            bgcolor: user.section === "Not Assigned" ? '#FFF3E0' : '#E3F2FD',
+                            color: user.section === "Not Assigned" ? '#FF9800' : '#1976D2',
+                            px: 2,
+                            py: 0.5,
+                            borderRadius: 1,
+                            display: 'inline-block',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {user.section || 'Not Assigned'}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>
+                        <Typography
+                          sx={{
+                            bgcolor: user.status === "Active" ? '#E8F5E9' : '#FFEBEE',
+                            color: user.status === "Active" ? '#4CAF50' : '#F44336',
+                            px: 2,
+                            py: 0.5,
+                            borderRadius: 1,
+                            display: 'inline-block',
+                            fontSize: '0.875rem'
+                          }}
+                        >
+                          {user.status}
+                        </Typography>
+                      </TableCell>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>
+                        {user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "No Date Available"}
+                      </TableCell>
+                      <TableCell>
+                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                           <IconButton 
-                            onClick={(event) => handleExpandClick(event, user.id)}
-                            aria-label="expand row"
+                            onClick={() => handleViewLogs(user.id)}
+                            size="small"
+                            sx={{ color: "#1976D2" }}
+                            title="View Logs"
                           >
-                            {expandedRowId === user.id ? 
-                              <KeyboardArrowUpIcon /> : 
-                              <KeyboardArrowDownIcon />
-                            }
+                            <VisibilityIcon />
                           </IconButton>
-                        </TableCell>
-                        <TableCell sx={{ fontSize: '0.875rem' }}>
-                          <Avatar src={user.avatar} alt="User Avatar" />
-                        </TableCell>
-                        <TableCell sx={{ fontSize: '0.875rem' }}>{user.name}</TableCell>
-                        <TableCell sx={{ fontSize: '0.875rem' }}>{user.email}</TableCell>
-                        <TableCell sx={{ fontSize: '0.875rem' }}>
-                          <Typography
-                            sx={{
-                              bgcolor: user.section === "Not Assigned" ? '#FFF3E0' : '#E3F2FD',
-                              color: user.section === "Not Assigned" ? '#FF9800' : '#1976D2',
-                              px: 2,
-                              py: 0.5,
-                              borderRadius: 1,
-                              display: 'inline-block',
-                              fontSize: '0.875rem'
-                            }}
+                          <IconButton 
+                            onClick={() => handleDownloadStudentLogs(user)}
+                            size="small"
+                            sx={{ color: "#4CAF50" }}
+                            title="Download Logs"
                           >
-                            {user.section || 'Not Assigned'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ fontSize: '0.875rem' }}>
-                          <Typography
-                            sx={{
-                              bgcolor: user.status === "Active" ? '#E8F5E9' : '#FFEBEE',
-                              color: user.status === "Active" ? '#4CAF50' : '#F44336',
-                              px: 2,
-                              py: 0.5,
-                              borderRadius: 1,
-                              display: 'inline-block',
-                              fontSize: '0.875rem'
-                            }}
-                          >
-                            {user.status}
-                          </Typography>
-                        </TableCell>
-                        <TableCell sx={{ fontSize: '0.875rem' }}>
-                          {user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "No Date Available"}
-                        </TableCell>
-                        <TableCell>
-                          {user.isDeactivated || user.pendingDeactivation || user.status === 'Active' ? (
-                            <IconButton disabled>
+                            <DownloadIcon />
+                          </IconButton>
+                          {user.isDeactivated || user.pendingDeactivation ? (
+                            <IconButton disabled size="small">
                               <DeleteIcon sx={{ color: "#9E9E9E" }} />
                             </IconButton>
                           ) : (
-                            <IconButton onClick={() => handleAction(user.id, "softDelete", user.deactivatedAt)}>
+                            <IconButton 
+                              onClick={() => handleAction(user.id, "softDelete", user.deactivatedAt)}
+                              size="small"
+                            >
                               <DeleteIcon sx={{ color: "#F44336" }} />
                             </IconButton>
                           )}
-                        </TableCell>
-                      </TableRow>
-                      <TableRow>
-                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
-                          <Collapse in={expandedRowId === user.id} timeout="auto" unmountOnExit>
-                            <Box sx={{ margin: 2, marginBottom: 4 }}>
-                              {loadingMoodLogs[user.id] ? (
-                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>Loading mood logs...</Typography>
-                              ) : moodLogs[user.id]?.length === 0 ? (
-                                <Typography variant="body2" color="text.secondary" sx={{ fontSize: '0.875rem' }}>No mood logs found for this user.</Typography>
-                              ) : (
-                                <TableContainer component={Paper} sx={{ maxHeight: 300, overflowY: 'auto', boxShadow: 'none' }}>
-                                  <Table size="small" aria-label="mood logs">
-                                    <TableHead>
-                                      <TableRow>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Date</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Mood</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Activities</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Social</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Health</TableCell>
-                                        <TableCell sx={{ fontWeight: 'bold', color: '#6ab394', fontSize: '0.875rem' }}>Sleep Quality</TableCell>
-                                      </TableRow>
-                                    </TableHead>
-                                    <TableBody>
-                                      {moodLogs[user.id]?.map((log, index) => (
-                                        <TableRow key={index} hover>
-                                          <TableCell sx={{ fontSize: '0.875rem' }}>{new Date(log.date).toLocaleDateString()}</TableCell>
-                                          <TableCell sx={{ fontSize: '0.875rem' }}>{log.mood}</TableCell>
-                                          <TableCell sx={{ fontSize: '0.875rem' }}>{Array.isArray(log.activities) ? log.activities.join(', ') : log.activities}</TableCell>
-                                          <TableCell sx={{ fontSize: '0.875rem' }}>{Array.isArray(log.social) ? log.social.join(', ') : log.social}</TableCell>
-                                          <TableCell sx={{ fontSize: '0.875rem' }}>{Array.isArray(log.health) ? log.health.join(', ') : log.health}</TableCell>
-                                          <TableCell sx={{ fontSize: '0.875rem' }}>{log.sleepQuality}</TableCell>
-                                        </TableRow>
-                                      ))}
-                                    </TableBody>
-                                  </Table>
-                                </TableContainer>
-                              )}
-                            </Box>
-                          </Collapse>
-                        </TableCell>
-                      </TableRow>
-                    </React.Fragment>
+                        </Box>
+                      </TableCell>
+                    </TableRow>
                   ))
                 )}
               </TableBody>

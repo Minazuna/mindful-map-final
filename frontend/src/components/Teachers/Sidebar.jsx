@@ -51,7 +51,7 @@ const Sidebar = ({ teacher }) => {
         </div>
 
         {/* Teacher Profile */}
-        {teacher && (
+        {teacher && !isCollapsed && (
           <div className="px-6 pb-6 pt-2">
             <div className="flex items-center space-x-3">
               <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/30">
@@ -67,14 +67,12 @@ const Sidebar = ({ teacher }) => {
                   </div>
                 )}
               </div>
-              {!isCollapsed && (
-                <div className="flex-1 min-w-0">
-                  <p className="text-base font-bold text-white truncate">
-                    {teacher.firstName} {teacher.lastName}
-                  </p>
-                  <p className="text-xs text-white/80 truncate">{teacher.email}</p>
-                </div>
-              )}
+              <div className="flex-1 min-w-0">
+                <p className="text-base font-bold text-white truncate">
+                  {teacher.firstName} {teacher.lastName}
+                </p>
+                <p className="text-xs text-white/80 truncate">{teacher.email}</p>
+              </div>
             </div>
           </div>
         )}
@@ -153,7 +151,7 @@ const Sidebar = ({ teacher }) => {
             <div className="ml-4 space-y-1 border-l-2 border-gray-200 pl-4">
               {allSections.map((section, index) => {
                 const isAssigned = teacher?.assignedSections?.includes(section);
-                const sectionPath = `/teacher/student-logs/section/${encodeURIComponent(section)}`;
+                const sectionPath = `/teacher/section/${encodeURIComponent(section)}`;
                 
                 return isAssigned ? (
                   <a

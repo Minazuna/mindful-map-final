@@ -226,7 +226,7 @@ exports.getUserMoodLogs = async (req, res) => {
     // Find mood logs for the specified user
     const moodLogs = await MoodLog.find({ user: userId })
       .sort({ date: -1 }) // Sort by date, newest first
-      .select('date mood activities social health sleepQuality');
+      .select('date category activity hrs beforeValence beforeEmotion beforeIntensity beforeReason afterValence afterEmotion afterIntensity afterReason');
     
     res.json(moodLogs);
   } catch (error) {

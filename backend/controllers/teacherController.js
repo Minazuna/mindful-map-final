@@ -198,6 +198,113 @@ exports.getMoodLogsBySection = async (req, res) => {
   }
 };
 
+// Get students in a specific section with mood log counts
+exports.getSectionStudents = async (req, res) => {
+  try {
+    const { section } = req.params;
+    const teacher = await User.findById(req.user._id);
+    
+    if (!teacher || teacher.role !== 'teacher') {
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    }
+
+    // Verify teacher has access to this section
+    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    }
+
+    // Get students in the specified section
+    const students = await User.find({ 
+      section: section,
+      role: 'user' 
+    }).select('firstName lastName email avatar section');
+
+    // Get mood log counts for each student by category
+    const studentsWithLogs = await Promise.all(students.map(async (student) => {
+      const moodLogCounts = await MoodLog.aggregate([
+        { $match: { user: student._id } },
+        { $group: { 
+          _id: '$category', 
+          count: { $sum: 1 } 
+        }}
+      ]);
+
+      // Convert array to object for easier access
+      const counts = {};
+      moodLogCounts.forEach(item => {
+        counts[item._id] = item.count;
+      });
+
+      return {
+        ...student.toObject(),
+        name: `${student.firstName} ${student.lastName}`,
+        moodLogCounts: counts
+      };
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: studentsWithLogs,
+      section: section
+    });
+  } catch (error) {
+    console.error('Error fetching section students:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Get mood logs for a specific student
+exports.getStudentMoodLogsById = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const teacher = await User.findById(req.user._id);
+    
+    if (!teacher || teacher.role !== 'teacher') {
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    }
+
+    // Get the student and verify they're in teacher's section
+    const student = await User.findById(studentId).select('firstName lastName email section');
+    
+    if (!student) {
+      return res.status(404).json({ success: false, message: 'Student not found.' });
+    }
+
+    // Verify teacher has access to this student's section
+    if (!teacher.assignedSections || !teacher.assignedSections.includes(student.section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this student.' });
+    }
+
+    // Get mood logs for this student
+    const moodLogs = await MoodLog.find({ 
+      user: studentId 
+    })
+    .sort({ date: -1 });
+
+    // Add student info to each mood log for easier display
+    const enrichedMoodLogs = moodLogs.map(log => ({
+      ...log.toObject(),
+      studentName: `${student.firstName} ${student.lastName}`,
+      studentEmail: student.email,
+      studentSection: student.section
+    }));
+
+    res.status(200).json({
+      success: true,
+      data: enrichedMoodLogs,
+      student: {
+        name: `${student.firstName} ${student.lastName}`,
+        email: student.email,
+        section: student.section
+      },
+      totalLogs: enrichedMoodLogs.length
+    });
+  } catch (error) {
+    console.error('Error fetching student mood logs by ID:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 // Get dashboard statistics for teacher
 exports.getTeacherDashboardStats = async (req, res) => {
   try {

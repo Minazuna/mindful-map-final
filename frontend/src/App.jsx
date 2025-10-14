@@ -40,10 +40,12 @@ import InactiveUsers from './components/Admin/InactiveUsers';
 import PromptsTable from './components/Admin/PromptsTable';
 import StatisticsTable from './components/Admin/StatisticsTable';
 import TeachersTable from './components/Admin/TeachersTable';
+import AdminStudentLogs from './components/Admin/StudentLogs';
 
 // Teacher Components
 import TeacherDashboard from './components/Teachers/Dashboard';
 import StudentLogs from './components/Teachers/StudentLogs';
+import SectionStudents from './components/Teachers/SectionStudents';
 import TeacherEditProfile from './components/Teachers/EditProfile';
 
 //Student's Inputs 
@@ -604,6 +606,14 @@ const App = () => {
             </AdminPrivateRoute>
           }
         />
+        <Route
+          path="/admin/student-logs/:userId"
+          element={
+            <AdminPrivateRoute>
+              <AdminStudentLogs />
+            </AdminPrivateRoute>
+          }
+        />
 
         {/* Teacher Routes */}
         <Route
@@ -624,6 +634,22 @@ const App = () => {
         />
         <Route
           path="/teacher/student-logs/section/:section"
+          element={
+            <TeacherPrivateRoute>
+              <StudentLogs />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/section/:section"
+          element={
+            <TeacherPrivateRoute>
+              <SectionStudents />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/student-logs/:section"
           element={
             <TeacherPrivateRoute>
               <StudentLogs />

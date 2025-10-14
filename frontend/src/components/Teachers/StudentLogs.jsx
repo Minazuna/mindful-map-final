@@ -24,7 +24,7 @@ const StudentLogs = () => {
 
   useEffect(() => {
     filterLogs();
-  }, [moodLogs, searchTerm, categoryFilter, emotionFilter]);
+  }, [moodLogs, categoryFilter, emotionFilter]);
 
   const fetchTeacherProfile = async () => {
     try {
@@ -47,12 +47,21 @@ const StudentLogs = () => {
       const token = localStorage.getItem('token');
       let url = `${import.meta.env.VITE_NODE_API}/api/teacher/student-mood-logs`;
       
-      // If section parameter exists, fetch logs for specific section
+      // If section parameter exists, determine if it's a section name or student ID
       if (section && section !== 'section') {
-        // Decode the section parameter
-        const decodedSection = decodeURIComponent(section);
-        url = `${import.meta.env.VITE_NODE_API}/api/teacher/mood-logs/${encodeURIComponent(decodedSection)}`;
-        setCurrentSection(decodedSection);
+        // Check if it's a valid MongoDB ObjectId (24 hex chars) - then it's a student ID
+        const isStudentId = /^[a-f\d]{24}$/i.test(section);
+        
+        if (isStudentId) {
+          // Fetch logs for specific student
+          url = `${import.meta.env.VITE_NODE_API}/api/teacher/student-mood-logs/${section}`;
+          setCurrentSection(null);
+        } else {
+          // Decode the section parameter and fetch logs for section
+          const decodedSection = decodeURIComponent(section);
+          url = `${import.meta.env.VITE_NODE_API}/api/teacher/mood-logs/${encodeURIComponent(decodedSection)}`;
+          setCurrentSection(decodedSection);
+        }
       } else {
         setCurrentSection(null);
       }
@@ -76,14 +85,6 @@ const StudentLogs = () => {
 
   const filterLogs = () => {
     let filtered = moodLogs;
-
-    // Search filter
-    if (searchTerm) {
-      filtered = filtered.filter(log =>
-        log.studentName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        log.studentEmail.toLowerCase().includes(searchTerm.toLowerCase())
-      );
-    }
 
     // Category filter
     if (categoryFilter !== 'all') {
@@ -158,17 +159,11 @@ const StudentLogs = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-800 mb-2">Student Mood Logs</h1>
-          {teacher && (
+          {teacher && currentSection && (
             <div>
-              {currentSection ? (
-                <p className="text-lg text-gray-600">
-                  Section: <span className="font-semibold text-blue-600">{currentSection}</span>
-                </p>
-              ) : (
-                <p className="text-lg text-gray-600">
-                  All Assigned Sections: <span className="font-semibold text-blue-600">{teacher.assignedSections?.join(', ')}</span>
-                </p>
-              )}
+              <p className="text-lg text-gray-600">
+                Section: <span className="font-semibold text-blue-600">{currentSection}</span>
+              </p>
             </div>
           )}
           <p className="text-sm text-gray-500 mt-1">
@@ -176,23 +171,27 @@ const StudentLogs = () => {
           </p>
         </div>
 
+        {/* Legend */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
+          <div className="flex items-center justify-center space-x-8">
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-2 bg-green-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">Positive Valence</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-2 bg-red-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">Negative Valence</span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <div className="w-4 h-2 bg-gray-400 rounded-full"></div>
+              <span className="text-sm text-gray-600">No Data</span>
+            </div>
+          </div>
+        </div>
+
         {/* Filters */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {/* Search */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Search Student
-              </label>
-              <input
-                type="text"
-                placeholder="Name or email..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Category Filter */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -232,7 +231,6 @@ const StudentLogs = () => {
             <div className="flex items-end">
               <button
                 onClick={() => {
-                  setSearchTerm('');
                   setCategoryFilter('all');
                   setEmotionFilter('all');
                 }}
@@ -266,10 +264,13 @@ const StudentLogs = () => {
                     Before Emotion
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Before Intensity
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     After Emotion
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                    Intensity
+                    After Intensity
                   </th>
                 </tr>
               </thead>
@@ -303,10 +304,25 @@ const StudentLogs = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {log.beforeEmotion ? (
                         <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getEmotionColor(log.beforeEmotion, log.beforeValence)}`}>
-                          {log.beforeEmotion} ({log.beforeIntensity}/5)
+                          {log.beforeEmotion}
                         </span>
                       ) : (
                         <span className="text-gray-400 text-sm">Can't remember</span>
+                      )}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                      {log.beforeEmotion && log.beforeIntensity ? (
+                        <div className="flex items-center">
+                          <div className="w-full bg-gray-200 rounded-full h-2 mr-2">
+                            <div 
+                              className={`h-2 rounded-full ${log.beforeValence === 'positive' ? 'bg-green-400' : 'bg-red-400'}`}
+                              style={{ width: `${(log.beforeIntensity / 5) * 100}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-xs">{log.beforeIntensity}/5</span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">N/A</span>
                       )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">

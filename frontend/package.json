@@ -16,6 +16,7 @@
     "@mui/icons-material": "^6.4.3",
     "@mui/material": "^6.4.3",
     "@mui/x-data-grid": "^7.25.0",
+    "@mui/x-date-pickers": "^8.14.0",
     "@react-pdf/renderer": "^4.2.1",
     "@react-spring/web": "^9.7.5",
     "axios": "^1.7.9",
