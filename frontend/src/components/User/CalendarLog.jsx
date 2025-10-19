@@ -448,9 +448,9 @@ const CalendarLog = () => {
       const formattedDay = day.toString().padStart(2, '0');
       const formattedDate = `${currentYear}-${formattedMonth}-${formattedDay}`;
       
-      // Always navigate to time segment selector for any clickable day (including today)
-      // This ensures proper date handling for all cases
-      navigate(`/time-segment?date=${formattedDate}`);
+      // Navigate to category selection first, then time segment if needed
+      // This ensures proper flow: Calendar → Choose Category → Time Segment (if needed)
+      navigate(`/choose-category?date=${formattedDate}`);
     }
   };
 

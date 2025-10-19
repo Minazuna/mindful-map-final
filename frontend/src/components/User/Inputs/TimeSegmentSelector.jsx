@@ -96,12 +96,33 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
       selectedTime: finalTime.toISOString() // Store as ISO string for backend
     }));
 
-    // Navigate to choose category with date parameter
-    navigate(`/choose-category?date=${selectedDate}`);
+    // Navigate directly to the appropriate activity page based on selected category
+    // This creates cleaner browser history for back navigation
+    const categoryPaths = {
+      'activity': '/overall-activities',
+      'social': '/social-interactions', 
+      'health': '/health-activities',
+      'sleep': '/sleep-hours'
+    };
+    
+    const selectedCategory = categoryFormData.category;
+    console.log('TimeSegmentSelector - Selected category:', selectedCategory);
+    console.log('TimeSegmentSelector - Available paths:', categoryPaths);
+    
+    const targetPath = categoryPaths[selectedCategory];
+    
+    if (targetPath) {
+      console.log('TimeSegmentSelector - Navigating to:', targetPath);
+      navigate(targetPath);
+    } else {
+      console.log('TimeSegmentSelector - No category set, going to choose category');
+      // Fallback to choose category if no category is set
+      navigate(`/choose-category?date=${selectedDate}`);
+    }
   };
 
   const handleBack = () => {
-    navigate('/mood-entries');
+    navigate(-1);
   };
 
   // Validate custom time format
