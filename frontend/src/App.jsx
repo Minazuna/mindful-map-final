@@ -41,6 +41,7 @@ import PromptsTable from './components/Admin/PromptsTable';
 import StatisticsTable from './components/Admin/StatisticsTable';
 import TeachersTable from './components/Admin/TeachersTable';
 import AdminStudentLogs from './components/Admin/StudentLogs';
+import MoodPredictionComparison from './components/Admin/MoodPredictionComparison';
 
 // Teacher Components
 import TeacherDashboard from './components/Teachers/Dashboard';
@@ -603,6 +604,14 @@ const App = () => {
           element={
             <AdminPrivateRoute>
               <TeachersTable />
+            </AdminPrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/mood-predictions"
+          element={
+            <AdminPrivateRoute>
+              <MoodPredictionComparison />
             </AdminPrivateRoute>
           }
         />

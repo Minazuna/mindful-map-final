@@ -40,4 +40,9 @@ router.put('/teachers/:teacherId', authMiddleware, adminMiddleware, adminControl
 router.delete('/teachers/:teacherId', authMiddleware, adminMiddleware, adminController.deleteTeacher);
 router.get('/teacher-stats', authMiddleware, adminMiddleware, adminController.getTeacherStats);
 
+// Mood Prediction Comparison Routes
+router.post('/calculate-predictions', authMiddleware, adminMiddleware, adminController.calculateWeeklyPredictions);
+router.get('/prediction-comparisons', authMiddleware, adminMiddleware, adminController.getPredictionComparisons);
+router.post('/update-actual-moods', authMiddleware, adminMiddleware, adminController.updateActualMoods);
+
 module.exports = router;

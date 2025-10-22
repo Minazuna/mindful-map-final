@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { Home, Users, School, MessageSquare, BarChart3, UserX, LogOut, Menu, X } from 'lucide-react';
+import { Home, Users, School, MessageSquare, BarChart3, UserX, LogOut, Menu, X, TrendingUp } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
@@ -14,6 +14,7 @@ const Navbar = () => {
     { icon: School, label: 'Teachers', path: '/admin/teachers' },
     { icon: MessageSquare, label: 'Forum', path: '/admin/prompts' },
     { icon: BarChart3, label: 'Statistics', path: '/admin/statistics' },
+    { icon: TrendingUp, label: 'Mood Predictions', path: '/admin/mood-predictions' },
     { icon: UserX, label: 'Inactive Users', path: '/admin/inactive' },
   ];
 
