@@ -50,9 +50,10 @@ const Statistics = () => {
   const [moodCounts, setMoodCounts] = useState({});
   const [beforeMoodCounts, setBeforeMoodCounts] = useState({});
   const [afterMoodCounts, setAfterMoodCounts] = useState({});
-  const [sleepQualityData, setSleepQualityData] = useState([]);
+  const [sleepHoursData, setSleepHoursData] = useState([]);
+  const [sleepAnalytics, setSleepAnalytics] = useState(null);
   const [moodPeriod, setMoodPeriod] = useState('monthly');
-  const [sleepPeriod, setSleepPeriod] = useState('monthly');
+  const [sleepPeriod, setSleepPeriod] = useState('weekly');
   const [moodType, setMoodType] = useState('after'); // 'before' or 'after'
   const [generatingPDF, setGeneratingPDF] = useState(false);
   const moodChartRef = useRef(null);
@@ -128,68 +129,32 @@ const Statistics = () => {
   }, [moodPeriod, moodType]);
 
   useEffect(() => {
-    const fetchSleepData = async () => {
+    const fetchSleepHoursData = async () => {
       try {
         const token = localStorage.getItem('token');
         if (!token) {
           throw new Error('No token found');
         }
 
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log`, {
-          headers: {
-            Authorization: `Bearer ${token}`
+        const response = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/statistics/sleep-hours?period=${sleepPeriod}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
           }
-        });
+        );
 
-        const data = response.data;
-
-        // Calculate sleep quality based on the selected period
-        let startOfPeriod, endOfPeriod;
-        if (sleepPeriod === 'weekly') {
-          startOfPeriod = moment().startOf('isoWeek');
-          endOfPeriod = moment().endOf('isoWeek');
-        } else if (sleepPeriod === 'daily') {
-          startOfPeriod = moment().startOf('day');
-          endOfPeriod = moment().endOf('day');
-        } else {
-          startOfPeriod = moment().startOf('month');
-          endOfPeriod = moment().endOf('month');
-        }
-
-        const periodLogs = data.filter(log => {
-          const logDate = moment(log.date);
-          return logDate.isBetween(startOfPeriod, endOfPeriod, null, '[]');
-        });
-
-        const sleepQualityMap = {};
-
-        periodLogs.forEach(log => {
-          const { sleepQuality } = log;
-          if (!sleepQualityMap[log.date]) {
-            sleepQualityMap[log.date] = [];
-          }
-          sleepQualityMap[log.date].push(sleepQuality);
-        });
-
-        const sleepQualityNumeric = {
-          'No Sleep': 1,
-          'Poor Sleep': 2,
-          'Medium Sleep': 3,
-          'Good Sleep': 4
-        };
-
-        const sleepQualityData = Object.keys(sleepQualityMap).map(date => {
-          const avgSleepQuality = sleepQualityMap[date].reduce((acc, quality) => acc + sleepQualityNumeric[quality], 0) / sleepQualityMap[date].length;
-          return { date, avgSleepQuality };
-        });
-
-        setSleepQualityData(sleepQualityData);
+        setSleepHoursData(response.data.sleepHoursData);
+        setSleepAnalytics(response.data.analytics);
       } catch (error) {
-        console.error('Error fetching sleep data:', error);
+        console.error('Error fetching sleep hours data:', error);
+        setSleepHoursData([]);
+        setSleepAnalytics(null);
       }
     };
 
-    fetchSleepData();
+    fetchSleepHoursData();
   }, [sleepPeriod]);
 
   // Updated emotion colors with appropriate mood-based colors
@@ -245,7 +210,18 @@ const Statistics = () => {
     return text.replace(/[-_]/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
   };
 
-    const chartOptions = {
+  // Handle mood click to navigate to MoodStatistics
+  const handleMoodClick = (emotion) => {
+    navigate('/mood-statistics', { 
+      state: { 
+        emotion: emotion.toLowerCase(),
+        moodType: moodType,
+        period: moodPeriod 
+      }
+    });
+  };
+
+  const chartOptions = {
     cutout: '60%',
     plugins: {
       legend: {
@@ -284,25 +260,34 @@ const Statistics = () => {
     }
   };
 
-  const sleepQualityChartData = {
-    labels: sleepQualityData.map(data => moment(data.date).format('MMM D')),
+  const sleepHoursChartData = {
+    labels: sleepHoursData.map(data => 
+      sleepPeriod === 'weekly' 
+        ? moment(data.date).format('ddd') 
+        : moment(data.date).format('MMM D')
+    ),
     datasets: [
       {
-        data: sleepQualityData.map(data => data.avgSleepQuality),
-        borderColor: '#FFFFFF',
-        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+        label: 'Hours of Sleep',
+        data: sleepHoursData.map(data => data.hours),
+        borderColor: '#55AD9B',  // Updated to your brand color
+        backgroundColor: 'rgba(149, 210, 179, 0.2)',  // Updated with #95D2B3 with transparency
         fill: true,
         tension: 0.4,
-        pointBackgroundColor: '#FFFFFF',
-        pointBorderColor: '#55AD9B',
+        pointBackgroundColor: '#55AD9B',  // Updated to your brand color
+        pointBorderColor: '#ffffff',  // White border for contrast
         pointBorderWidth: 3,
-        pointRadius: 6,
-        pointHoverRadius: 8
+        pointRadius: 8,
+        pointHoverRadius: 12,
+        pointHoverBackgroundColor: '#95D2B3',  // Updated to lighter brand color on hover
+        pointHoverBorderColor: '#ffffff',
+        pointHoverBorderWidth: 3,
+        borderWidth: 4,
       }
     ]
   };
 
-  const sleepQualityChartOptions = {
+  const sleepHoursChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -310,33 +295,49 @@ const Statistics = () => {
         display: false
       },
       tooltip: {
-        backgroundColor: 'rgba(255, 255, 255, 0.95)',
-        titleColor: '#333',
-        bodyColor: '#333',
-        borderColor: '#55AD9B',
-        borderWidth: 1,
+        backgroundColor: 'rgba(149, 210, 179, 0.95)',  // Updated with #95D2B3
+        titleColor: '#ffffff',  // White text for better contrast
+        bodyColor: '#ffffff',   // White text for better contrast
+        borderColor: '#55AD9B',  // Updated border color
+        borderWidth: 2,
         cornerRadius: 12,
-        displayColors: false
+        displayColors: false,
+        titleFont: { size: 14, weight: 'bold' },
+        bodyFont: { size: 13 },
+        callbacks: {
+          title: (context) => {
+            return sleepPeriod === 'weekly' 
+              ? moment(sleepHoursData[context[0].dataIndex].date).format('dddd')
+              : moment(sleepHoursData[context[0].dataIndex].date).format('MMMM D, YYYY');
+          },
+          label: (context) => {
+            return `Sleep: ${context.raw} hours`;
+          }
+        }
       }
     },
     scales: {
       y: {
         beginAtZero: true,
-        max: 5,
+        max: 12,
         ticks: {
-          stepSize: 1,
+          stepSize: 2,
           callback: function (value) {
-            const sleepQualityLabels = ['', 'No Sleep', 'Poor Sleep', 'Medium Sleep', 'Good Sleep', ''];
-            return sleepQualityLabels[value];
+            return value + 'h';
           },
           font: {
             family: "'Inter', sans-serif",
-            size: 12
+            size: 12,
+            weight: '500'
           },
-          color: '#FFFFFF'
+          color: '#55AD9B'  // Updated to your brand color
         },
         grid: {
-          color: 'rgba(255, 255, 255, 0.1)'
+          color: 'rgba(149, 210, 179, 0.3)',  // Updated with #95D2B3 with transparency
+          lineWidth: 1
+        },
+        border: {
+          display: false
         }
       },
       x: {
@@ -344,15 +345,22 @@ const Statistics = () => {
           display: false
         },
         ticks: {
-          maxRotation: 45,
-          minRotation: 45,
+          maxRotation: 0,
           font: {
             family: "'Inter', sans-serif",
-            size: 11
+            size: 11,
+            weight: '500'
           },
-          color: '#FFFFFF'
+          color: '#55AD9B'  // Updated to your brand color
+        },
+        border: {
+          display: false
         }
       }
+    },
+    interaction: {
+      intersect: false,
+      mode: 'index'
     }
   };
 
@@ -797,7 +805,7 @@ const Statistics = () => {
                 )}
               </div>
 
-              {/* Centered Mood Legend with Color Coding - Always centered regardless of count */}
+              {/* Centered Mood Legend with Color Coding - Now Clickable */}
               <div className="w-full flex justify-center mt-6">
                 <div className="flex flex-wrap justify-center gap-4 max-w-5xl">
                   {sortedMoods.map((emotion, index) => (
@@ -806,15 +814,17 @@ const Statistics = () => {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.3 + index * 0.1 }}
-                      className="flex flex-col items-center p-5 rounded-2xl border-2 hover:shadow-md transition-all duration-200 transform hover:scale-105"
+                      className="flex flex-col items-center p-5 rounded-2xl border-2 hover:shadow-md transition-all duration-200 transform hover:scale-105 cursor-pointer"
                       style={{ 
                         backgroundColor: moodBackgroundColors[emotion.toLowerCase()] || '#F5F5F5',
                         borderColor: emotionColors[emotion.toLowerCase()] || '#95A5A6',
-                        minWidth: '140px', // Ensures consistent card width
-                        width: '140px'     // Fixed width for uniformity
+                        minWidth: '140px',
+                        width: '140px'
                       }}
+                      onClick={() => handleMoodClick(emotion)}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                     >
-                      {/* Removed the smaller emoji container - emoji is now directly in the main container */}
                       <div className="text-4xl mb-3">
                         {emotionEmojis[emotion.toLowerCase()] || '😐'}
                       </div>
@@ -824,11 +834,11 @@ const Statistics = () => {
                       <p className="font-bold text-lg mt-1" style={{ color: emotionColors[emotion.toLowerCase()] || '#95A5A6' }}>
                         {currentMoodCounts[emotion]}
                       </p>
+                      <p className="text-xs text-gray-500 mt-2 text-center">Click for details</p>
                     </motion.div>
                   ))}
                 </div>
               </div>
-
 
               {/* Summary Stats */}
               {Object.keys(currentMoodCounts).length > 0 && (
@@ -857,42 +867,34 @@ const Statistics = () => {
           </div>
         </motion.div>
 
-        {/* Enhanced Sleep Quality Card */}
+        {/* Enhanced Sleep Hours Card */}
         <motion.div
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="bg-white/90 backdrop-blur-sm rounded-3xl shadow-sm border border-white/20 overflow-hidden mb-20"
+          className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden mb-20"
         >
           <div className="p-8">
+            {/* Header Section */}
             <div className="flex items-center justify-between mb-6">
               <div className="flex items-center space-x-3">
-                <div className="p-3 rounded-2xl bg-white/20">
-                  <BedtimeIcon style={{ color: '#FFFFFF', fontSize: 28 }} />
+                <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
+                  <BedtimeIcon style={{ color: '#55AD9B', fontSize: 28 }} />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white">Sleep Quality</h2>
-                  <p className="text-white/80">Monitor your sleep patterns over time</p>
+                  <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>Sleep Analysis</h2>
+                  <p className="text-gray-600">Track your sleep hours and patterns</p>
                 </div>
               </div>
               
-              <div className="flex items-center bg-white/10 px-4 py-2 rounded-2xl border border-white/20">
-                <button
-                  onClick={() => setSleepPeriod('daily')}
-                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
-                    sleepPeriod === 'daily' 
-                      ? 'bg-white text-gray-800 shadow-sm' 
-                      : 'text-white/80 hover:text-white'
-                  }`}
-                >
-                  Daily
-                </button>
+              {/* Period Toggle - Same design as mood analysis */}
+              <div className="flex items-center bg-gray-50 px-4 py-2 rounded-2xl border border-gray-200">
                 <button
                   onClick={() => setSleepPeriod('weekly')}
                   className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
                     sleepPeriod === 'weekly' 
                       ? 'bg-white text-gray-800 shadow-sm' 
-                      : 'text-white/80 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   Weekly
@@ -902,7 +904,7 @@ const Statistics = () => {
                   className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
                     sleepPeriod === 'monthly' 
                       ? 'bg-white text-gray-800 shadow-sm' 
-                      : 'text-white/80 hover:text-white'
+                      : 'text-gray-600 hover:text-gray-800'
                   }`}
                 >
                   Monthly
@@ -910,41 +912,230 @@ const Statistics = () => {
               </div>
             </div>
 
-            <div 
-              ref={sleepChartRef} 
-              className="mt-8"
-            >
-              <div className="h-80 w-full rounded-2xl overflow-hidden bg-white/10 backdrop-blur-sm">
-                {sleepQualityData.length > 0 ? (
-                  <Line data={sleepQualityChartData} options={sleepQualityChartOptions} />
-                ) : (
-                  <div className="h-full flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="text-4xl mb-4 opacity-50">😴</div>
-                      <p className="text-white/70 italic">No sleep data available</p>
+            <div ref={sleepChartRef} className="space-y-8">
+              {/* Sleep Statistics Cards - Improved Layout */}
+              {sleepAnalytics && (
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.4 }}
+                    className="bg-gradient-to-br from-blue-50 to-blue-100 border-2 border-blue-200 rounded-2xl p-6 text-center hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="w-16 h-16 mx-auto mb-4 bg-blue-200 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">⏰</span>
+                    </div>
+                    <div className="text-3xl font-bold text-blue-800 mb-2">
+                      {sleepAnalytics.averageHours}h
+                    </div>
+                    <div className="text-sm font-medium text-blue-600">Average Sleep</div>
+                    <div className="text-xs text-blue-500 mt-1">
+                      {sleepPeriod === 'weekly' ? 'This Week' : 'This Month'}
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.5 }}
+                    className="bg-gradient-to-br from-green-50 to-green-100 border-2 border-green-200 rounded-2xl p-6 text-center hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="w-16 h-16 mx-auto mb-4 bg-green-200 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">🌟</span>
+                    </div>
+                    <div className="text-lg font-bold text-green-800 mb-2">
+                      {sleepAnalytics.bestDay}
+                    </div>
+                    <div className="text-sm font-medium text-green-600">Best Sleep Day</div>
+                    <div className="text-xs text-green-500 mt-1">
+                      {sleepAnalytics.bestDayHours}h of sleep
+                    </div>
+                  </motion.div>
+                  
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.6 }}
+                    className="bg-gradient-to-br from-orange-50 to-orange-100 border-2 border-orange-200 rounded-2xl p-6 text-center hover:shadow-md transition-all duration-200"
+                  >
+                    <div className="w-16 h-16 mx-auto mb-4 bg-orange-200 rounded-full flex items-center justify-center">
+                      <span className="text-2xl">⚠️</span>
+                    </div>
+                    <div className="text-lg font-bold text-orange-800 mb-2">
+                      {sleepAnalytics.worstDay}
+                    </div>
+                    <div className="text-sm font-medium text-orange-600">Least Sleep Day</div>
+                    <div className="text-xs text-orange-500 mt-1">
+                      {sleepAnalytics.worstDayHours}h of sleep
+                    </div>
+                  </motion.div>
+                </div>
+              )}
+
+              {/* Sleep Hours Chart - Improved Container */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 rounded-2xl p-6 border-2 border-purple-200"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                    <span className="mr-2">📈</span>
+                    Sleep Hours Trend
+                  </h3>
+                  <div className="text-sm text-gray-600">
+                    {sleepPeriod === 'weekly' ? 'Past 7 Days' : 'This Month'}
+                  </div>
+                </div>
+                
+                <div className="h-80 w-full rounded-xl overflow-hidden bg-white/70 backdrop-blur-sm border border-purple-200/50">
+                  {sleepHoursData.length > 0 ? (
+                    <Line data={sleepHoursChartData} options={sleepHoursChartOptions} />
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <div className="text-center">
+                        <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
+                          <span className="text-4xl opacity-70">😴</span>
+                        </div>
+                        <p className="text-gray-600 text-lg font-medium mb-2">No sleep data available</p>
+                        <p className="text-gray-500 text-sm">Start logging your sleep to see insights</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </motion.div>
+              
+              {/* Sleep Quality Indicators - Updated for Senior High School Students */}
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.8 }}
+              >
+                <h3 className="text-lg font-semibold text-gray-800 mb-4 flex items-center">
+                  <span className="mr-2">🎯</span>
+                  Sleep Guide for Students (Ages 14-18)
+                </h3>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-4 text-center transition-all hover:scale-105 hover:shadow-md">
+                    <div className="w-12 h-12 mx-auto mb-3 bg-green-200 rounded-full flex items-center justify-center">
+                      <span className="text-xl">🌟</span>
+                    </div>
+                    <p className="text-sm font-semibold text-green-800 mb-1">Excellent</p>
+                    <p className="text-xs font-bold text-green-700">8-10 hours</p>
+                    <p className="text-xs text-green-600 mt-1">Perfect for school</p>
+                    <div className="mt-2 h-2 bg-green-200 rounded-full">
+                      <div className="h-full w-full bg-green-500 rounded-full"></div>
                     </div>
                   </div>
-                )}
-              </div>
-              
-              <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3">
-                <div className="bg-red-100/90 border-2 border-red-200 rounded-2xl py-3 px-4 text-center">
-                  <p className="text-xs text-gray-600 mb-1">No Sleep</p>
-                  <p className="font-bold text-red-700 text-lg">1</p>
+                  
+                  <div className="bg-yellow-50 border-2 border-yellow-200 rounded-2xl p-4 text-center transition-all hover:scale-105 hover:shadow-md">
+                    <div className="w-12 h-12 mx-auto mb-3 bg-yellow-200 rounded-full flex items-center justify-center">
+                      <span className="text-xl">😊</span>
+                    </div>
+                    <p className="text-sm font-semibold text-yellow-800 mb-1">Good</p>
+                    <p className="text-xs font-bold text-yellow-700">7-8 hours</p>
+                    <p className="text-xs text-yellow-600 mt-1">Still manageable</p>
+                    <div className="mt-2 h-2 bg-yellow-200 rounded-full">
+                      <div className="h-full w-4/5 bg-yellow-500 rounded-full"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-4 text-center transition-all hover:scale-105 hover:shadow-md">
+                    <div className="w-12 h-12 mx-auto mb-3 bg-orange-200 rounded-full flex items-center justify-center">
+                      <span className="text-xl">😴</span>
+                    </div>
+                    <p className="text-sm font-semibold text-orange-800 mb-1">Low</p>
+                    <p className="text-xs font-bold text-orange-700">6-7 hours</p>
+                    <p className="text-xs text-orange-600 mt-1">May affect focus</p>
+                    <div className="mt-2 h-2 bg-orange-200 rounded-full">
+                      <div className="h-full w-3/5 bg-orange-500 rounded-full"></div>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-4 text-center transition-all hover:scale-105 hover:shadow-md">
+                    <div className="w-12 h-12 mx-auto mb-3 bg-red-200 rounded-full flex items-center justify-center">
+                      <span className="text-xl">😰</span>
+                    </div>
+                    <p className="text-sm font-semibold text-red-800 mb-1">Critical</p>
+                    <p className="text-xs font-bold text-red-700">&lt;6 hours</p>
+                    <p className="text-xs text-red-600 mt-1">Impacts grades</p>
+                    <div className="mt-2 h-2 bg-red-200 rounded-full">
+                      <div className="h-full w-2/5 bg-red-500 rounded-full"></div>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-orange-100/90 border-2 border-orange-200 rounded-2xl py-3 px-4 text-center">
-                  <p className="text-xs text-gray-600 mb-1">Poor Sleep</p>
-                  <p className="font-bold text-orange-700 text-lg">2</p>
+                
+                {/* Student-Specific Sleep Tips */}
+                <div className="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-2xl p-6">
+                  <h4 className="text-lg font-semibold text-blue-800 mb-4 flex items-center">
+                    <span className="mr-2">💡</span>
+                    Sleep Tips for Better Grades & Well-being
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600 font-bold text-lg">📚</span>
+                        <div>
+                          <p className="font-semibold text-blue-800">Study Performance</p>
+                          <p className="text-blue-700">8+ hours = better memory retention and focus during exams</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600 font-bold text-lg">⏰</span>
+                        <div>
+                          <p className="font-semibold text-blue-800">Sleep Schedule</p>
+                          <p className="text-blue-700">Try to sleep and wake up at the same time, even on weekends</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600 font-bold text-lg">📱</span>
+                        <div>
+                          <p className="font-semibold text-blue-800">Screen Time</p>
+                          <p className="text-blue-700">Put devices away 1 hour before bedtime for better sleep quality</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start space-x-2">
+                        <span className="text-blue-600 font-bold text-lg">🏃‍♂️</span>
+                        <div>
+                          <p className="font-semibold text-blue-800">Energy & Mood</p>
+                          <p className="text-blue-700">Good sleep helps manage stress and improves social interactions</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-yellow-100/90 border-2 border-yellow-200 rounded-2xl py-3 px-4 text-center">
-                  <p className="text-xs text-gray-600 mb-1">Medium Sleep</p>
-                  <p className="font-bold text-yellow-700 text-lg">3</p>
+                
+                {/* Scientific Backing Section */}
+                <div className="mt-6 bg-gradient-to-r from-indigo-50 to-blue-50 border-2 border-indigo-200 rounded-2xl p-6">
+                  <h4 className="text-lg font-semibold text-indigo-800 mb-4 flex items-center">
+                    <span className="mr-2">📖</span>
+                    Scientific Backing
+                  </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="font-semibold text-indigo-800 mb-2">Research Sources:</p>
+                      <ul className="text-indigo-700 space-y-1">
+                        <li>• National Sleep Foundation (2015)</li>
+                        <li>• American Academy of Sleep Medicine</li>
+                        <li>• CDC Sleep & School Performance Studies</li>
+                        <li>• American Academy of Pediatrics</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <p className="font-semibold text-indigo-800 mb-2">Key Findings:</p>
+                      <ul className="text-indigo-700 space-y-1">
+                        <li>• 8-10 hours optimal for teens (14-18)</li>
+                        <li>• Sleep directly impacts academic performance</li>
+                        <li>• Only 15% of teens get adequate sleep</li>
+                        <li>• Memory consolidation occurs during sleep</li>
+                      </ul>
+                    </div>
+                  </div>
                 </div>
-                <div className="bg-green-100/90 border-2 border-green-200 rounded-2xl py-3 px-4 text-center">
-                  <p className="text-xs text-gray-600 mb-1">Good Sleep</p>
-                  <p className="font-bold text-green-700 text-lg">4</p>
-                </div>
-              </div>
+              </motion.div>
             </div>
           </div>
         </motion.div>
