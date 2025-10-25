@@ -38,6 +38,15 @@ import UsersTable from './components/Admin/UsersTable';
 import InactiveUsers from './components/Admin/InactiveUsers';
 import PromptsTable from './components/Admin/PromptsTable';
 import StatisticsTable from './components/Admin/StatisticsTable';
+import TeachersTable from './components/Admin/TeachersTable';
+import AdminStudentLogs from './components/Admin/StudentLogs';
+import MoodPredictionComparison from './components/Admin/MoodPredictionComparison';
+
+// Teacher Components
+import TeacherDashboard from './components/Teachers/Dashboard';
+import StudentLogs from './components/Teachers/StudentLogs';
+import SectionStudents from './components/Teachers/SectionStudents';
+import TeacherEditProfile from './components/Teachers/EditProfile';
 
 //Student's Inputs 
 import ChooseCategory from './components/User/Inputs/ChooseCategory';
@@ -143,6 +152,34 @@ const AdminPrivateRoute = ({ children }) => {
   }
 
   if (userRole !== 'admin') {
+    toast.error('Access denied.');
+    return <Navigate to={prevLocation} replace />;
+  }
+
+  return children;
+};
+
+const TeacherPrivateRoute = ({ children }) => {
+  const { token, userRole, loading } = useAuth();
+  const location = useLocation();
+  const [prevLocation, setPrevLocation] = useState(location.pathname);
+
+  useEffect(() => {
+    if (location.pathname !== prevLocation) {
+      setPrevLocation(location.pathname);
+    }
+  }, [location.pathname, prevLocation]);
+
+  if (loading) {
+    return <div>Loading...</div>;
+  }
+
+  if (!token) {
+    toast.error('Please sign in to access this page.');
+    return <Navigate to="/signin" />;
+  }
+
+  if (userRole !== 'teacher') {
     toast.error('Access denied.');
     return <Navigate to={prevLocation} replace />;
   }
@@ -568,6 +605,80 @@ const App = () => {
             <AdminPrivateRoute>
               <StatisticsTable />
             </AdminPrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/teachers"
+          element={
+            <AdminPrivateRoute>
+              <TeachersTable />
+            </AdminPrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/mood-predictions"
+          element={
+            <AdminPrivateRoute>
+              <MoodPredictionComparison />
+            </AdminPrivateRoute>
+          }
+        />
+        <Route
+          path="/admin/student-logs/:userId"
+          element={
+            <AdminPrivateRoute>
+              <AdminStudentLogs />
+            </AdminPrivateRoute>
+          }
+        />
+
+        {/* Teacher Routes */}
+        <Route
+          path="/teacher/dashboard"
+          element={
+            <TeacherPrivateRoute>
+              <TeacherDashboard />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/student-logs"
+          element={
+            <TeacherPrivateRoute>
+              <StudentLogs />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/student-logs/section/:section"
+          element={
+            <TeacherPrivateRoute>
+              <StudentLogs />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/section/:section"
+          element={
+            <TeacherPrivateRoute>
+              <SectionStudents />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/student-logs/:section"
+          element={
+            <TeacherPrivateRoute>
+              <StudentLogs />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/edit-profile"
+          element={
+            <TeacherPrivateRoute>
+              <TeacherEditProfile />
+            </TeacherPrivateRoute>
           }
         />
       </Routes>

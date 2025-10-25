@@ -58,23 +58,34 @@ exports.saveMood = async (req, res) => {
     
     // Use selectedTime if provided, otherwise selectedDate with current time, otherwise current date/time
     let logDate = now;
-    if (selectedTime) {
-      // selectedTime is already in UTC from frontend conversion
+    if (selectedTime && category !== 'sleep') {
+      // selectedTime is only used for non-sleep categories
       logDate = new Date(selectedTime);
     } else if (selectedDate) {
-      const selectedDateObj = new Date(selectedDate);
-      // Preserve the current time but use the selected date
-      logDate = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate(), 
-                        now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      // Parse selectedDate safely to avoid timezone issues
+      const dateParts = selectedDate.split('-');
+      const selectedDateObj = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+      
+      if (category === 'sleep') {
+        // For sleep, use a fixed time (noon) to avoid time-specific storage
+        logDate = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate(), 12, 0, 0, 0);
+      } else {
+        // For other categories, preserve the current time but use the selected date
+        logDate = new Date(selectedDateObj.getFullYear(), selectedDateObj.getMonth(), selectedDateObj.getDate(), 
+                          now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      }
+    } else if (category === 'sleep') {
+      // If no date selected for sleep, use today at noon
+      logDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 12, 0, 0, 0);
     }
 
     // For sleep category, check if there's already an entry today and update it
     if (category === 'sleep') {
       const startOfDay = new Date(logDate);
-      startOfDay.setUTCHours(0, 0, 0, 0);
+      startOfDay.setHours(0, 0, 0, 0);
 
       const endOfDay = new Date(logDate);
-      endOfDay.setUTCHours(23, 59, 59, 999);
+      endOfDay.setHours(23, 59, 59, 999);
 
       const existingSleepLog = await MoodLog.findOne({
         user: req.user._id,
@@ -152,15 +163,27 @@ exports.getTodaysLastMoodLog = async (req, res) => {
       return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
     }
 
-    const { category } = req.query;
+    const { category, date } = req.query;
 
-    // Get today's date range
-    const now = new Date();
-    const startOfDay = new Date(now);
-    startOfDay.setUTCHours(0, 0, 0, 0);
+    // Get date range - use provided date or today
+    let targetDate = new Date();
+    if (date) {
+      // Parse date more carefully to avoid timezone issues
+      const dateParts = date.split('-');
+      targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]));
+    }
+    
+    console.log('getTodaysLastMoodLog - Requested date:', date);
+    console.log('getTodaysLastMoodLog - Target date:', targetDate);
+    console.log('getTodaysLastMoodLog - Category:', category);
+    
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
 
-    const endOfDay = new Date(now);
-    endOfDay.setUTCHours(23, 59, 59, 999);
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+    
+    console.log('getTodaysLastMoodLog - Date range:', startOfDay, 'to', endOfDay);
 
     // Build query
     const query = {
@@ -173,8 +196,21 @@ exports.getTodaysLastMoodLog = async (req, res) => {
       query.category = category;
     }
 
-    // Find all mood logs for today (optionally filtered by category)
+    console.log('getTodaysLastMoodLog - Query:', JSON.stringify(query, null, 2));
+
+    // Find all mood logs for the specified date (optionally filtered by category)
     const todaysMoodLogs = await MoodLog.find(query).sort({ date: -1 });
+    
+    console.log('getTodaysLastMoodLog - Found logs:', todaysMoodLogs.length);
+    todaysMoodLogs.forEach((log, index) => {
+      console.log(`Log ${index}:`, {
+        id: log._id,
+        category: log.category,
+        hrs: log.hrs,
+        date: log.date,
+        dateString: log.date.toISOString()
+      });
+    });
 
     if (!todaysMoodLogs.length) {
       return res.status(200).json({ 
@@ -338,3 +374,75 @@ exports.getTodaysSleepLog = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error while fetching today\'s sleep log.' });
   }
 };
+
+// Update only sleep hours for existing sleep log
+exports.updateSleepHours = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: 'Unauthorized: No user found in request.' });
+    }
+
+    const { hrs, date } = req.body;
+
+    if (!hrs || typeof hrs !== 'number') {
+      return res.status(400).json({ success: false, message: 'Valid sleep hours is required.' });
+    }
+
+    console.log('updateSleepHours - hrs:', hrs, 'date:', date);
+
+    // Determine the target date  
+    let targetDate = new Date();
+    if (date) {
+      const dateParts = date.split('-');
+      // For sleep, use standardized noon time (date-only storage)
+      targetDate = new Date(parseInt(dateParts[0]), parseInt(dateParts[1]) - 1, parseInt(dateParts[2]), 12, 0, 0, 0);
+    } else {
+      // If no date provided, use today at noon
+      targetDate = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 12, 0, 0, 0);
+    }
+
+    console.log('updateSleepHours - targetDate:', targetDate);
+
+    const startOfDay = new Date(targetDate);
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    console.log('updateSleepHours - date range:', startOfDay, 'to', endOfDay);
+
+    // Find existing sleep log for the specified date
+    const existingSleepLog = await MoodLog.findOne({
+      user: req.user._id,
+      category: 'sleep',
+      date: { $gte: startOfDay, $lte: endOfDay }
+    });
+
+    console.log('updateSleepHours - found existing log:', existingSleepLog ? 'YES' : 'NO');
+
+    if (!existingSleepLog) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No existing sleep log found for the specified date.' 
+      });
+    }
+
+    console.log('updateSleepHours - updating hrs from', existingSleepLog.hrs, 'to', hrs);
+
+    // Update only the sleep hours, keep everything else intact
+    existingSleepLog.hrs = hrs;
+    await existingSleepLog.save();
+
+    console.log('updateSleepHours - updated successfully');
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Sleep hours updated successfully.',
+      log: existingSleepLog
+    });
+  } catch (error) {
+    console.error('Error updating sleep hours:', error);
+    res.status(500).json({ success: false, message: 'Server error while updating sleep hours.' });
+  }
+};
+

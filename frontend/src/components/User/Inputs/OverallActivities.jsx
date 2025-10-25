@@ -36,7 +36,7 @@ const OverallActivities = ({ categoryFormData, setCategoryFormData }) => {
   };
 
   const handleBack = () => {
-    navigate('/choose-category');
+    navigate(-1);
   };
 
   return (

@@ -30,9 +30,29 @@ const UserSchema = new mongoose.Schema({
     enum: ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'],
     required: false,
   },
+  assignedSections: {
+    type: [String],
+    enum: ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'],
+    required: function() {
+      return this.role === 'teacher';
+    },
+    validate: {
+      validator: function(sections) {
+        return this.role !== 'teacher' || (sections && sections.length > 0);
+      },
+      message: 'Teachers must have at least one assigned section'
+    }
+  },
+  subject: {
+    type: String,
+    required: function() {
+      return this.role === 'teacher';
+    }
+  },
   avatar: {
     type: String, 
-    required: false, 
+    required: false,
+    default: 'https://res.cloudinary.com/your-cloud/image/upload/v1/default-avatar.png' // Default avatar
   },
   firebaseUid: {
     type: String,
@@ -44,6 +64,7 @@ const UserSchema = new mongoose.Schema({
   },
   role: {
     type: String,
+    enum: ['user', 'admin', 'teacher'],
     default: 'user',
   },
   createdAt: {

@@ -61,6 +61,8 @@ const Signin = () => {
   
         if (userResponse.data.role === 'admin') {
           navigate('/admin/dashboard');
+        } else if (userResponse.data.role === 'teacher') {
+          navigate('/teacher/dashboard');
         } else if (userResponse.data.role === 'user') {
           navigate('/choose-category');
         } else {
@@ -120,6 +122,8 @@ const Signin = () => {
         
         if (response.data.role === 'admin') {
           navigate('/admin/dashboard');
+        } else if (response.data.role === 'teacher') {
+          navigate('/teacher/dashboard');
         } else {
           navigate('/choose-category');
         }

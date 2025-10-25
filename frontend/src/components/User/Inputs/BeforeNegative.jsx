@@ -49,7 +49,7 @@ const Negative = ({ categoryFormData, setCategoryFormData }) => {
   };
 
   const handleBack = () => {
-    navigate('/before-valence');
+    navigate(-1);
   };
 
   return (

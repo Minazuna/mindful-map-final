@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
 
 const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
@@ -9,15 +10,55 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
     // Check if there's a date parameter in the URL
     const searchParams = new URLSearchParams(location.search);
     const dateParam = searchParams.get('date');
+    const fromTimeSegment = searchParams.get('fromTimeSegment');
     
     if (dateParam) {
-      // Set the date in the form data if it exists
-      setCategoryFormData(prev => ({
-        ...prev,
-        selectedDate: dateParam
-      }));
+      // Set the date in the form data if it exists and reset state if date changed
+      setCategoryFormData(prev => {
+        // If the date changed, reset all fields including isEditing
+        if (prev.selectedDate !== dateParam) {
+          return {
+            category: '',
+            activity: '',
+            hrs: 0,
+            beforeValence: '',
+            beforeEmotion: null,
+            beforeIntensity: 0,
+            beforeReason: null,
+            afterValence: '',
+            afterEmotion: '',
+            afterIntensity: 0,
+            afterReason: '',
+            selectedDate: dateParam,
+            selectedTime: null,
+            isEditing: false // Reset editing flag when date changes
+          };
+        }
+        return {
+          ...prev,
+          selectedDate: dateParam
+        };
+      });
     }
-  }, [location.search, setCategoryFormData]);
+
+    // If coming back from time segment, navigate to appropriate activity page
+    // Note: This is now handled directly by TimeSegmentSelector for cleaner history
+    // Keeping this as fallback for edge cases
+    if (fromTimeSegment === 'true' && categoryFormData.category) {
+      const categoryPaths = {
+        'activity': '/overall-activities',
+        'social': '/social-interactions', 
+        'health': '/health-activities',
+        'sleep': '/sleep-hours'
+      };
+      
+      const path = categoryPaths[categoryFormData.category];
+      if (path) {
+        // Use replace to avoid adding this redirect to browser history
+        navigate(path, { replace: true });
+      }
+    }
+  }, [location.search, setCategoryFormData, categoryFormData.category, navigate]);
 
   const categories = [
     { name: 'Activities', path: '/overall-activities', categoryKey: 'activity' },
@@ -26,7 +67,9 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
     { name: 'Previous Night\'s Sleep (No. of Hours)', path: '/sleep-hours', categoryKey: 'sleep' }
   ];
 
-  const handleCategorySelect = (path, categoryKey) => {
+  const handleCategorySelect = async (path, categoryKey) => {
+    console.log('Category selected:', categoryKey);
+    
     // Set the selected category
     setCategoryFormData(prev => ({
       ...prev,
@@ -41,10 +84,91 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
       afterValence: '',
       afterEmotion: '',
       afterIntensity: 0,
-      afterReason: ''
+      afterReason: '',
+      isEditing: false // Make sure to reset editing state
     }));
     
-    navigate(path);
+    // Special handling for sleep category
+    if (categoryKey === 'sleep') {
+      try {
+        const token = localStorage.getItem('token');
+        if (token) {
+          // Check if there's already a sleep log for the selected date
+          const searchParams = new URLSearchParams(location.search);
+          const dateParam = searchParams.get('date');
+          
+          // If we have a specific date, check for that date, otherwise check today
+          const checkDate = dateParam || new Date().toISOString().split('T')[0];
+          console.log('URL dateParam:', dateParam);
+          console.log('Checking sleep log for date:', checkDate);
+          console.log('Current categoryFormData.selectedDate:', categoryFormData.selectedDate);
+          
+          const response = await axios.get(
+            `${import.meta.env.VITE_NODE_API}/api/mood-log/today-last?category=sleep&date=${checkDate}`,
+            {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            }
+          );
+
+          console.log('Sleep API Response:', response.data);
+          
+          if (response.data.success && response.data.lastLog) {
+            // Existing sleep log found, populate form data and go directly to sleep page
+            const existingLog = response.data.lastLog;
+            console.log('Existing sleep log found:', existingLog);
+            
+            setCategoryFormData(prev => {
+              const formDataUpdate = {
+                ...prev,
+                category: categoryKey,
+                hrs: existingLog.hrs,
+                beforeValence: existingLog.beforeValence || '',
+                beforeEmotion: existingLog.beforeEmotion,
+                beforeIntensity: existingLog.beforeIntensity || 0,
+                beforeReason: existingLog.beforeReason,
+                afterValence: existingLog.afterValence || '',
+                afterEmotion: existingLog.afterEmotion || '',
+                afterIntensity: existingLog.afterIntensity || 0,
+                afterReason: existingLog.afterReason || '',
+                isEditing: true // Flag to indicate we're editing an existing entry
+              };
+              
+              console.log('Updating form data with:', formDataUpdate);
+              return formDataUpdate;
+            });
+            
+            // ONLY skip time segment if there's an existing sleep log
+            // Add a small delay to ensure state is updated before navigation
+            setTimeout(() => {
+              navigate('/sleep-hours');
+            }, 100);
+            return;
+          } else {
+            console.log('No existing sleep log found for this date - will go directly to sleep hours');
+          }
+        }
+      } catch (error) {
+        console.error('Error checking existing sleep log:', error);
+        // Continue with normal flow if error occurs
+      }
+      
+      // For NEW sleep entries, go directly to sleep hours (skip time segment)
+      // Sleep is logged for the entire day/night, so no specific time needed
+      setTimeout(() => {
+        navigate('/sleep-hours');
+      }, 100);
+    } else {
+      // For non-sleep categories, go to time segment selector first
+      const searchParams = new URLSearchParams(location.search);
+      const dateParam = searchParams.get('date');
+      if (dateParam) {
+        navigate(`/time-segment?date=${dateParam}`);
+      } else {
+        navigate('/time-segment');
+      }
+    }
   };
 
   const handleSkip = () => {

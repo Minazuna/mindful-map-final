@@ -37,8 +37,8 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
     const isFromCalendar = categoryFormData.selectedDate !== null;
     
     if (isFromCalendar) {
-      // For missed days, redirect to time segment selector with the same date
-      navigate(`/time-segment?date=${categoryFormData.selectedDate}`);
+      // For missed days, redirect to choose category first, then time segment
+      navigate(`/choose-category?date=${categoryFormData.selectedDate}`);
     } else {
       // For normal flow, go to choose category
       navigate('/choose-category');
@@ -97,7 +97,8 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
         console.log('Mood log saved:', response.data);
         
         if (response.data.success) {
-          toast.success('Mood log saved successfully!');
+          const isUpdating = categoryFormData.isEditing && categoryFormData.category === 'sleep';
+          toast.success(isUpdating ? 'Sleep entry updated successfully!' : 'Mood log saved successfully!');
           
           // Reset category form data except selectedDate for missed day logging
           setCategoryFormData(prev => ({
@@ -113,7 +114,8 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
             afterIntensity: 0,
             afterReason: '',
             selectedDate: prev.selectedDate, // Keep selectedDate for missed day tracking
-            selectedTime: null  // Reset selectedTime for new time selection
+            selectedTime: null,  // Reset selectedTime for new time selection
+            isEditing: false // Reset editing flag
           }));
           
           // Always show the continue tracking modal
@@ -129,7 +131,7 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
   };
 
   const handleBack = () => {
-    navigate('/after-valence');
+    navigate(-1);
   };
 
   return (
