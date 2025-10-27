@@ -16,7 +16,6 @@ import JournalPrompt from './components/User/Journal/JournalPrompt';
 import Statistics from './components/User/Statistics/Statistics';
 import CorrelationStatistics from './components/User/Statistics/CorrelationStatistics';
 import Correlation from './components/User/Statistics/Correlation';
-import MoodStatistics from './components/User/Statistics/MoodStatistics';
 import WeeklyPredictions from './components/User/Prediction/WeeklyPredictions';
 import DailyPrediction from './components/User/Prediction/DailyPrediction';
 import Prediction from './components/User/Prediction/Prediction';
@@ -74,6 +73,7 @@ import DailyStatistics from './components/User/Statistics/Daily/DailyStatistics'
 import WeeklyStatistics from './components/User/Statistics/Weekly/WeeklyStatistics';
 import DailyAnova from './components/User/Statistics/Daily/DailyAnova';
 import WeeklyAnova from './components/User/Statistics/Weekly/WeeklyAnova';
+import MoodStatistics from './components/User/Statistics/MoodStatistics';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -357,6 +357,14 @@ const App = () => {
             </UserPrivateRoute>
           }
         />
+        <Route
+          path="/mood-statistics"
+          element={
+            <UserPrivateRoute>
+              <MoodStatistics />
+            </UserPrivateRoute>
+          }
+        />       
         <Route
           path="/calendar-log"
           element={

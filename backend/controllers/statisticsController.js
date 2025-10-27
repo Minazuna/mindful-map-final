@@ -513,3 +513,258 @@ exports.calculateWeeklyAnova = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getSleepHours = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const { period = 'weekly' } = req.query;
+    
+    let startDate, endDate;
+    const today = new Date();
+    
+    if (period === 'weekly') {
+      startDate = new Date(today);
+      startDate.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
+      startDate.setHours(0, 0, 0, 0);
+      
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6); // End of current week (Saturday)
+      endDate.setHours(23, 59, 59, 999);
+    } else {
+      // Monthly
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      endDate.setHours(23, 59, 59, 999);
+    }
+
+    // Fetch sleep logs for the period from MoodLog where category is 'sleep'
+    const sleepLogs = await MoodLog.find({
+      user: userId,
+      category: 'sleep',
+      date: { $gte: startDate, $lte: endDate },
+      hrs: { $exists: true, $ne: null } // Ensure hrs field exists and is not null
+    }).sort({ date: 1 });
+
+    // Group by date and sum hours if multiple entries per day
+    const sleepByDate = {};
+    sleepLogs.forEach(log => {
+      const dateKey = log.date.toISOString().split('T')[0]; // Use ISO date string for consistency
+      if (!sleepByDate[dateKey]) {
+        sleepByDate[dateKey] = { date: log.date, totalHours: 0, count: 0 };
+      }
+      sleepByDate[dateKey].totalHours += log.hrs || 0;
+      sleepByDate[dateKey].count += 1;
+    });
+
+    // Convert to array and calculate averages
+    const sleepHoursData = Object.values(sleepByDate)
+      .map(entry => ({
+        date: entry.date,
+        hours: Math.round((entry.totalHours / entry.count) * 10) / 10
+      }))
+      .sort((a, b) => new Date(a.date) - new Date(b.date)); // Sort by date ascending
+
+    // Calculate analytics
+    let analytics = null;
+    if (sleepHoursData.length > 0) {
+      const totalHours = sleepHoursData.reduce((sum, entry) => sum + entry.hours, 0);
+      const averageHours = Math.round((totalHours / sleepHoursData.length) * 10) / 10;
+      
+      // Find best and worst days
+      const bestEntry = sleepHoursData.reduce((best, current) => 
+        current.hours > best.hours ? current : best
+      );
+      const worstEntry = sleepHoursData.reduce((worst, current) => 
+        current.hours < worst.hours ? current : worst
+      );
+
+      // Generate insights based on sleep patterns
+      let consistency = 'Good';
+      let recommendation = 'Keep up the great sleep routine!';
+      
+      const hoursArray = sleepHoursData.map(d => d.hours);
+      const hoursRange = Math.max(...hoursArray) - Math.min(...hoursArray);
+      
+      if (hoursRange > 3) {
+        consistency = 'Inconsistent';
+        recommendation = 'Try to maintain a more regular sleep schedule for better rest quality.';
+      } else if (averageHours < 6) {
+        consistency = hoursRange > 2 ? 'Poor & Inconsistent' : 'Insufficient';
+        recommendation = 'Consider getting more sleep for better health and mood stability.';
+      } else if (averageHours > 9) {
+        consistency = hoursRange > 2 ? 'Excessive & Inconsistent' : 'Excessive';
+        recommendation = 'You might be getting too much sleep. Check if this affects your energy levels.';
+      } else if (averageHours >= 7 && averageHours <= 8) {
+        consistency = 'Optimal';
+        recommendation = 'Perfect! You\'re maintaining an ideal sleep schedule.';
+      }
+
+      analytics = {
+        averageHours,
+        bestDay: period === 'weekly' 
+          ? new Date(bestEntry.date).toLocaleDateString('en-US', { weekday: 'long' })
+          : new Date(bestEntry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        bestDayHours: bestEntry.hours,
+        worstDay: period === 'weekly' 
+          ? new Date(worstEntry.date).toLocaleDateString('en-US', { weekday: 'long' })
+          : new Date(worstEntry.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+        worstDayHours: worstEntry.hours,
+        consistency,
+        recommendation,
+        totalDays: sleepHoursData.length,
+        optimalDays: hoursArray.filter(h => h >= 7 && h <= 9).length
+      };
+    }
+
+    res.json({ sleepHoursData, analytics });
+  } catch (err) {
+    console.error('Error fetching sleep hours:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getMoodActivities = async (req, res) => {
+  try {
+    const userId = req.user.userId;
+    const { emotion, moodType, period } = req.query;
+
+    if (!emotion || !moodType || !period) {
+      return res.status(400).json({ 
+        message: 'Missing required parameters: emotion, moodType, and period' 
+      });
+    }
+
+    // Calculate date range based on period
+    let startOfPeriod, endOfPeriod;
+    const moment = require('moment');
+    
+    if (period === 'weekly') {
+      startOfPeriod = moment().startOf('isoWeek').toDate();
+      endOfPeriod = moment().endOf('isoWeek').toDate();
+    } else if (period === 'daily') {
+      startOfPeriod = moment().startOf('day').toDate();
+      endOfPeriod = moment().endOf('day').toDate();
+    } else if (period === 'monthly') {
+      startOfPeriod = moment().startOf('month').toDate();
+      endOfPeriod = moment().endOf('month').toDate();
+    } else {
+      return res.status(400).json({ message: 'Invalid period. Use daily, weekly, or monthly' });
+    }
+
+    // Build query based on moodType (before or after)
+    let query = {
+      user: userId,
+      date: {
+        $gte: startOfPeriod,
+        $lte: endOfPeriod
+      }
+    };
+
+    // Add emotion filter based on moodType
+    if (moodType === 'before') {
+      query.beforeEmotion = emotion.toLowerCase();
+    } else {
+      query.afterEmotion = emotion.toLowerCase();
+    }
+
+    const moodLogs = await MoodLog.find(query);
+
+    // Count activities by category and activity, calculate percentages
+    const activityCounts = {};
+    let totalEntries = moodLogs.length;
+
+    if (totalEntries === 0) {
+      return res.json({
+        activities: [],
+        categoryBreakdown: [],
+        totalEntries: 0,
+        emotion: emotion,
+        moodType: moodType,
+        period: period,
+        dateRange: {
+          start: startOfPeriod,
+          end: endOfPeriod
+        }
+      });
+    }
+
+    moodLogs.forEach(log => {
+      let activityKey;
+      
+      // Handle different categories based on your schema
+      if (log.category === 'sleep') {
+        activityKey = `Sleep - ${log.hrs} hours`;
+      } else {
+        // For activity, social, health categories
+        const activity = log.activity || 'Unknown Activity';
+        const categoryName = log.category.charAt(0).toUpperCase() + log.category.slice(1);
+        activityKey = `${categoryName}: ${activity}`;
+      }
+
+      if (activityCounts[activityKey]) {
+        activityCounts[activityKey]++;
+      } else {
+        activityCounts[activityKey] = 1;
+      }
+    });
+
+    // Convert to array and calculate percentages
+    const activities = Object.entries(activityCounts)
+      .map(([activity, count]) => ({
+        activity: activity,
+        count: count,
+        percentage: parseFloat(((count / totalEntries) * 100).toFixed(1))
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+
+    // Category breakdown for additional insights
+    const categoryBreakdown = {};
+    moodLogs.forEach(log => {
+      const category = log.category.charAt(0).toUpperCase() + log.category.slice(1);
+      if (categoryBreakdown[category]) {
+        categoryBreakdown[category]++;
+      } else {
+        categoryBreakdown[category] = 1;
+      }
+    });
+
+    const categoryStats = Object.entries(categoryBreakdown)
+      .map(([category, count]) => ({
+        category: category,
+        count: count,
+        percentage: parseFloat(((count / totalEntries) * 100).toFixed(1))
+      }))
+      .sort((a, b) => b.percentage - a.percentage);
+
+    // Additional statistics
+    const stats = {
+      totalEntries,
+      uniqueActivities: activities.length,
+      topActivity: activities[0]?.activity || 'None',
+      topActivityPercentage: activities[0]?.percentage || 0,
+      topCategory: categoryStats[0]?.category || 'None',
+      topCategoryPercentage: categoryStats[0]?.percentage || 0
+    };
+
+    res.json({
+      activities: activities,
+      categoryBreakdown: categoryStats,
+      totalEntries: totalEntries,
+      emotion: emotion,
+      moodType: moodType,
+      period: period,
+      stats: stats,
+      dateRange: {
+        start: startOfPeriod,
+        end: endOfPeriod
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching mood activities:', error);
+    res.status(500).json({ 
+      message: 'Internal server error',
+      error: error.message 
+    });
+  }
+};
