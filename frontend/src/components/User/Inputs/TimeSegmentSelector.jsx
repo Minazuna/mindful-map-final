@@ -48,22 +48,77 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
   };
 
   const convertPHTimeToUTC = (timeString, selectedDate) => {
-    // Parse the time string (HH:MM format)
-    const [hours, minutes] = timeString.split(':').map(Number);
-    
-    // Create a date string in Philippine timezone format
-    // We'll use the selected date and the time, then explicitly convert to UTC
-    const phDateTimeString = `${selectedDate}T${timeString}:00+08:00`; // +08:00 is Philippine timezone
-    
-    // Create a Date object from the Philippine timezone string
-    const phDateTime = new Date(phDateTimeString);
-    
-    console.log(`Converting PH time: ${timeString} on ${selectedDate}`);
-    console.log(`PH DateTime string: ${phDateTimeString}`);
-    console.log(`Parsed Date: ${phDateTime}`);
-    console.log(`UTC ISO: ${phDateTime.toISOString()}`);
-    
-    return phDateTime;
+    try {
+      // Parse the time string (HH:MM format)
+      const [hours, minutes] = timeString.split(':').map(Number);
+      
+      // Validate time components
+      if (isNaN(hours) || isNaN(minutes) || hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        throw new Error('Invalid time format');
+      }
+      
+      // Determine the date to use
+      let dateToUse;
+      if (selectedDate) {
+        // Use the provided date (format: YYYY-MM-DD)
+        dateToUse = selectedDate;
+      } else {
+        // Use today's date in Philippine timezone
+        const now = new Date();
+        // Convert to Philippine time (UTC+8)
+        const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+        dateToUse = phTime.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+      }
+      
+      console.log(`Converting PH time: ${timeString} on date: ${dateToUse}`);
+      
+      // Use the timezone offset approach to create proper UTC time
+      // Create a date string with explicit timezone information
+      const timeWith24Format = timeString.padStart(5, '0'); // Ensure HH:MM format
+      const phDateTimeString = `${dateToUse}T${timeWith24Format}:00+08:00`;
+      console.log(`Creating date from: ${phDateTimeString}`);
+      
+      const utcDateTime = new Date(phDateTimeString);
+      
+      // Validate the resulting date
+      if (isNaN(utcDateTime.getTime())) {
+        throw new Error('Invalid date created');
+      }
+      
+      console.log(`PH Date: ${dateToUse} ${timeString} PH Time`);
+      console.log(`UTC Date: ${utcDateTime.toISOString()}`);
+      console.log(`UTC Date Day: ${utcDateTime.getUTCDate()}`);
+      console.log(`Original Date Day: ${dateToUse.split('-')[2]}`);
+      
+      return utcDateTime;
+    } catch (error) {
+      console.error('Error converting PH time to UTC:', error);
+      
+      // Fallback: Use a more straightforward approach
+      try {
+        const [hours, minutes] = timeString.split(':').map(Number);
+        
+        // Determine the date to use
+        let dateToUse;
+        if (selectedDate) {
+          dateToUse = selectedDate;
+        } else {
+          const today = new Date();
+          dateToUse = today.toISOString().split('T')[0];
+        }
+        
+        // Create a date object for the Philippine time
+        const phDateString = `${dateToUse}T${timeString}:00`;
+        const phDate = new Date(phDateString + '+08:00'); // Explicitly set Philippine timezone
+        
+        console.log('Using fallback with timezone string:', phDate.toISOString());
+        return phDate;
+      } catch (fallbackError) {
+        console.error('Fallback conversion also failed:', fallbackError);
+        // Last resort: current time
+        return new Date();
+      }
+    }
   };
 
   const handleContinue = () => {
@@ -74,25 +129,52 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
     
     if (rememberTime === false && !selectedSegment) return; // Must select segment if they don't remember
 
-    // Get the selected date from URL params
+    // Get the selected date from URL params or use today's date
     const searchParams = new URLSearchParams(location.search);
     const selectedDate = searchParams.get('date');
+    
+    // Determine the date to use for logging
+    let dateForLogging;
+    if (selectedDate) {
+      // Use the calendar-selected date (for missed days)
+      dateForLogging = selectedDate;
+      console.log('Using calendar selected date:', selectedDate);
+    } else {
+      // Use today's date for normal logging (after sign-in)
+      // Get current time in Philippine timezone
+      const now = new Date();
+      console.log('Current browser time:', now.toISOString());
+      
+      // Convert to Philippine time (UTC+8)
+      const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      dateForLogging = phTime.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+      console.log('Calculated PH date for today:', dateForLogging);
+    }
+    
+    console.log('Date for logging:', dateForLogging);
+    console.log('Selected date from URL:', selectedDate);
     
     let finalTime;
     
     if (rememberTime && customTime) {
       // User provided specific time, convert PH time to UTC
-      finalTime = convertPHTimeToUTC(customTime, selectedDate);
+      finalTime = convertPHTimeToUTC(customTime, dateForLogging);
     } else {
       // Use mid-point of selected segment, convert PH time to UTC
       const segment = timeSegments.find(s => s.id === selectedSegment);
-      finalTime = convertPHTimeToUTC(segment.midTime, selectedDate);
+      finalTime = convertPHTimeToUTC(segment.midTime, dateForLogging);
     }
 
-    // Update category form data with selected time
+    // Validate that we have a valid date object
+    if (!finalTime || isNaN(finalTime.getTime())) {
+      console.error('Invalid final time generated');
+      return;
+    }
+
+    // Update category form data with selected time and date
     setCategoryFormData(prev => ({
       ...prev,
-      selectedDate: selectedDate,
+      selectedDate: dateForLogging,
       selectedTime: finalTime.toISOString() // Store as ISO string for backend
     }));
 
@@ -117,7 +199,8 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
     } else {
       console.log('TimeSegmentSelector - No category set, going to choose category');
       // Fallback to choose category if no category is set
-      navigate(`/choose-category?date=${selectedDate}`);
+      const dateParam = selectedDate ? `?date=${selectedDate}` : '';
+      navigate(`/choose-category${dateParam}`);
     }
   };
 
@@ -236,7 +319,7 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
         {rememberTime === true && (
           <div className="w-full max-w-md mb-8">
             <label className="block text-lg font-semibold mb-4 text-center" style={{ color: '#2C3E50' }}>
-              Enter the specific time (Philippine Time)
+              Enter the specific time
             </label>
             <input
               type="time"
@@ -245,9 +328,6 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
               className="w-full p-4 border-2 border-green-300 rounded-xl focus:border-green-500 focus:outline-none text-lg text-center font-mono"
               placeholder="HH:MM"
             />
-            <p className="text-sm text-gray-500 mt-2 text-center">
-              Time will be saved in UTC for consistency
-            </p>
             {customTime && isValidTime(customTime) && (
               <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
                 <p className="text-sm text-green-700 text-center">

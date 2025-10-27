@@ -64,6 +64,7 @@ const Signin = () => {
         } else if (userResponse.data.role === 'teacher') {
           navigate('/teacher/dashboard');
         } else if (userResponse.data.role === 'user') {
+          // Navigate to choose category without date parameter for normal logging (today's date)
           navigate('/choose-category');
         } else {
           toast.error("Unknown user role.");
@@ -125,6 +126,7 @@ const Signin = () => {
         } else if (response.data.role === 'teacher') {
           navigate('/teacher/dashboard');
         } else {
+          // Navigate to choose category without date parameter for normal logging (today's date)
           navigate('/choose-category');
         }
       }

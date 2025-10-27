@@ -12,34 +12,49 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
     const dateParam = searchParams.get('date');
     const fromTimeSegment = searchParams.get('fromTimeSegment');
     
+    // Determine the date to use
+    let dateToUse;
     if (dateParam) {
-      // Set the date in the form data if it exists and reset state if date changed
-      setCategoryFormData(prev => {
-        // If the date changed, reset all fields including isEditing
-        if (prev.selectedDate !== dateParam) {
-          return {
-            category: '',
-            activity: '',
-            hrs: 0,
-            beforeValence: '',
-            beforeEmotion: null,
-            beforeIntensity: 0,
-            beforeReason: null,
-            afterValence: '',
-            afterEmotion: '',
-            afterIntensity: 0,
-            afterReason: '',
-            selectedDate: dateParam,
-            selectedTime: null,
-            isEditing: false // Reset editing flag when date changes
-          };
-        }
-        return {
-          ...prev,
-          selectedDate: dateParam
-        };
-      });
+      // Use the calendar-selected date (for missed days)
+      dateToUse = dateParam;
+    } else {
+      // Use today's date for normal logging (after sign-in)
+      // Get current time in Philippine timezone
+      const now = new Date();
+      console.log('ChooseCategory - Current browser time:', now.toISOString());
+      
+      // Convert to Philippine time (UTC+8)
+      const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      dateToUse = phTime.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+      console.log('ChooseCategory - Calculated PH date for today:', dateToUse);
     }
+    
+    // Set the date in the form data and reset state if date changed
+    setCategoryFormData(prev => {
+      // If the date changed, reset all fields including isEditing
+      if (prev.selectedDate !== dateToUse) {
+        return {
+          category: '',
+          activity: '',
+          hrs: 0,
+          beforeValence: '',
+          beforeEmotion: null,
+          beforeIntensity: 0,
+          beforeReason: null,
+          afterValence: '',
+          afterEmotion: '',
+          afterIntensity: 0,
+          afterReason: '',
+          selectedDate: dateToUse,
+          selectedTime: null,
+          isEditing: false // Reset editing flag when date changes
+        };
+      }
+      return {
+        ...prev,
+        selectedDate: dateToUse
+      };
+    });
 
     // If coming back from time segment, navigate to appropriate activity page
     // Note: This is now handled directly by TimeSegmentSelector for cleaner history
@@ -93,13 +108,26 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          // Check if there's already a sleep log for the selected date
+          // Determine the date to check for existing sleep logs
           const searchParams = new URLSearchParams(location.search);
           const dateParam = searchParams.get('date');
           
-          // If we have a specific date, check for that date, otherwise check today
-          const checkDate = dateParam || new Date().toISOString().split('T')[0];
-          console.log('URL dateParam:', dateParam);
+          let checkDate;
+          if (dateParam) {
+            // Use the calendar-selected date (for missed days)
+            checkDate = dateParam;
+            console.log('Using calendar selected date for sleep check:', dateParam);
+          } else {
+            // Use today's date for normal logging (after sign-in)
+            const now = new Date();
+            console.log('Current browser time for sleep check:', now.toISOString());
+            
+            // Convert to Philippine time (UTC+8)
+            const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+            checkDate = phTime.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+            console.log('Calculated PH date for today sleep check:', checkDate);
+          }
+          
           console.log('Checking sleep log for date:', checkDate);
           console.log('Current categoryFormData.selectedDate:', categoryFormData.selectedDate);
           
