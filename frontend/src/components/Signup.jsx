@@ -69,12 +69,13 @@ const Signup = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-      if (response.data.success) {
-        toast.success('Registration successful!');
-        setError('');
-        setTimeout(() => {
-          navigate('/signin');
-        }, 3000); // Redirect after 3 seconds
+    if (response.data.success) {
+      toast.success('Registration successful!');
+      setError('');
+      localStorage.setItem('token', response.data.token); // <-- Add this line
+      setTimeout(() => {
+        navigate('/choose-category');
+      }, 3000);
       } else {
         setError(response.data.message);
         toast.error(response.data.message);
