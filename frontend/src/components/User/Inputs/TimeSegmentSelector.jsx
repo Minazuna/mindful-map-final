@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
 const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
@@ -11,27 +11,89 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
   // Time segments with their ranges and mid-points
   const timeSegments = [
     {
+      id: 'early-morning',
+      label: 'Early Morning',
+      range: '12:00 AM - 5:59 AM',
+      midTime: '03:00', // 3:00 AM
+      emoji: '🌌'
+    },
+    {
       id: 'morning',
       label: 'Morning',
-      range: '5:00 AM - 11:59 AM',
-      midTime: '08:30', // 8:30 AM
+      range: '6:00 AM - 11:59 AM',
+      midTime: '09:00', // 9:00 AM
       emoji: '🌅'
     },
     {
       id: 'afternoon',
       label: 'Afternoon', 
       range: '12:00 PM - 5:59 PM',
-      midTime: '14:30', // 2:30 PM
+      midTime: '15:00', // 3:00 PM
       emoji: '☀️'
     },
     {
       id: 'evening',
       label: 'Evening',
-      range: '6:00 PM - onwards',
-      midTime: '20:00', // 8:00 PM
-      emoji: '🌙'
+      range: '6:00 PM - 11:59 PM',
+      midTime: '21:00', // 9:00 PM
+      emoji: '🌇'
     }
   ];
+
+  // Helper function to check if selected date is today
+  const isToday = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const selectedDate = searchParams.get('date');
+    
+    if (selectedDate) {
+      // Compare with today's date in Philippine timezone
+      const now = new Date();
+      const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      const today = phTime.toISOString().split('T')[0];
+      return selectedDate === today;
+    }
+    
+    // If no date param, it's normal logging (today)
+    return true;
+  };
+
+  // Get current time in 12-hour format
+  const getCurrentTime = () => {
+    const now = new Date();
+    const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const hours = phTime.getUTCHours();
+    const minutes = phTime.getUTCMinutes();
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+  };
+
+  // Check if a time segment is available (only for today)
+  const isSegmentAvailable = (segmentId) => {
+    if (!isToday()) return true; // All segments available for past dates
+    
+    const now = new Date();
+    const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const currentHour = phTime.getUTCHours();
+    
+    switch (segmentId) {
+      case 'early-morning':
+        return currentHour >= 0; // Available once it starts or after
+      case 'morning':
+        return currentHour >= 6; // Available from 6 AM onwards
+      case 'afternoon':
+        return currentHour >= 12; // Available from 12 PM onwards
+      case 'evening':
+        return currentHour >= 18; // Available from 6 PM onwards
+      default:
+        return true;
+    }
+  };
+
+  // Auto-set current time for today when component loads
+  useEffect(() => {
+    // This effect runs when the component mounts
+    // If it's today and user will likely choose "Yes", we can prepare
+    // But we should only set the time after they choose "Yes"
+  }, []);
 
   const handleTimeRememberChoice = (remembers) => {
     setRememberTime(remembers);
@@ -40,6 +102,10 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
       setSelectedSegment('');
     } else {
       setSelectedSegment('');
+      // Auto-set current time if today and user remembers
+      if (isToday() && remembers) {
+        setCustomTime(getCurrentTime());
+      }
     }
   };
 
@@ -208,10 +274,38 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
     navigate(-1);
   };
 
-  // Validate custom time format
+  // Validate custom time format and check if it's not in the future for today
   const isValidTime = (time) => {
     const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
-    return timeRegex.test(time);
+    if (!timeRegex.test(time)) return false;
+    
+    // If it's today, check that the time is not in the future
+    if (isToday()) {
+      const now = new Date();
+      const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+      const currentHour = phTime.getUTCHours();
+      const currentMinute = phTime.getUTCMinutes();
+      
+      const [inputHour, inputMinute] = time.split(':').map(Number);
+      
+      // Check if input time is in the future
+      if (inputHour > currentHour || (inputHour === currentHour && inputMinute > currentMinute)) {
+        return false;
+      }
+    }
+    
+    return true;
+  };
+
+  // Get the maximum time allowed for time input (only for today)
+  const getMaxTime = () => {
+    if (!isToday()) return undefined; // No limit for past dates
+    
+    const now = new Date();
+    const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
+    const hours = phTime.getUTCHours();
+    const minutes = phTime.getUTCMinutes();
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
   };
 
   return (
@@ -266,6 +360,21 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
           ←
         </div>
 
+        {/* Category Display */}
+        {categoryFormData.category && (
+          <div className="mb-6 p-3 bg-white/10 rounded-xl border border-white/20 backdrop-blur-sm">
+            <div className="text-center">
+              <span className="text-base opacity-70" style={{ color: '#2C3E50' }}>Category: </span>
+              <span className="text-base opacity-70" style={{ color: '#2C3E50' }}>
+                {categoryFormData.category === 'activity' && 'Activities'}
+                {categoryFormData.category === 'social' && 'Social Interactions'}
+                {categoryFormData.category === 'health' && 'Health-related Activities'}
+                {categoryFormData.category === 'sleep' && 'Sleep Hours'}
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Title */}
         <h1 
           className="text-4xl font-bold mb-4 text-center"
@@ -318,20 +427,21 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
         {/* Custom Time Input - If they remember */}
         {rememberTime === true && (
           <div className="w-full max-w-md mb-8">
-            <label className="block text-lg font-semibold mb-4 text-center" style={{ color: '#2C3E50' }}>
-              Enter the specific time
+            <label className="block text-lg font-bold mb-4 text-center" style={{ color: '#2C3E50' }}>
+              {isToday() ? 'Time for this entry' : 'Enter the specific time'}
             </label>
             <input
               type="time"
               value={customTime}
               onChange={(e) => setCustomTime(e.target.value)}
+              max={getMaxTime()}
               className="w-full p-4 border-2 border-green-300 rounded-xl focus:border-green-500 focus:outline-none text-lg text-center font-mono"
               placeholder="HH:MM"
             />
-            {customTime && isValidTime(customTime) && (
-              <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
-                <p className="text-sm text-green-700 text-center">
-                  <strong>Time to be saved:</strong> {customTime} (Philippine Time)
+            {isToday() && customTime && !isValidTime(customTime) && (
+              <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-200">
+                <p className="text-xs text-red-600 text-center">
+                  ⚠️ Time cannot be beyond for today's date
                 </p>
               </div>
             )}
@@ -341,51 +451,62 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
         {/* Time Segments - If they don't remember */}
         {rememberTime === false && (
           <div className="w-full max-w-md mb-8">
-            <h3 className="text-lg font-semibold mb-6 text-center" style={{ color: '#2C3E50' }}>
-              Select the time period when it happened
+            <h3 className="text-lg font-semibold mb-4 text-center" style={{ color: '#2C3E50' }}>
+              {isToday() ? 'Select when it happened today' : 'Select the time period when it happened'}
             </h3>
             
-            <div className="flex flex-col space-y-4 mb-6">
-              {timeSegments.map((segment) => (
-                <button
-                  key={segment.id}
-                  onClick={() => handleSegmentSelect(segment.id)}
-                  className={`w-full p-4 rounded-xl text-left transition-all duration-300 hover:scale-102 transform border-2 ${
-                    selectedSegment === segment.id 
-                      ? 'border-blue-500 bg-blue-50 shadow-md' 
-                      : 'border-gray-200 bg-white hover:border-blue-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="text-xl">{segment.emoji}</span>
-                        <h4 className="text-lg font-semibold" style={{ color: '#2C3E50' }}>
-                          {segment.label}
-                        </h4>
-                      </div>
-                      <p className="text-sm text-gray-600">{segment.range}</p>
-                    </div>
-                    {selectedSegment === segment.id && (
-                      <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-                        <div className="w-3 h-3 bg-white rounded-full"></div>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Default Time Preview */}
-            {selectedSegment && (
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
-                <p className="text-sm text-blue-700 text-center">
-                  <strong>Default time to be saved:</strong> {timeSegments.find(s => s.id === selectedSegment)?.midTime} 
-                  <br />
-                  <span className="text-xs">(Middle of {selectedSegment} period in Philippine Time)</span>
+            {/* Reminder for today's date */}
+            {isToday() && (
+              <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-blue-600 text-center">
+                  💡 Only time periods that have already occurred today are available
                 </p>
               </div>
             )}
+            
+            <div className="flex flex-col space-y-4 mb-6">
+              {timeSegments.map((segment) => {
+                const isAvailable = isSegmentAvailable(segment.id);
+                const isDisabled = isToday() && !isAvailable;
+                
+                return (
+                  <button
+                    key={segment.id}
+                    onClick={() => !isDisabled && handleSegmentSelect(segment.id)}
+                    disabled={isDisabled}
+                    className={`w-full p-4 rounded-xl text-left transition-all duration-300 border-2 ${
+                      isDisabled 
+                        ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-100' 
+                        : selectedSegment === segment.id 
+                          ? 'border-blue-500 bg-blue-50 shadow-md hover:scale-102 transform' 
+                          : 'border-gray-200 bg-white hover:border-blue-300 hover:scale-102 transform'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <span className="text-xl">{segment.emoji}</span>
+                          <h4 className={`text-lg font-semibold ${isDisabled ? 'text-gray-400' : ''}`} style={{ color: isDisabled ? undefined : '#2C3E50' }}>
+                            {segment.label}
+                          </h4>
+                          {isDisabled && (
+                            <span className="text-xs bg-red-100 text-red-600 px-2 py-1 rounded-full">
+                              Not Yet
+                            </span>
+                          )}
+                        </div>
+                        <p className={`text-sm ${isDisabled ? 'text-gray-400' : 'text-gray-600'}`}>{segment.range}</p>
+                      </div>
+                      {selectedSegment === segment.id && !isDisabled && (
+                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                          <div className="w-3 h-3 bg-white rounded-full"></div>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -406,9 +527,12 @@ const TimeSegmentSelector = ({ categoryFormData, setCategoryFormData }) => {
           }`}
         >
           {rememberTime === null ? 'Choose if you remember the time' :
-           rememberTime === true && (!customTime || !isValidTime(customTime)) ? 'Enter valid time (HH:MM)' :
+           rememberTime === true && (!customTime || !isValidTime(customTime)) ? 
+             (isToday() ? 
+               (customTime && !isValidTime(customTime) ? 'Time cannot be in the future' : 'Modify time if needed') : 
+               'Enter valid time (HH:MM)') :
            rememberTime === false && !selectedSegment ? 'Select a time period' :
-           'Continue to Category Selection'}
+           'Continue'}
         </button>
 
         {/* Helper Text */}
