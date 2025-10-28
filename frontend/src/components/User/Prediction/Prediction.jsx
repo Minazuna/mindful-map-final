@@ -17,8 +17,6 @@ import {
   Grid,
   Chip
 } from '@mui/material';
-import TodayIcon from '@mui/icons-material/Today';
-import DateRangeIcon from '@mui/icons-material/DateRange';
 import TimelineIcon from '@mui/icons-material/Timeline';
 import DirectionsRunIcon from '@mui/icons-material/DirectionsRun';
 import GroupIcon from '@mui/icons-material/Group';
@@ -103,22 +101,6 @@ const MainPredictions = () => {
     } catch (error) {
       console.error("Error checking category data availability:", error);
       setLoadingAvailability(false);
-    }
-  };
-
-  const handlePredictionNavigation = (path) => {
-    if (hasMoodLogs) {
-      navigate(path);
-    } else {
-      toast.error("Need at least two weeks of mood data for predictions. Please come back again later.", {
-        position: "top-center",
-        autoClose: 5000,
-        hideProgressBar: false,
-        closeOnClick: true,
-        pauseOnHover: true,
-        draggable: true,
-        progress: undefined,
-      });
     }
   };
 
@@ -307,7 +289,7 @@ const MainPredictions = () => {
                     fontFamily: 'Nunito, sans-serif'
                   }}
                 >
-                  See Into Your Future
+                  See Into Your Week
                 </Typography>
                 
                 <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
@@ -338,80 +320,30 @@ const MainPredictions = () => {
                 </Typography>
               </Box>
               
-              <Box sx={{ mt: 4 }}>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    fontWeight: 700, 
-                    mb: 3,
-                    color: '#3a3939',
-                    fontFamily: 'Nunito, sans-serif'
+              <Box sx={{ mt: 2 }}>
+                <Paper 
+                  elevation={0}
+                  sx={{
+                    backgroundColor: '#fffbe6',
+                    border: '1px solid #ffe58f',
+                    borderRadius: 3,
+                    p: 2,
+                    mb: 2,
+                    textAlign: 'center'
                   }}
                 >
-                  Choose your prediction timeframe:
-                </Typography>
-                
-                <Box className="flex flex-col sm:flex-row gap-4">
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }} 
-                    whileTap={{ scale: 0.95 }}
-                    className="flex-1"
+                  <Typography 
+                    variant="body2"
+                    sx={{
+                      color: '#b8860b',
+                      fontWeight: 600,
+                      fontFamily: 'Nunito, sans-serif'
+                    }}
                   >
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      startIcon={<TodayIcon />}
-                      onClick={() => handlePredictionNavigation("/daily-prediction")}
-                      sx={{
-                        backgroundColor: '#6fba94',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        py: 1.5,
-                        borderRadius: 50,
-                        textTransform: 'none',
-                        fontSize: '1rem',
-                        fontFamily: 'Nunito, sans-serif',
-                        boxShadow: '0 4px 10px rgba(111, 186, 148, 0.3)',
-                        '&:hover': {
-                          backgroundColor: '#5da87a',
-                        }
-                      }}
-                    >
-                      Daily Prediction
-                    </Button>
-                  </motion.div>
-                  
-                  <motion.div 
-                    whileHover={{ scale: 1.05 }} 
-                    whileTap={{ scale: 0.95 }}
-                    className="flex-1"
-                  >
-                    <Button
-                      variant="contained"
-                      fullWidth
-                      startIcon={<DateRangeIcon />}
-                      onClick={() => handlePredictionNavigation("/weekly-predictions")}
-                      sx={{
-                        backgroundColor: '#6fba94',
-                        color: 'white',
-                        fontWeight: 'bold',
-                        py: 1.5,
-                        borderRadius: 50,
-                        textTransform: 'none',
-                        fontSize: '1rem',
-                        fontFamily: 'Nunito, sans-serif',
-                        boxShadow: '0 4px 10px rgba(111, 186, 148, 0.3)',
-                        '&:hover': {
-                          backgroundColor: '#5da87a',
-                        }
-                      }}
-                    >
-                      Weekly Prediction
-                    </Button>
-                  </motion.div>
-                </Box>
-                
-                <Box sx={{ mt: 3, textAlign: 'center' }}>
+                    <strong>Disclaimer:</strong> Predictions are not 100% accurate. They are generated by analyzing your past mood logs and activity patterns, and are meant to provide guidance only. Weekly predictions are based solely on your own data and may not reflect all real-life factors.
+                  </Typography>
+                </Paper>
+                <Box sx={{ textAlign: 'center', mt: 2 }}>
                   <Typography 
                     variant="body2" 
                     sx={{ 
@@ -421,8 +353,8 @@ const MainPredictions = () => {
                     }}
                   >
                     {hasMoodLogs 
-                      ? "Your data is ready for predictions!" 
-                      : "Please log moods for at least two weeks to enable predictions"}
+                      ? "Your data is ready for category-based weekly predictions!" 
+                      : "Please log moods for at least two weeks to enable predictions."}
                   </Typography>
                 </Box>
               </Box>
@@ -459,7 +391,7 @@ const MainPredictions = () => {
                   textAlign: 'center'
                 }}
               >
-                Category-Based Predictions
+                Category-Based Weekly Predictions
               </Typography>
 
               <Typography 
@@ -471,7 +403,7 @@ const MainPredictions = () => {
                   mb: 4
                 }}
               >
-                Get detailed predictions for different aspects of your life
+                Get detailed predictions for different aspects of your life this week
               </Typography>
 
               <Grid container spacing={3}>
@@ -570,7 +502,7 @@ const MainPredictions = () => {
                 fontFamily: 'Nunito, sans-serif'
               }}
             >
-              "Understanding your patterns is the first step toward improving your emotional well-being"
+              "Understanding your patterns is the first step toward improving your emotional well-being."
             </Typography>
           </Paper>
         </motion.div>
