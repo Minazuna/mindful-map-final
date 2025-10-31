@@ -968,7 +968,6 @@ const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
 
   return {
     predictedMood: predictedMood.charAt(0).toUpperCase() + predictedMood.slice(1),
-    probability: Math.round(maxProbability * 100 * 10) / 10,
     actualMood: null
   };
 };
@@ -1076,16 +1075,17 @@ exports.getPredictionComparisons = async (req, res) => {
     categories.forEach(category => {
       comparisonData[category] = {
         days: daysOfWeek,
-        predicted: [],
-        actual: [],
-        accuracy: []
+        matches: [],
+        notMatches: [],
+        predictedMoods: [],
+        actualMoods: []
       };
 
       daysOfWeek.forEach(day => {
+        let matches = 0;
+        let notMatches = 0;
         let predictedMoods = [];
         let actualMoods = [];
-        let matches = 0;
-        let total = 0;
 
         predictions.forEach(prediction => {
           const dayData = prediction.predictions[category][day];
@@ -1094,22 +1094,19 @@ exports.getPredictionComparisons = async (req, res) => {
             
             if (dayData.actualMood) {
               actualMoods.push(dayData.actualMood);
-              total++;
               if (dayData.predictedMood.toLowerCase() === dayData.actualMood.toLowerCase()) {
                 matches++;
+              } else {
+                notMatches++;
               }
             }
           }
         });
 
-        // Get most common predicted and actual moods
-        const mostCommonPredicted = getMostCommonMood(predictedMoods);
-        const mostCommonActual = getMostCommonMood(actualMoods);
-        const accuracy = total > 0 ? Math.round((matches / total) * 100) : 0;
-
-        comparisonData[category].predicted.push(mostCommonPredicted || 'No data');
-        comparisonData[category].actual.push(mostCommonActual || 'No data');
-        comparisonData[category].accuracy.push(accuracy);
+        comparisonData[category].matches.push(matches);
+        comparisonData[category].notMatches.push(notMatches);
+        comparisonData[category].predictedMoods.push(predictedMoods);
+        comparisonData[category].actualMoods.push(actualMoods);
       });
     });
 
@@ -1206,6 +1203,41 @@ exports.updateActualMoods = async (req, res) => {
 
   } catch (error) {
     console.error('Error updating actual moods:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.getAvailableWeeks = async (req, res) => {
+  try {
+    // Calculate which weekOffsets have data
+    const currentDate = new Date();
+    const availableOffsets = [];
+    
+    // Check offsets 0-4 (current week to 4 weeks ago)
+    for (let offset = 0; offset <= 4; offset++) {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() - (offset * 7));
+      
+      const year = targetDate.getFullYear();
+      const weekNumber = getWeekNumber(targetDate);
+      
+      // Check if data exists for this week
+      const dataExists = await PredictedMood.exists({
+        year: year,
+        weekNumber: weekNumber
+      });
+      
+      if (dataExists) {
+        availableOffsets.push(offset);
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      availableOffsets: availableOffsets
+    });
+  } catch (error) {
+    console.error('Error getting available weeks:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
