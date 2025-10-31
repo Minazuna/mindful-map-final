@@ -23,12 +23,15 @@ import GroupIcon from '@mui/icons-material/Group';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 const CategoryPrediction = () => {
   const [value, setValue] = useState('prediction');
   const navigate = useNavigate();
   const { category } = useParams();
   const [predictions, setPredictions] = useState(null);
+  const [dateRange, setDateRange] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -59,6 +62,7 @@ const CategoryPrediction = () => {
       
       if (data.success) {
         setPredictions(data.predictions);
+        setDateRange(data.dateRange);
       } else {
         setError(data.message || 'Failed to fetch predictions');
         toast.error(data.message || 'Failed to fetch predictions');
@@ -203,6 +207,89 @@ const CategoryPrediction = () => {
             </Typography>
           </Box>
         </motion.div>
+
+        {/* Date Range Info */}
+        {dateRange && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="mb-6"
+          >
+            <Card 
+              elevation={0}
+              sx={{ 
+                borderRadius: '15px', 
+                overflow: 'hidden', 
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                background: 'rgba(255,255,255,0.9)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+            >
+              <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                  <CalendarTodayIcon sx={{ mr: 1, color: getCategoryColor(category) }} />
+                  <Typography 
+                    variant="subtitle1" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: '#3a3939',
+                      fontFamily: 'Nunito, sans-serif'
+                    }}
+                  >
+                    Historical Data Period
+                  </Typography>
+                </Box>
+                <Typography 
+                  variant="body1" 
+                  sx={{ 
+                    color: getCategoryColor(category),
+                    fontFamily: 'Nunito, sans-serif',
+                    fontWeight: 500,
+                    mb: 0.5
+                  }}
+                >
+                  {new Date(dateRange.start_date).toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })} - {new Date(dateRange.end_date).toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mt: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BarChartIcon sx={{ mr: 0.5, color: '#666', fontSize: '1rem' }} />
+                    <Typography 
+                      variant="body2" 
+                      sx={{ 
+                        color: '#666',
+                        fontFamily: 'Nunito, sans-serif'
+                      }}
+                    >
+                      {dateRange.weeks_of_data} weeks
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: '#666' }}>•</Typography>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: '#666',
+                      fontFamily: 'Nunito, sans-serif'
+                    }}
+                  >
+                    {dateRange.total_entries} entries
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
         {/* Predictions Grid */}
         <Grid container spacing={3}>
@@ -367,7 +454,7 @@ const CategoryPrediction = () => {
                   lineHeight: 1.7
                 }}
               >
-                These predictions are based on analyzing your {category} data from the last 4 weeks, 
+                These predictions are based on analyzing your {category} data from {dateRange ? `the period shown above (${dateRange.weeks_of_data} weeks of historical data)` : 'up to the last 4 weeks'}, 
                 using a weighted probability model that gives more importance to recent patterns. 
                 The confidence percentage shows how certain the prediction is based on your historical data.
               </Typography>

@@ -164,7 +164,8 @@ exports.predictCategoryMood = async (req, res) => {
         res.json({
             success: true,
             category: pythonData.category,
-            predictions: pythonData.predictions
+            predictions: pythonData.predictions,
+            dateRange: pythonData.date_range
         });
 
     } catch (error) {

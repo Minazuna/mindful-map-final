@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import json
 import sys
 import logging
@@ -43,13 +43,13 @@ class CategoryMoodPredictor:
             category_df = df[df['category'] == category].copy()
             
             if category_df.empty:
-                return None, f"No data found for {category} category"
+                return None, f"No data found for {category} category", None
 
             # Get current week boundaries
             most_recent = category_df['timestamp'].max()
             current_date = pd.Timestamp.now(tz=most_recent.tz).date()
             current_week_monday = current_date - pd.Timedelta(days=current_date.weekday())
-            current_week_start = pd.Timestamp.combine(current_week_monday, datetime.min.time()).tz_localize(most_recent.tz)
+            current_week_start = pd.Timestamp.combine(current_week_monday, time.min).tz_localize(most_recent.tz)
 
             # Exclude current week data
             category_df = category_df[category_df['timestamp'] < current_week_start]
@@ -59,11 +59,22 @@ class CategoryMoodPredictor:
             category_df = category_df[category_df['timestamp'] >= four_weeks_ago]
 
             if len(category_df) < 14:  # Need at least 2 weeks of data (14 entries minimum)
-                return None, f"Insufficient data for {category} category. Need at least 2 weeks of data."
+                return None, f"Insufficient data for {category} category. Need at least 2 weeks of data.", None
 
             # Group by weeks (oldest to newest)
             category_df['week_number'] = ((category_df['timestamp'] - four_weeks_ago).dt.days // 7).astype(int)
             category_df = category_df[category_df['week_number'] < 4]  # Only 4 weeks
+
+            # Calculate actual date range used for predictions
+            actual_data_start = category_df['timestamp'].min().strftime('%Y-%m-%d')
+            actual_data_end = category_df['timestamp'].max().strftime('%Y-%m-%d')
+            
+            date_range_info = {
+                'start_date': actual_data_start,
+                'end_date': actual_data_end,
+                'total_entries': len(category_df),
+                'weeks_of_data': len(category_df['week_number'].unique())
+            }
 
             # Calculate weighted probabilities for each day of the week
             day_predictions = {}
@@ -140,11 +151,11 @@ class CategoryMoodPredictor:
                     'cause': most_common_cause
                 }
 
-            return day_predictions, None
+            return day_predictions, None, date_range_info
 
         except Exception as e:
             logger.error(f"Error in prepare_category_data for {category}: {str(e)}")
-            return None, str(e)
+            return None, str(e), None
 
     def check_category_data_availability(self, mood_logs):
         """
@@ -153,7 +164,7 @@ class CategoryMoodPredictor:
         available_categories = {}
         
         for category in self.categories:
-            category_data, error = self.prepare_category_data(mood_logs, category)
+            category_data, error, date_range = self.prepare_category_data(mood_logs, category)
             available_categories[category] = {
                 'available': category_data is not None,
                 'message': error if category_data is None else 'Sufficient data available'
@@ -167,12 +178,12 @@ def predict_category_moods(mood_logs, category):
     """
     try:
         predictor = CategoryMoodPredictor()
-        predictions, error = predictor.prepare_category_data(mood_logs, category)
+        predictions, error, date_range_info = predictor.prepare_category_data(mood_logs, category)
         
         if error:
             return {'error': error}
         
-        return {'predictions': predictions}
+        return {'predictions': predictions, 'date_range': date_range_info}
     except Exception as e:
         logger.error(f"Error in predict_category_moods: {str(e)}")
         return {'error': str(e)}
@@ -238,7 +249,8 @@ def get_category_prediction():
         return jsonify({
             'success': True,
             'category': category,
-            'predictions': result['predictions']
+            'predictions': result['predictions'],
+            'date_range': result.get('date_range')
         })
         
     except Exception as e:
