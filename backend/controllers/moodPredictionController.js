@@ -216,3 +216,182 @@ exports.checkCategoryData = async (req, res) => {
         });
     }
 };
+
+exports.getUserPredictionComparison = async (req, res) => {
+    try {
+        const { weekOffset = 0 } = req.query;
+        const userId = req.user._id;
+
+        // Calculate target week dates
+        const targetDate = new Date();
+        targetDate.setDate(targetDate.getDate() - (weekOffset * 7));
+        
+        const year = targetDate.getFullYear();
+        const getWeekNumber = (date) => {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        };
+        const weekNumber = getWeekNumber(targetDate);
+
+        // Get user's prediction data for the specified week
+        const PredictedMood = require('../models/PredictedMood');
+        const userPrediction = await PredictedMood.findOne({
+            user: userId,
+            year: year,
+            weekNumber: weekNumber
+        });
+
+        if (!userPrediction) {
+            return res.status(404).json({
+                success: false,
+                message: 'No prediction data found for this week'
+            });
+        }
+
+        // Process data for comparison charts
+        const categories = ['activity', 'social', 'health', 'sleep'];
+        const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+        const comparisonData = {};
+
+        categories.forEach(category => {
+            comparisonData[category] = {
+                days: daysOfWeek,
+                predicted: [],
+                actual: [],
+                probability: []
+            };
+
+            daysOfWeek.forEach(day => {
+                const dayData = userPrediction.predictions[category][day];
+                const predicted = dayData?.predictedMood || 'No data';
+                const actual = dayData?.actualMood || 'No data';
+                
+                // Calculate probability from allMoodProbabilities based on actual mood
+                let probability = 0;
+                
+                // Calculate probability from allMoodProbabilities based on actual mood or predicted mood
+                if (dayData?.allMoodProbabilities && Object.keys(dayData.allMoodProbabilities).length > 0) {
+                    let moodToLookup = null;
+                    
+                    if (actual && actual !== 'No data') {
+                        moodToLookup = actual.toLowerCase();
+                    } else if (predicted && predicted !== 'No data' && predicted !== 'No data available') {
+                        moodToLookup = predicted.toLowerCase();
+                    }
+                    
+                    if (moodToLookup) {
+                        // The allMoodProbabilities keys are in lowercase (from Python service)
+                        // so we convert the mood to lowercase for lookup
+                        probability = dayData.allMoodProbabilities[moodToLookup] || 0;
+                    }
+                } else {
+                    // Fallback: if no allMoodProbabilities available (old data), 
+                    // show a default value or regenerate predictions
+                    console.log(`Warning: No allMoodProbabilities found for ${category} ${day}. This might be old prediction data.`);
+                    probability = 0;
+                }
+                
+                comparisonData[category].predicted.push(predicted);
+                comparisonData[category].actual.push(actual);
+                comparisonData[category].probability.push(probability);
+            });
+        });
+
+        res.status(200).json({
+            success: true,
+            data: comparisonData,
+            weekInfo: {
+                year: year,
+                weekNumber: weekNumber,
+                weekOffset: weekOffset,
+                userId: userId
+            }
+        });
+
+    } catch (error) {
+        console.error('Error getting user prediction comparison:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server Error', 
+            error: error.message 
+        });
+    }
+};
+
+exports.getUserAvailableWeeks = async (req, res) => {
+    try {
+        const userId = req.user._id;
+        const PredictedMood = require('../models/PredictedMood');
+        
+        const getWeekNumber = (date) => {
+            const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1) / 7);
+        };
+
+        // Calculate which weekOffsets have data for this specific user
+        const currentDate = new Date();
+        const availableOffsets = [];
+        
+        // Check offsets 0-4 (current week to 4 weeks ago)
+        for (let offset = 0; offset <= 4; offset++) {
+            const targetDate = new Date();
+            targetDate.setDate(targetDate.getDate() - (offset * 7));
+            
+            const year = targetDate.getFullYear();
+            const weekNumber = getWeekNumber(targetDate);
+            
+            // Check if data exists for this specific user and week
+            const dataExists = await PredictedMood.exists({
+                user: userId,
+                year: year,
+                weekNumber: weekNumber
+            });
+            
+            if (dataExists) {
+                availableOffsets.push(offset);
+            }
+        }
+        
+        res.status(200).json({
+            success: true,
+            availableOffsets: availableOffsets
+        });
+    } catch (error) {
+        console.error('Error getting user available weeks:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Server Error', 
+            error: error.message 
+        });
+    }
+};
+
+// Internal function to get mood logs for any user (for admin use)
+exports.getMoodLogsForUser = async (userId) => {
+    try {
+        const moodLogs = await MoodLog.find({ 
+            user: userId,
+            date: { $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) } // Last 60 days
+        }).select('category activity hrs afterEmotion afterValence afterIntensity afterReason date -_id');
+
+        return moodLogs.map(log => ({
+            category: log.category,
+            activity: log.activity,
+            hrs: log.hrs,
+            afterEmotion: log.afterEmotion,
+            afterValence: log.afterValence,
+            afterIntensity: log.afterIntensity,
+            afterReason: log.afterReason,
+            timestamp: log.date.toISOString()
+        }));
+    } catch (error) {
+        console.error('Error fetching mood logs for user:', error);
+        throw error;
+    }
+};

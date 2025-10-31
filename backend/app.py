@@ -145,10 +145,16 @@ class CategoryMoodPredictor:
                 else:
                     most_common_cause = 'Unknown cause'
 
+                # Convert probabilities to percentages for all moods
+                all_mood_probabilities = {}
+                for mood, prob in mood_probabilities.items():
+                    all_mood_probabilities[mood] = round(prob * 100, 1)
+
                 day_predictions[day] = {
                     'predicted_mood': predicted_emotion.capitalize(),
                     'probability': round(predicted_probability * 100, 1),
-                    'cause': most_common_cause
+                    'cause': most_common_cause,
+                    'all_mood_probabilities': all_mood_probabilities
                 }
 
             return day_predictions, None, date_range_info
@@ -330,6 +336,58 @@ def get_prediction_from_node():
         
     except Exception as e:
         logger.error(f"API Error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/api/predict-category-mood-internal', methods=['POST'])
+def predict_category_mood_internal():
+    """
+    Internal endpoint for admin to get predictions by passing mood logs directly
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+            
+        category = data.get('category')
+        mood_logs = data.get('mood_logs', [])
+        
+        if not category or category not in ['activity', 'social', 'health', 'sleep']:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid or missing category parameter'
+            }), 400
+            
+        if not mood_logs:
+            return jsonify({
+                'success': False,
+                'message': 'No mood logs provided'
+            }), 400
+        
+        # Get predictions for the specific category
+        result = predict_category_moods(mood_logs, category)
+        
+        if 'error' in result:
+            return jsonify({
+                'success': False,
+                'message': result['error']
+            }), 400
+            
+        return jsonify({
+            'success': True,
+            'category': category,
+            'predictions': result['predictions'],
+            'date_range': result.get('date_range')
+        })
+        
+    except Exception as e:
+        logger.error(f"Internal API Error: {str(e)}")
         return jsonify({
             'success': False,
             'message': f'Server error: {str(e)}'

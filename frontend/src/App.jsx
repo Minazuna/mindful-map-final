@@ -20,6 +20,7 @@ import WeeklyPredictions from './components/User/Prediction/WeeklyPredictions';
 import DailyPrediction from './components/User/Prediction/DailyPrediction';
 import Prediction from './components/User/Prediction/Prediction';
 import CategoryPrediction from './components/User/Prediction/CategoryPrediction';
+import PredictionComparison from './components/User/Prediction/PredictionComparison';
 import Recommendations from './components/User/Statistics/Recommendations';
 import Pomodoro from './components/User/Activities/Pomodoro';
 import Affirmation from './components/User/Activities/Affirmation';
@@ -482,6 +483,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <CategoryPrediction />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/prediction-comparison"
+          element={
+            <UserPrivateRoute>
+              <PredictionComparison />
             </UserPrivateRoute>
           }
         />

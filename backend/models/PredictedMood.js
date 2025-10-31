@@ -24,40 +24,40 @@ const predictedMoodSchema = new mongoose.Schema({
   },
   predictions: {
     activity: {
-      Monday: { predictedMood: String, actualMood: String },
-      Tuesday: { predictedMood: String, actualMood: String },
-      Wednesday: { predictedMood: String, actualMood: String },
-      Thursday: { predictedMood: String, actualMood: String },
-      Friday: { predictedMood: String, actualMood: String },
-      Saturday: { predictedMood: String, actualMood: String },
-      Sunday: { predictedMood: String, actualMood: String }
+      Monday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Tuesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Wednesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Thursday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Friday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Saturday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Sunday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object }
     },
     social: {
-      Monday: { predictedMood: String, actualMood: String },
-      Tuesday: { predictedMood: String, actualMood: String },
-      Wednesday: { predictedMood: String, actualMood: String },
-      Thursday: { predictedMood: String, actualMood: String },
-      Friday: { predictedMood: String, actualMood: String },
-      Saturday: { predictedMood: String, actualMood: String },
-      Sunday: { predictedMood: String, actualMood: String }
+      Monday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Tuesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Wednesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Thursday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Friday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Saturday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Sunday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object }
     },
     health: {
-      Monday: { predictedMood: String, actualMood: String },
-      Tuesday: { predictedMood: String, actualMood: String },
-      Wednesday: { predictedMood: String, actualMood: String },
-      Thursday: { predictedMood: String, actualMood: String },
-      Friday: { predictedMood: String, actualMood: String },
-      Saturday: { predictedMood: String, actualMood: String },
-      Sunday: { predictedMood: String, actualMood: String }
+      Monday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Tuesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Wednesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Thursday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Friday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Saturday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Sunday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object }
     },
     sleep: {
-      Monday: { predictedMood: String, actualMood: String },
-      Tuesday: { predictedMood: String, actualMood: String },
-      Wednesday: { predictedMood: String, actualMood: String },
-      Thursday: { predictedMood: String, actualMood: String },
-      Friday: { predictedMood: String, actualMood: String },
-      Saturday: { predictedMood: String, actualMood: String },
-      Sunday: { predictedMood: String, actualMood: String }
+      Monday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Tuesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Wednesday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Thursday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Friday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Saturday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object },
+      Sunday: { predictedMood: String, actualMood: String, allMoodProbabilities: Object }
     }
   },
   isCompleted: {
