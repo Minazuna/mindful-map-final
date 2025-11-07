@@ -90,27 +90,43 @@ class CategoryMoodPredictor:
                     }
                     continue
 
-                # Count mood occurrences per week with intensity weighting
-                mood_week_weighted_intensities = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # 4 weeks
+                # Group mood intensities by mood, week, and specific date for averaging
+                mood_daily_intensities = defaultdict(lambda: defaultdict(list))  # {mood: {date_str: [intensities]}}
                 activity_mood_mapping = defaultdict(list)
                 
+                # First pass: collect all intensities per mood per specific date
                 for _, row in day_data.iterrows():
                     week_idx = row['week_number']
                     after_emotion = row['afterEmotion'].lower() if row['afterEmotion'] else 'unknown'
                     after_intensity = row.get('afterIntensity', 0)  # Default to 1 if missing
+                    date_str = row['timestamp'].strftime('%Y-%m-%d')  # Group by specific date
                     
                     # Skip unknown emotions
                     if after_emotion in self.all_emotions:
-                        # Apply weighted mean: weight (per week) * intensity
-                        week_weight = self.week_weights[week_idx]
-                        weighted_intensity = week_weight * after_intensity
-                        mood_week_weighted_intensities[after_emotion][week_idx] += weighted_intensity
+                        mood_daily_intensities[after_emotion][date_str].append({
+                            'intensity': after_intensity,
+                            'week_idx': week_idx
+                        })
                         
                         # Track activities/causes for this mood
                         if category == 'sleep':
                             activity_mood_mapping[after_emotion].append(f"{row.get('hrs', 0)} hours of sleep")
                         else:
                             activity_mood_mapping[after_emotion].append(row.get('activity', 'Unknown activity'))
+
+                # Second pass: calculate average intensity per mood per day, then apply week weight
+                mood_week_weighted_intensities = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # 4 weeks
+                
+                for mood, daily_data in mood_daily_intensities.items():
+                    for date_str, intensity_records in daily_data.items():
+                        # Calculate average intensity for this mood on this specific date
+                        avg_intensity = sum(record['intensity'] for record in intensity_records) / len(intensity_records)
+                        week_idx = intensity_records[0]['week_idx']  # All records on same date have same week
+                        
+                        # Apply weighted mean: weight (per week) * average_intensity
+                        week_weight = self.week_weights[week_idx]
+                        weighted_intensity = week_weight * avg_intensity
+                        mood_week_weighted_intensities[mood][week_idx] += weighted_intensity
 
                 # Calculate total weighted intensities using weighted mean formula
                 mood_total_weighted_intensities = {}

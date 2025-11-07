@@ -92,8 +92,8 @@ The implementation follows the weighted mean formula:
 Weighted Mean = Σ(wi × xi) / Σ(wi)
 
 Where:
-- wi = week_weight × mood_intensity  
-- xi = 1 (occurrence)
+- wi = week_weight (4 for recent, 1 for oldest)
+- xi = mood_intensity (1-5 scale from afterIntensity field)
 - Result capped at 90% maximum
 ```
 

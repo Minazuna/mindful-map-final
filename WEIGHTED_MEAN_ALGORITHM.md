@@ -26,52 +26,52 @@ Where:
 ### Calculation Steps
 
 1. **Data Collection**: Gather mood logs for the past 4 weeks (excluding current week)
-2. **Weighted Intensity Calculation**: For each mood entry:
+2. **Daily Intensity Averaging**: For multiple same moods on the same day:
    ```
-   Weighted Intensity = Week Weight × After Intensity
+   Average Intensity = Sum of intensities / Number of entries
+   Example: Happy on Nov 18 with intensities [2, 8] → Average = 5.0
    ```
-3. **Mood Aggregation**: Sum weighted intensities for each mood type
-4. **Probability Calculation**: 
+3. **Weighted Intensity Calculation**: For each averaged mood per day:
+   ```
+   Weighted Intensity = Week Weight × Average Daily Intensity
+   ```
+4. **Mood Aggregation**: Sum weighted intensities for each mood type across all days
+5. **Probability Calculation**: 
    ```
    Mood Probability = (Sum of Weighted Intensities for Mood) / (Total Weighted Intensities)
    ```
-5. **Percentage Conversion**: Convert to percentage with 90% maximum cap
-6. **Prediction Selection**: Choose mood with highest probability
+6. **Percentage Conversion**: Convert to percentage with 90% maximum cap
+7. **Prediction Selection**: Choose mood with highest probability
 
 ### Example Calculation
 
 Assuming data for Monday:
 
-**Happy Mood Data:**
-- Week 1: 1 occurrence × intensity 7.5 × weight 1 = 7.5
-- Week 2: 3 occurrences × intensity 8.5 × weight 2 = 51.0  
-- Week 3: 4 occurrences × intensity 6.0 × weight 3 = 72.0
-- **Total Happy WIS = 130.5**
+**Nov 18 (Monday) - Week 4:**
+- **Happy entries**: intensities [2, 8] → Average = 5.0 → WIS = 4 × 5.0 = 20.0
+- **Neutral entries**: intensities [5] → Average = 5.0 → WIS = 4 × 5.0 = 20.0
 
-**Stressed Mood Data:**
-- Week 2: 2 occurrences × intensity 5.0 × weight 2 = 20.0
-- **Total Stressed WIS = 20.0**
-
-**Neutral Mood Data:**
-- Week 3: 4 occurrences × intensity 5.0 × weight 3 = 60.0
-- **Total Neutral WIS = 60.0**
-
-**Total WIS = 130.5 + 20.0 + 60.0 = 210.5**
+**Total WIS = 20.0 + 20.0 = 40.0**
 
 **Probabilities:**
-- Happy: (130.5/210.5) × 100 = 62.0%
-- Stressed: (20.0/210.5) × 100 = 9.5%
-- Neutral: (60.0/210.5) × 100 = 28.5%
+- Happy: (20.0/40.0) × 100 = 50.0%
+- Neutral: (20.0/40.0) × 100 = 50.0%
 
-**Predicted Mood: Happy (62.0%)**
+**Predicted Mood: Tied at 50% (system would select first alphabetically or use tiebreaker)**
+
+**Comparison with Old Aggregation Method:**
+- Old: Happy WIS = 4 × (2+8) = 40, Neutral WIS = 4 × 5 = 20 → Happy 66.7%
+- New: Happy WIS = 4 × 5.0 = 20, Neutral WIS = 4 × 5.0 = 20 → Happy 50.0%
+- **Result**: More balanced predictions, less bias toward frequent entries
 
 ## Benefits
 
 1. **Recency Weighting**: More recent mood patterns have greater influence
 2. **Intensity Consideration**: Higher intensity moods are weighted more heavily
-3. **Realistic Confidence**: 90% maximum cap prevents overconfidence
-4. **Pattern Recognition**: Better identifies significant mood trends
-5. **Personalized**: Based entirely on individual user data
+3. **Balanced Daily Representation**: Multiple entries per day are averaged, preventing over-influence
+4. **Realistic Confidence**: 90% maximum cap prevents overconfidence
+5. **Pattern Recognition**: Better identifies significant mood trends without frequency bias
+6. **Personalized**: Based entirely on individual user data
 
 ## Files Modified
 
@@ -89,5 +89,5 @@ Assuming data for Monday:
 - The algorithm excludes current week data to prevent bias
 - Minimum 2 weeks of data required for predictions
 - Unknown emotions are filtered out
-- Default intensity of 1 used if afterIntensity field is missing
+- Default intensity of 0 used if afterIntensity field is missing
 - All probabilities are capped at 90% maximum confidence

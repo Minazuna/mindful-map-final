@@ -991,14 +991,10 @@ const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekS
     };
   }
 
-  // Python logic: category_df['week_number'] = ((category_df['timestamp'] - four_weeks_ago).dt.days // 7).astype(int)
-  // Initialize mood weighted intensities for 4 weeks [week0, week1, week2, week3] (oldest to newest)
-  const moodWeekWeightedIntensities = {};
-  allEmotions.forEach(emotion => {
-    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0];
-  });
-
-  // Process each log - Python week assignment logic with intensity weighting
+  // Group mood intensities by mood and specific date for averaging
+  const moodDailyIntensities = {};
+  
+  // First pass: collect all intensities per mood per specific date
   dayLogs.forEach(log => {
     // Python: ((category_df['timestamp'] - four_weeks_ago).dt.days // 7).astype(int)
     const daysDiff = Math.floor((log.date - fourWeeksAgo) / (24 * 60 * 60 * 1000));
@@ -1008,14 +1004,43 @@ const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekS
     if (weekNumber >= 0 && weekNumber < 4) {
       const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
       const afterIntensity = log.afterIntensity || 0; // Default to 1 if missing
+      const dateStr = log.date.toISOString().split('T')[0]; // Get YYYY-MM-DD format
       
       if (afterEmotion && allEmotions.includes(afterEmotion)) {
-        // Apply weighted mean: weight (per week) * intensity
-        const weekWeight = weekWeights[weekNumber];
-        const weightedIntensity = weekWeight * afterIntensity;
-        moodWeekWeightedIntensities[afterEmotion][weekNumber] += weightedIntensity;
+        if (!moodDailyIntensities[afterEmotion]) {
+          moodDailyIntensities[afterEmotion] = {};
+        }
+        if (!moodDailyIntensities[afterEmotion][dateStr]) {
+          moodDailyIntensities[afterEmotion][dateStr] = [];
+        }
+        
+        moodDailyIntensities[afterEmotion][dateStr].push({
+          intensity: afterIntensity,
+          weekNumber: weekNumber
+        });
       }
     }
+  });
+
+  // Second pass: calculate average intensity per mood per day, then apply week weight
+  const moodWeekWeightedIntensities = {};
+  allEmotions.forEach(emotion => {
+    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0];
+  });
+  
+  Object.keys(moodDailyIntensities).forEach(mood => {
+    Object.keys(moodDailyIntensities[mood]).forEach(dateStr => {
+      const intensityRecords = moodDailyIntensities[mood][dateStr];
+      
+      // Calculate average intensity for this mood on this specific date
+      const avgIntensity = intensityRecords.reduce((sum, record) => sum + record.intensity, 0) / intensityRecords.length;
+      const weekNumber = intensityRecords[0].weekNumber; // All records on same date have same week
+      
+      // Apply weighted mean: weight (per week) * average_intensity
+      const weekWeight = weekWeights[weekNumber];
+      const weightedIntensity = weekWeight * avgIntensity;
+      moodWeekWeightedIntensities[mood][weekNumber] += weightedIntensity;
+    });
   });
 
   // Calculate total weighted intensities using weighted mean formula
@@ -1085,25 +1110,52 @@ const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
     };
   }
 
-  // Group logs by week with weighted intensities
-  const moodWeekWeightedIntensities = {};
-  emotions.forEach(emotion => {
-    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0]; // 4 weeks
-  });
-
+  // Group mood intensities by mood and specific date for averaging
+  const moodDailyIntensities = {};
+  
+  // First pass: collect all intensities per mood per specific date
   dayLogs.forEach(log => {
     const weeksDiff = Math.floor((currentWeekStart - log.date) / (7 * 24 * 60 * 60 * 1000));
     const weekIndex = Math.min(3, Math.max(0, weeksDiff - 1)); // Weeks 1-4 (index 0-3)
     
     const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
     const afterIntensity = log.afterIntensity || 0; // Default to 1 if missing
+    const dateStr = log.date.toISOString().split('T')[0]; // Get YYYY-MM-DD format
     
     if (afterEmotion && emotions.includes(afterEmotion)) {
-      // Apply weighted mean: weight (per week) * intensity
-      const weekWeight = weekWeights[weekIndex];
-      const weightedIntensity = weekWeight * afterIntensity;
-      moodWeekWeightedIntensities[afterEmotion][weekIndex] += weightedIntensity;
+      if (!moodDailyIntensities[afterEmotion]) {
+        moodDailyIntensities[afterEmotion] = {};
+      }
+      if (!moodDailyIntensities[afterEmotion][dateStr]) {
+        moodDailyIntensities[afterEmotion][dateStr] = [];
+      }
+      
+      moodDailyIntensities[afterEmotion][dateStr].push({
+        intensity: afterIntensity,
+        weekIndex: weekIndex
+      });
     }
+  });
+
+  // Second pass: calculate average intensity per mood per day, then apply week weight
+  const moodWeekWeightedIntensities = {};
+  emotions.forEach(emotion => {
+    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0]; // 4 weeks
+  });
+  
+  Object.keys(moodDailyIntensities).forEach(mood => {
+    Object.keys(moodDailyIntensities[mood]).forEach(dateStr => {
+      const intensityRecords = moodDailyIntensities[mood][dateStr];
+      
+      // Calculate average intensity for this mood on this specific date
+      const avgIntensity = intensityRecords.reduce((sum, record) => sum + record.intensity, 0) / intensityRecords.length;
+      const weekIndex = intensityRecords[0].weekIndex; // All records on same date have same week
+      
+      // Apply weighted mean: weight (per week) * average_intensity
+      const weekWeight = weekWeights[weekIndex];
+      const weightedIntensity = weekWeight * avgIntensity;
+      moodWeekWeightedIntensities[mood][weekIndex] += weightedIntensity;
+    });
   });
 
   // Calculate total weighted intensities
