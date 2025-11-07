@@ -992,13 +992,13 @@ const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekS
   }
 
   // Python logic: category_df['week_number'] = ((category_df['timestamp'] - four_weeks_ago).dt.days // 7).astype(int)
-  // Initialize mood counts for 4 weeks [week0, week1, week2, week3] (oldest to newest)
-  const moodWeekCounts = {};
+  // Initialize mood weighted intensities for 4 weeks [week0, week1, week2, week3] (oldest to newest)
+  const moodWeekWeightedIntensities = {};
   allEmotions.forEach(emotion => {
-    moodWeekCounts[emotion] = [0, 0, 0, 0];
+    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0];
   });
 
-  // Process each log - Python week assignment logic
+  // Process each log - Python week assignment logic with intensity weighting
   dayLogs.forEach(log => {
     // Python: ((category_df['timestamp'] - four_weeks_ago).dt.days // 7).astype(int)
     const daysDiff = Math.floor((log.date - fourWeeksAgo) / (24 * 60 * 60 * 1000));
@@ -1007,28 +1007,30 @@ const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekS
     // Python: category_df = category_df[category_df['week_number'] < 4]
     if (weekNumber >= 0 && weekNumber < 4) {
       const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+      const afterIntensity = log.afterIntensity || 0; // Default to 1 if missing
+      
       if (afterEmotion && allEmotions.includes(afterEmotion)) {
-        moodWeekCounts[afterEmotion][weekNumber]++;
+        // Apply weighted mean: weight (per week) * intensity
+        const weekWeight = weekWeights[weekNumber];
+        const weightedIntensity = weekWeight * afterIntensity;
+        moodWeekWeightedIntensities[afterEmotion][weekNumber] += weightedIntensity;
       }
     }
   });
 
-  // Calculate weighted frequencies - exactly as Python does
-  const moodWeightedFrequencies = {};
-  let totalWeightedFrequency = 0;
+  // Calculate total weighted intensities using weighted mean formula
+  const moodTotalWeightedIntensities = {};
+  let totalWeightedIntensity = 0.0;
 
   allEmotions.forEach(emotion => {
-    const weekCounts = moodWeekCounts[emotion];
-    // Python logic: sum(count * weight for count, weight in zip(week_counts, self.week_weights))
-    const weightedFreq = weekCounts.reduce((sum, count, index) => {
-      return sum + (count * weekWeights[index]);
-    }, 0);
-    
-    moodWeightedFrequencies[emotion] = weightedFreq;
-    totalWeightedFrequency += weightedFreq;
+    const weekWeightedIntensities = moodWeekWeightedIntensities[emotion];
+    // Sum all weighted intensities for this mood across all weeks
+    const moodWeightedSum = weekWeightedIntensities.reduce((sum, intensity) => sum + intensity, 0);
+    moodTotalWeightedIntensities[emotion] = moodWeightedSum;
+    totalWeightedIntensity += moodWeightedSum;
   });
 
-  if (totalWeightedFrequency === 0) {
+  if (totalWeightedIntensity === 0) {
     return {
       predictedMood: 'No valid data',
       probability: 0.0,
@@ -1036,14 +1038,15 @@ const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekS
     };
   }
 
-  // Calculate probabilities and find predicted mood - Python logic
+  // Calculate probabilities using weighted mean formula
   const moodProbabilities = {};
   allEmotions.forEach(emotion => {
-    const probability = moodWeightedFrequencies[emotion] / totalWeightedFrequency;
+    // Weighted Mean = Σ(wi × xi) / Σ(wi)
+    const probability = moodTotalWeightedIntensities[emotion] / totalWeightedIntensity;
     moodProbabilities[emotion] = probability;
   });
 
-  // Get the mood with highest probability - Python logic
+  // Get the mood with highest probability
   let maxProbability = 0;
   let predictedEmotion = 'unknown';
 
@@ -1054,8 +1057,12 @@ const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekS
     }
   });
 
+  // Cap the maximum probability at 90%
+  const cappedProbability = Math.min(maxProbability * 100, 90.0);
+
   return {
     predictedMood: predictedEmotion.charAt(0).toUpperCase() + predictedEmotion.slice(1),
+    probability: Math.round(cappedProbability * 10) / 10, // Round to 1 decimal place
     actualMood: null
   };
 };
@@ -1078,10 +1085,10 @@ const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
     };
   }
 
-  // Group logs by week (relative to current week)
-  const moodWeekCounts = {};
+  // Group logs by week with weighted intensities
+  const moodWeekWeightedIntensities = {};
   emotions.forEach(emotion => {
-    moodWeekCounts[emotion] = [0, 0, 0, 0]; // 4 weeks
+    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0]; // 4 weeks
   });
 
   dayLogs.forEach(log => {
@@ -1089,44 +1096,51 @@ const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
     const weekIndex = Math.min(3, Math.max(0, weeksDiff - 1)); // Weeks 1-4 (index 0-3)
     
     const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+    const afterIntensity = log.afterIntensity || 0; // Default to 1 if missing
+    
     if (afterEmotion && emotions.includes(afterEmotion)) {
-      moodWeekCounts[afterEmotion][weekIndex]++;
+      // Apply weighted mean: weight (per week) * intensity
+      const weekWeight = weekWeights[weekIndex];
+      const weightedIntensity = weekWeight * afterIntensity;
+      moodWeekWeightedIntensities[afterEmotion][weekIndex] += weightedIntensity;
     }
   });
 
-  // Calculate weighted frequencies
-  const moodWeightedFrequencies = {};
-  let totalWeightedFrequency = 0;
+  // Calculate total weighted intensities
+  const moodTotalWeightedIntensities = {};
+  let totalWeightedIntensity = 0.0;
 
   emotions.forEach(emotion => {
-    const weightedFreq = moodWeekCounts[emotion].reduce((sum, count, index) => {
-      return sum + (count * weekWeights[index]);
-    }, 0);
-    moodWeightedFrequencies[emotion] = weightedFreq;
-    totalWeightedFrequency += weightedFreq;
+    const moodWeightedSum = moodWeekWeightedIntensities[emotion].reduce((sum, intensity) => sum + intensity, 0);
+    moodTotalWeightedIntensities[emotion] = moodWeightedSum;
+    totalWeightedIntensity += moodWeightedSum;
   });
 
-  if (totalWeightedFrequency === 0) {
+  if (totalWeightedIntensity === 0) {
     return {
       predictedMood: 'No valid data',
       actualMood: null
     };
   }
 
-  // Find mood with highest probability
+  // Find mood with highest probability using weighted mean
   let maxProbability = 0;
   let predictedMood = 'unknown';
 
   emotions.forEach(emotion => {
-    const probability = moodWeightedFrequencies[emotion] / totalWeightedFrequency;
+    const probability = moodTotalWeightedIntensities[emotion] / totalWeightedIntensity;
     if (probability > maxProbability) {
       maxProbability = probability;
       predictedMood = emotion;
     }
   });
 
+  // Cap the maximum probability at 90%
+  const cappedProbability = Math.min(maxProbability * 100, 90.0);
+
   return {
     predictedMood: predictedMood.charAt(0).toUpperCase() + predictedMood.slice(1),
+    probability: Math.round(cappedProbability * 10) / 10, // Round to 1 decimal place
     actualMood: null
   };
 };

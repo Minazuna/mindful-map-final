@@ -90,17 +90,21 @@ class CategoryMoodPredictor:
                     }
                     continue
 
-                # Count mood occurrences per week
-                mood_week_counts = defaultdict(lambda: [0, 0, 0, 0])  # 4 weeks
+                # Count mood occurrences per week with intensity weighting
+                mood_week_weighted_intensities = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # 4 weeks
                 activity_mood_mapping = defaultdict(list)
                 
                 for _, row in day_data.iterrows():
                     week_idx = row['week_number']
                     after_emotion = row['afterEmotion'].lower() if row['afterEmotion'] else 'unknown'
+                    after_intensity = row.get('afterIntensity', 0)  # Default to 1 if missing
                     
                     # Skip unknown emotions
                     if after_emotion in self.all_emotions:
-                        mood_week_counts[after_emotion][week_idx] += 1
+                        # Apply weighted mean: weight (per week) * intensity
+                        week_weight = self.week_weights[week_idx]
+                        weighted_intensity = week_weight * after_intensity
+                        mood_week_weighted_intensities[after_emotion][week_idx] += weighted_intensity
                         
                         # Track activities/causes for this mood
                         if category == 'sleep':
@@ -108,16 +112,17 @@ class CategoryMoodPredictor:
                         else:
                             activity_mood_mapping[after_emotion].append(row.get('activity', 'Unknown activity'))
 
-                # Calculate weighted frequencies
-                mood_weighted_frequencies = {}
-                total_weighted_frequency = 0
+                # Calculate total weighted intensities using weighted mean formula
+                mood_total_weighted_intensities = {}
+                total_weighted_intensity = 0.0
                 
-                for mood, week_counts in mood_week_counts.items():
-                    weighted_freq = sum(count * weight for count, weight in zip(week_counts, self.week_weights))
-                    mood_weighted_frequencies[mood] = weighted_freq
-                    total_weighted_frequency += weighted_freq
+                for mood, week_weighted_intensities in mood_week_weighted_intensities.items():
+                    # Sum all weighted intensities for this mood across all weeks
+                    mood_weighted_sum = sum(week_weighted_intensities)
+                    mood_total_weighted_intensities[mood] = mood_weighted_sum
+                    total_weighted_intensity += mood_weighted_sum
 
-                if total_weighted_frequency == 0:
+                if total_weighted_intensity == 0:
                     day_predictions[day] = {
                         'predicted_mood': 'No valid data',
                         'probability': 0.0,
@@ -125,10 +130,11 @@ class CategoryMoodPredictor:
                     }
                     continue
 
-                # Calculate probabilities and find predicted mood
+                # Calculate probabilities using weighted mean formula
                 mood_probabilities = {}
-                for mood, weighted_freq in mood_weighted_frequencies.items():
-                    probability = weighted_freq / total_weighted_frequency
+                for mood, weighted_intensity_sum in mood_total_weighted_intensities.items():
+                    # Weighted Mean = Σ(wi × xi) / Σ(wi)
+                    probability = weighted_intensity_sum / total_weighted_intensity
                     mood_probabilities[mood] = probability
 
                 # Get the mood with highest probability
@@ -145,14 +151,19 @@ class CategoryMoodPredictor:
                 else:
                     most_common_cause = 'Unknown cause'
 
-                # Convert probabilities to percentages for all moods
+                # Convert probabilities to percentages with 90% maximum cap
                 all_mood_probabilities = {}
                 for mood, prob in mood_probabilities.items():
-                    all_mood_probabilities[mood] = round(prob * 100, 1)
+                    # Convert to percentage and cap at 90%
+                    percentage = min(prob * 100, 90.0)
+                    all_mood_probabilities[mood] = round(percentage, 1)
+                
+                # Update predicted probability with capped value
+                predicted_probability_capped = min(predicted_probability * 100, 90.0)
 
                 day_predictions[day] = {
                     'predicted_mood': predicted_emotion.capitalize(),
-                    'probability': round(predicted_probability * 100, 1),
+                    'probability': round(predicted_probability_capped, 1),
                     'cause': most_common_cause,
                     'all_mood_probabilities': all_mood_probabilities
                 }
