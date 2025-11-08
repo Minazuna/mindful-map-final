@@ -1071,16 +1071,31 @@ const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekS
     moodProbabilities[emotion] = probability;
   });
 
-  // Get the mood with highest probability
-  let maxProbability = 0;
+  // Get the mood with highest probability (if tie, select most recent)
+  const maxProbability = Math.max(...Object.values(moodProbabilities));
+  const tiedMoods = Object.keys(moodProbabilities).filter(mood => moodProbabilities[mood] === maxProbability);
+  
   let predictedEmotion = 'unknown';
-
-  Object.entries(moodProbabilities).forEach(([emotion, probability]) => {
-    if (probability > maxProbability) {
-      maxProbability = probability;
-      predictedEmotion = emotion;
-    }
-  });
+  
+  if (tiedMoods.length === 1) {
+    predictedEmotion = tiedMoods[0];
+  } else {
+    // In case of tie, select the most recent mood from the data
+    let mostRecentMood = null;
+    let mostRecentTimestamp = null;
+    
+    dayLogs.forEach(log => {
+      const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+      if (afterEmotion && tiedMoods.includes(afterEmotion)) {
+        if (!mostRecentTimestamp || log.date > mostRecentTimestamp) {
+          mostRecentTimestamp = log.date;
+          mostRecentMood = afterEmotion;
+        }
+      }
+    });
+    
+    predictedEmotion = mostRecentMood || tiedMoods[0];
+  }
 
   // Cap the maximum probability at 90%
   const cappedProbability = Math.min(maxProbability * 100, 90.0);
@@ -1175,17 +1190,36 @@ const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
     };
   }
 
-  // Find mood with highest probability using weighted mean
-  let maxProbability = 0;
-  let predictedMood = 'unknown';
-
+  // Find mood with highest probability using weighted mean (if tie, select most recent)
+  const moodProbabilities = {};
   emotions.forEach(emotion => {
-    const probability = moodTotalWeightedIntensities[emotion] / totalWeightedIntensity;
-    if (probability > maxProbability) {
-      maxProbability = probability;
-      predictedMood = emotion;
-    }
+    moodProbabilities[emotion] = moodTotalWeightedIntensities[emotion] / totalWeightedIntensity;
   });
+  
+  const maxProbability = Math.max(...Object.values(moodProbabilities));
+  const tiedMoods = Object.keys(moodProbabilities).filter(mood => moodProbabilities[mood] === maxProbability);
+  
+  let predictedMood = 'unknown';
+  
+  if (tiedMoods.length === 1) {
+    predictedMood = tiedMoods[0];
+  } else {
+    // In case of tie, select the most recent mood from the data
+    let mostRecentMood = null;
+    let mostRecentTimestamp = null;
+    
+    dayLogs.forEach(log => {
+      const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+      if (afterEmotion && tiedMoods.includes(afterEmotion)) {
+        if (!mostRecentTimestamp || log.date > mostRecentTimestamp) {
+          mostRecentTimestamp = log.date;
+          mostRecentMood = afterEmotion;
+        }
+      }
+    });
+    
+    predictedMood = mostRecentMood || tiedMoods[0];
+  }
 
   // Cap the maximum probability at 90%
   const cappedProbability = Math.min(maxProbability * 100, 90.0);

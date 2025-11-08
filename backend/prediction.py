@@ -153,10 +153,27 @@ class CategoryMoodPredictor:
                     probability = weighted_intensity_sum / total_weighted_intensity
                     mood_probabilities[mood] = probability
 
-                # Get the mood with highest probability
-                predicted_mood = max(mood_probabilities.items(), key=lambda x: x[1])
-                predicted_emotion = predicted_mood[0]
-                predicted_probability = predicted_mood[1]
+                # Get the mood with highest probability (if tie, select most recent)
+                max_probability = max(mood_probabilities.values())
+                tied_moods = [mood for mood, prob in mood_probabilities.items() if prob == max_probability]
+                
+                if len(tied_moods) == 1:
+                    predicted_emotion = tied_moods[0]
+                else:
+                    # In case of tie, select the most recent mood from the data
+                    most_recent_mood = None
+                    most_recent_timestamp = None
+                    
+                    for _, row in day_data.iterrows():
+                        after_emotion = row['afterEmotion'].lower() if row['afterEmotion'] else 'unknown'
+                        if after_emotion in tied_moods:
+                            if most_recent_timestamp is None or row['timestamp'] > most_recent_timestamp:
+                                most_recent_timestamp = row['timestamp']
+                                most_recent_mood = after_emotion
+                    
+                    predicted_emotion = most_recent_mood if most_recent_mood else tied_moods[0]
+                
+                predicted_probability = max_probability
 
                 # Get the most common cause for this predicted mood
                 causes = activity_mood_mapping.get(predicted_emotion, [])
