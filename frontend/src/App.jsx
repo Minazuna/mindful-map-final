@@ -16,8 +16,6 @@ import JournalPrompt from './components/User/Journal/JournalPrompt';
 import Statistics from './components/User/Statistics/Statistics';
 import CorrelationStatistics from './components/User/Statistics/CorrelationStatistics';
 import Correlation from './components/User/Statistics/Correlation';
-import WeeklyPredictions from './components/User/Prediction/WeeklyPredictions';
-import DailyPrediction from './components/User/Prediction/DailyPrediction';
 import Prediction from './components/User/Prediction/Prediction';
 import CategoryPrediction from './components/User/Prediction/CategoryPrediction';
 import PredictionComparison from './components/User/Prediction/PredictionComparison';
@@ -459,22 +457,6 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <Prediction formData={formData} setFormData={setFormData} />
-            </UserPrivateRoute>
-          }
-        />
-        <Route
-          path="/weekly-predictions"
-          element={
-            <UserPrivateRoute>
-              <WeeklyPredictions formData={formData} setFormData={setFormData} />
-            </UserPrivateRoute>
-          }
-        />
-        <Route
-          path="/daily-prediction"
-          element={
-            <UserPrivateRoute>
-              <DailyPrediction formData={formData} setFormData={setFormData} />
             </UserPrivateRoute>
           }
         />
