@@ -13,7 +13,6 @@ import JournalEntry from './components/User/Journal/JournalEntry';
 import ViewJournal from './components/User/Journal/ViewJournal';
 import EditJournal from './components/User/Journal/EditJournal';
 import JournalPrompt from './components/User/Journal/JournalPrompt';
-import Statistics from './components/User/Statistics/Statistics';
 import CorrelationStatistics from './components/User/Statistics/CorrelationStatistics';
 import Correlation from './components/User/Statistics/Correlation';
 import WeeklyPredictions from './components/User/Prediction/WeeklyPredictions';
@@ -32,6 +31,13 @@ import PersonalJournal from './components/User/Journal/PersonalJournal';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
+
+//Statistics Dashboard Student
+import Statistics from './components/User/Statistics/Statistics';
+import Anova from './components/User/Statistics/StatisticsComponents/Anova';
+import DetailedMoodAnalysis from './components/User/Statistics//StatisticsComponents/DetailedMoodAnalysis';
+import MoodAnalysis from './components/User/Statistics/StatisticsComponents/MoodAnalysis';
+import SleepAnalysis from './components/User/Statistics/StatisticsComponents/SleepAnalysis';
 
 import Dashboard from './components/Admin/Dashboard';
 import UsersTable from './components/Admin/UsersTable';
@@ -426,6 +432,38 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <Statistics />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/anova"
+          element={ 
+            <UserPrivateRoute>
+              <Anova />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/detailed-mood-analysis"
+          element={ 
+            <UserPrivateRoute>
+              <DetailedMoodAnalysis />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/mood-analysis"
+          element={ 
+            <UserPrivateRoute>
+              <MoodAnalysis />
+            </UserPrivateRoute>
+          }
+        />
+         <Route
+          path="/sleep-analysis"
+          element={ 
+            <UserPrivateRoute>
+              <SleepAnalysis />
             </UserPrivateRoute>
           }
         />
