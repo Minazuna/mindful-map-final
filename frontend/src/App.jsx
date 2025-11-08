@@ -15,10 +15,9 @@ import EditJournal from './components/User/Journal/EditJournal';
 import JournalPrompt from './components/User/Journal/JournalPrompt';
 import CorrelationStatistics from './components/User/Statistics/CorrelationStatistics';
 import Correlation from './components/User/Statistics/Correlation';
-import WeeklyPredictions from './components/User/Prediction/WeeklyPredictions';
-import DailyPrediction from './components/User/Prediction/DailyPrediction';
 import Prediction from './components/User/Prediction/Prediction';
 import CategoryPrediction from './components/User/Prediction/CategoryPrediction';
+import PredictionComparison from './components/User/Prediction/PredictionComparison';
 import Recommendations from './components/User/Statistics/Recommendations';
 import Pomodoro from './components/User/Activities/Pomodoro';
 import Affirmation from './components/User/Activities/Affirmation';
@@ -500,26 +499,18 @@ const App = () => {
           }
         />
         <Route
-          path="/weekly-predictions"
-          element={
-            <UserPrivateRoute>
-              <WeeklyPredictions formData={formData} setFormData={setFormData} />
-            </UserPrivateRoute>
-          }
-        />
-        <Route
-          path="/daily-prediction"
-          element={
-            <UserPrivateRoute>
-              <DailyPrediction formData={formData} setFormData={setFormData} />
-            </UserPrivateRoute>
-          }
-        />
-        <Route
           path="/category-prediction/:category"
           element={
             <UserPrivateRoute>
               <CategoryPrediction />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/prediction-comparison"
+          element={
+            <UserPrivateRoute>
+              <PredictionComparison />
             </UserPrivateRoute>
           }
         />

@@ -44,5 +44,6 @@ router.get('/teacher-stats', authMiddleware, adminMiddleware, adminController.ge
 router.post('/calculate-predictions', authMiddleware, adminMiddleware, adminController.calculateWeeklyPredictions);
 router.get('/prediction-comparisons', authMiddleware, adminMiddleware, adminController.getPredictionComparisons);
 router.post('/update-actual-moods', authMiddleware, adminMiddleware, adminController.updateActualMoods);
+router.get('/available-weeks', authMiddleware, adminMiddleware, adminController.getAvailableWeeks);
 
 module.exports = router;

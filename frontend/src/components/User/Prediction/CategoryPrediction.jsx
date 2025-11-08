@@ -23,12 +23,15 @@ import GroupIcon from '@mui/icons-material/Group';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import BarChartIcon from '@mui/icons-material/BarChart';
 
 const CategoryPrediction = () => {
   const [value, setValue] = useState('prediction');
   const navigate = useNavigate();
   const { category } = useParams();
   const [predictions, setPredictions] = useState(null);
+  const [dateRange, setDateRange] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -59,6 +62,7 @@ const CategoryPrediction = () => {
       
       if (data.success) {
         setPredictions(data.predictions);
+        setDateRange(data.dateRange);
       } else {
         setError(data.message || 'Failed to fetch predictions');
         toast.error(data.message || 'Failed to fetch predictions');
@@ -115,6 +119,89 @@ const CategoryPrediction = () => {
     if (probability >= 50) return '#FF9800'; // Orange
     return '#f44336'; // Red
   };
+
+  const getEmotionValence = (emotion) => {
+    const negativeEmotions = ['bored', 'sad', 'disappointed', 'angry', 'tense'];
+    const positiveEmotions = ['calm', 'relaxed', 'pleased', 'happy', 'excited'];
+    
+    if (negativeEmotions.includes(emotion.toLowerCase())) {
+      return 'negative';
+    } else if (positiveEmotions.includes(emotion.toLowerCase())) {
+      return 'positive';
+    }
+    return 'neutral';
+  };
+
+  const getValenceColor = (valence) => {
+    switch(valence) {
+      case 'positive': return '#4CAF50'; // Green
+      case 'negative': return '#f44336'; // Red
+      default: return '#9E9E9E'; // Gray
+    }
+  };
+
+  const getValenceIcon = (valence) => {
+    return (
+      <Box 
+        sx={{ 
+          width: 8, 
+          height: 8, 
+          borderRadius: '50%',
+          backgroundColor: getValenceColor(valence),
+          display: 'inline-block',
+          mr: 0.5
+        }}
+      />
+    );
+  };
+
+  const getActivityDisplayName = (activityId) => {
+    const activityMap = {
+      // Activity category
+      'study': 'Study',
+      'read': 'Read',
+      'extracurricular': 'Extracurricular Activities',
+      'relax': 'Relax',
+      'watch-movie': 'Watch Movie',
+      'listen-music': 'Listen to Music',
+      'gaming': 'Gaming',
+      'browse-internet': 'Browse the Internet',
+      'shopping': 'Shopping',
+      'travel': 'Travel',
+      
+      // Social category
+      'alone': 'Alone',
+      'friends': 'Friend/s',
+      'family': 'Family',
+      'classmates': 'Classmate/s',
+      'relationship': 'Relationship',
+      'online': 'Online Interaction',
+      'pet': 'Pet',
+      
+      // Health category
+      'jog': 'Jog',
+      'walk': 'Walk',
+      'exercise': 'Exercise',
+      'meditate': 'Meditate',
+      'eat-healthy': 'Eat Healthy',
+      'no-physical': 'No Physical Activity',
+      'eat-unhealthy': 'Eat Unhealthy',
+      'drink-alcohol': 'Drink Alcohol',
+      
+      // Sleep category (sleep uses hours, not activities like others)
+      'sleep': 'Sleep Hours'
+    };
+    
+    return activityMap[activityId] || activityId || 'Unknown Activity';
+  };
+
+  // Define proper weekday order
+  const weekdaysOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+  
+  // Sort predictions by proper weekday order
+  const sortedPredictions = weekdaysOrder.map(day => {
+    return [day, predictions?.[day] || null];
+  }).filter(([day, prediction]) => prediction !== null);
 
   if (loading) {
     return (
@@ -204,80 +291,153 @@ const CategoryPrediction = () => {
           </Box>
         </motion.div>
 
-        {/* Predictions Grid */}
-        <Grid container spacing={3}>
-          {Object.entries(predictions || {}).map(([day, prediction], index) => (
-            <Grid item xs={12} md={6} lg={4} key={day}>
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1, duration: 0.6 }}
-              >
-                <Card 
-                  elevation={0}
+        {/* Date Range Info */}
+        {dateRange && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            className="mb-6"
+          >
+            <Card 
+              elevation={0}
+              sx={{ 
+                borderRadius: '15px', 
+                overflow: 'hidden', 
+                boxShadow: '0 4px 15px rgba(0,0,0,0.08)',
+                background: 'rgba(255,255,255,0.9)',
+                backdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255,255,255,0.3)',
+              }}
+            >
+              <CardContent sx={{ p: 3, textAlign: 'center' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 1 }}>
+                  <CalendarTodayIcon sx={{ mr: 1, color: getCategoryColor(category) }} />
+                  <Typography 
+                    variant="subtitle1" 
+                    sx={{ 
+                      fontWeight: 600,
+                      color: '#3a3939',
+                      fontFamily: 'Nunito, sans-serif'
+                    }}
+                  >
+                    Historical Data Period
+                  </Typography>
+                </Box>
+                <Typography 
+                  variant="body1" 
                   sx={{ 
-                    borderRadius: '20px', 
-                    overflow: 'hidden', 
-                    boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
-                    background: 'rgba(255,255,255,0.95)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255,255,255,0.5)',
-                    height: '100%',
-                    transition: 'transform 0.3s ease',
-                    '&:hover': {
-                      transform: 'translateY(-4px)',
-                      boxShadow: '0 12px 35px rgba(0,0,0,0.15)'
-                    }
+                    color: getCategoryColor(category),
+                    fontFamily: 'Nunito, sans-serif',
+                    fontWeight: 500,
+                    mb: 0.5
                   }}
                 >
-                  <CardContent sx={{ p: 3 }}>
+                  {new Date(dateRange.start_date).toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })} - {new Date(dateRange.end_date).toLocaleDateString('en-US', { 
+                    weekday: 'short', 
+                    year: 'numeric', 
+                    month: 'short', 
+                    day: 'numeric' 
+                  })}
+                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2, mt: 1 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BarChartIcon sx={{ mr: 0.5, color: '#666', fontSize: '1rem' }} />
                     <Typography 
-                      variant="h5" 
+                      variant="body2" 
                       sx={{ 
-                        fontWeight: 700,
-                        color: getCategoryColor(category),
-                        mb: 2,
-                        fontFamily: 'Nunito, sans-serif',
-                        textAlign: 'center'
+                        color: '#666',
+                        fontFamily: 'Nunito, sans-serif'
                       }}
                     >
-                      {day}
+                      {dateRange.weeks_of_data} weeks
                     </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: '#666' }}>•</Typography>
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: '#666',
+                      fontFamily: 'Nunito, sans-serif'
+                    }}
+                  >
+                    {dateRange.total_entries} entries
+                  </Typography>
+                </Box>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
 
-                    {prediction.predicted_mood === 'No data available' || 
-                     prediction.predicted_mood === 'No valid data' ? (
-                      <Box sx={{ textAlign: 'center', py: 2 }}>
-                        <Typography variant="body1" color="text.secondary">
-                          {prediction.predicted_mood}
-                        </Typography>
-                      </Box>
-                    ) : (
-                      <>
-                        {/* Predicted Emotion */}
-                        <Box sx={{ textAlign: 'center', mb: 3 }}>
+        {/* Predictions Grid */}
+        <Grid container spacing={3}>
+          {sortedPredictions.map(([day, prediction], index) => {
+            const valence = prediction.predicted_mood && 
+                           prediction.predicted_mood !== 'No data available' && 
+                           prediction.predicted_mood !== 'No valid data' 
+                           ? getEmotionValence(prediction.predicted_mood) 
+                           : null;
+
+            return (
+              <Grid item xs={12} md={6} lg={4} key={day}>
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.1, duration: 0.6 }}
+                >
+                  <Card 
+                    elevation={0}
+                    sx={{ 
+                      borderRadius: '20px', 
+                      overflow: 'hidden', 
+                      boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+                      background: 'rgba(255,255,255,0.95)',
+                      backdropFilter: 'blur(10px)',
+                      border: `2px solid ${valence ? getValenceColor(valence) + '20' : 'rgba(255,255,255,0.5)'}`,
+                      height: '100%',
+                      transition: 'transform 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-4px)',
+                        boxShadow: '0 12px 35px rgba(0,0,0,0.15)'
+                      }
+                    }}
+                  >
+                    <CardContent sx={{ p: 3 }}>
+                      {/* Day Header with Confidence */}
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                        <Box>
                           <Typography 
-                            variant="h2" 
-                            sx={{ mb: 1 }}
-                          >
-                            {getEmotionEmoji(prediction.predicted_mood)}
-                          </Typography>
-                          <Typography 
-                            variant="h6" 
+                            variant="h5" 
                             sx={{ 
-                              fontWeight: 600,
-                              color: '#3a3939',
+                              fontWeight: 700,
+                              color: getCategoryColor(category),
                               fontFamily: 'Nunito, sans-serif'
                             }}
                           >
-                            {prediction.predicted_mood}
+                            {day}
                           </Typography>
+                          {prediction.date && (
+                            <Typography 
+                              variant="caption" 
+                              sx={{ 
+                                color: '#888',
+                                fontFamily: 'Nunito, sans-serif'
+                              }}
+                            >
+                              {prediction.date}
+                            </Typography>
+                          )}
                         </Box>
-
-                        {/* Probability */}
-                        <Box sx={{ textAlign: 'center', mb: 3 }}>
+                        {prediction.predicted_mood !== 'No data available' && 
+                         prediction.predicted_mood !== 'No valid data' && (
                           <Chip
-                            icon={<TrendingUpIcon />}
-                            label={`${prediction.probability}% confidence`}
+                            label={`${prediction.probability}%`}
+                            size="small"
                             sx={{
                               backgroundColor: getProbabilityColor(prediction.probability),
                               color: 'white',
@@ -285,46 +445,183 @@ const CategoryPrediction = () => {
                               fontFamily: 'Nunito, sans-serif'
                             }}
                           />
-                        </Box>
+                        )}
+                      </Box>
 
-                        {/* Cause */}
-                        <Paper 
-                          elevation={0}
-                          sx={{ 
-                            p: 2, 
-                            backgroundColor: 'rgba(0,0,0,0.03)',
-                            borderRadius: 2
-                          }}
-                        >
-                          <Typography 
-                            variant="subtitle2" 
-                            sx={{ 
-                              fontWeight: 600,
-                              color: '#3a3939',
-                              mb: 1,
-                              fontFamily: 'Nunito, sans-serif'
-                            }}
-                          >
-                            Most likely cause:
+                      {prediction.predicted_mood === 'No data available' || 
+                       prediction.predicted_mood === 'No valid data' ? (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 3 }}>
+                          <Typography variant="body1" color="text.secondary" sx={{ fontFamily: 'Nunito, sans-serif' }}>
+                            {prediction.predicted_mood}
                           </Typography>
-                          <Typography 
-                            variant="body2" 
-                            sx={{ 
-                              color: '#666',
-                              fontFamily: 'Nunito, sans-serif',
-                              fontStyle: 'italic'
-                            }}
-                          >
-                            {prediction.cause}
-                          </Typography>
-                        </Paper>
-                      </>
-                    )}
-                  </CardContent>
-                </Card>
-              </motion.div>
-            </Grid>
-          ))}
+                        </Box>
+                      ) : (
+                        <>
+                          {/* Main Prediction with Emoji */}
+                          <Box sx={{ mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                              <Typography 
+                                variant="h3" 
+                                sx={{ mr: 2 }}
+                              >
+                                {getEmotionEmoji(prediction.predicted_mood)}
+                              </Typography>
+                              <Box>
+                                <Typography 
+                                  variant="h6" 
+                                  sx={{ 
+                                    fontWeight: 600,
+                                    color: '#3a3939',
+                                    fontFamily: 'Nunito, sans-serif',
+                                    textTransform: 'capitalize'
+                                  }}
+                                >
+                                  {prediction.predicted_mood}
+                                </Typography>
+                                {valence && (
+                                  <Typography
+                                    variant="caption"
+                                    sx={{
+                                      color: getValenceColor(valence),
+                                      fontWeight: 500,
+                                      fontFamily: 'Nunito, sans-serif',
+                                      display: 'flex',
+                                      alignItems: 'center'
+                                    }}
+                                  >
+                                    {getValenceIcon(valence)} {valence === 'positive' ? 'Positive' : 'Negative'}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </Box>
+                          </Box>
+
+                          {/* Metrics Container - Valence and Likely Cause */}
+                          <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2, gap: 2 }}>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  color: '#888',
+                                  fontFamily: 'Nunito, sans-serif',
+                                  display: 'block',
+                                  mb: 0.5
+                                }}
+                              >
+                                Valence:
+                              </Typography>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  fontWeight: 500,
+                                  color: '#3a3939',
+                                  fontFamily: 'Nunito, sans-serif'
+                                }}
+                              >
+                                {valence ? (valence === 'positive' ? 'Positive' : 'Negative') : 'N/A'}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ flex: 1 }}>
+                              <Typography 
+                                variant="caption" 
+                                sx={{ 
+                                  color: '#888',
+                                  fontFamily: 'Nunito, sans-serif',
+                                  display: 'block',
+                                  mb: 0.5
+                                }}
+                              >
+                                Likely Cause:
+                              </Typography>
+                              <Typography 
+                                variant="body2" 
+                                sx={{ 
+                                  fontWeight: 500,
+                                  color: '#3a3939',
+                                  fontFamily: 'Nunito, sans-serif'
+                                }}
+                              >
+                                {category === 'sleep' 
+                                  ? `${prediction.cause || 'Unknown'} hours`
+                                  : getActivityDisplayName(prediction.cause)
+                                }
+                              </Typography>
+                            </Box>
+                          </Box>
+
+                          {/* Emotion Probabilities Breakdown */}
+                          {prediction.all_mood_probabilities && Object.keys(prediction.all_mood_probabilities).length > 1 && (
+                            <Box sx={{ borderTop: '1px solid #f0f0f0', pt: 2 }}>
+                              <Typography 
+                                variant="subtitle2" 
+                                sx={{ 
+                                  fontWeight: 600,
+                                  color: '#3a3939',
+                                  mb: 1.5,
+                                  fontFamily: 'Nunito, sans-serif'
+                                }}
+                              >
+                                Emotion Probabilities:
+                              </Typography>
+                              <Box>
+                                {Object.entries(prediction.all_mood_probabilities)
+                                  .filter(([_, probability]) => probability > 0)
+                                  .sort(([,a], [,b]) => b - a)
+                                  .slice(0, 3)
+                                  .map(([emotion, probability]) => (
+                                    <Box 
+                                      key={emotion}
+                                      sx={{ 
+                                        display: 'flex', 
+                                        alignItems: 'center',
+                                        mb: 1
+                                      }}
+                                    >
+                                      <Box 
+                                        sx={{ 
+                                          width: 12, 
+                                          height: 12, 
+                                          borderRadius: '50%',
+                                          backgroundColor: getCategoryColor(category),
+                                          opacity: emotion.toLowerCase() === prediction.predicted_mood.toLowerCase() ? 1 : 0.6,
+                                          mr: 1
+                                        }}
+                                      />
+                                      <Typography 
+                                        variant="body2"
+                                        sx={{ 
+                                          flex: 1,
+                                          fontFamily: 'Nunito, sans-serif',
+                                          textTransform: 'capitalize',
+                                          fontSize: '0.8rem'
+                                        }}
+                                      >
+                                        {emotion}
+                                      </Typography>
+                                      <Typography 
+                                        variant="body2"
+                                        sx={{ 
+                                          fontWeight: 500,
+                                          color: '#666',
+                                          fontFamily: 'Nunito, sans-serif',
+                                          fontSize: '0.8rem'
+                                        }}
+                                      >
+                                        {probability}%
+                                      </Typography>
+                                    </Box>
+                                  ))}
+                              </Box>
+                            </Box>
+                          )}
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              </Grid>
+            );
+          })}
         </Grid>
 
         {/* Info Card */}
@@ -367,9 +664,9 @@ const CategoryPrediction = () => {
                   lineHeight: 1.7
                 }}
               >
-                These predictions are based on analyzing your {category} data from the last 4 weeks, 
-                using a weighted probability model that gives more importance to recent patterns. 
-                The confidence percentage shows how certain the prediction is based on your historical data.
+                These predictions analyze your {category} data from {dateRange ? `the period shown above (${dateRange.weeks_of_data} weeks of historical data)` : 'up to the last 4 weeks'}, 
+                using a weighted probability model that prioritizes recent patterns. Each prediction shows the emotion valence (positive/negative), 
+                confidence percentage, and alternative emotion probabilities to give you a complete picture of your mood patterns.
               </Typography>
             </CardContent>
           </Card>

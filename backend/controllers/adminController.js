@@ -801,6 +801,9 @@ exports.calculateWeeklyPredictions = async (req, res) => {
 
 const calculateAndSavePredictionsForUser = async (userId) => {
   try {
+    const axios = require('axios');
+    const { getMoodLogsForUser } = require('./moodPredictionController');
+    
     const currentDate = new Date();
     const currentWeekStart = new Date(currentDate);
     currentWeekStart.setDate(currentDate.getDate() - currentDate.getDay()); // Sunday
@@ -824,21 +827,22 @@ const calculateAndSavePredictionsForUser = async (userId) => {
       return { userId, message: 'Predictions already exist and up to date' };
     }
 
-    // Get mood logs for the user (last 4 weeks before current week)
-    const fourWeeksAgo = new Date(currentWeekStart);
-    fourWeeksAgo.setDate(currentWeekStart.getDate() - 28);
-
-    const moodLogs = await MoodLog.find({
-      user: userId,
-      date: {
-        $gte: fourWeeksAgo,
-        $lt: currentWeekStart
-      }
-    }).sort({ date: 1 });
-
-    if (moodLogs.length < 14) {
-      return { userId, message: 'Insufficient data for predictions' };
+    // Get mood logs for the user using the internal function
+    const moodLogsData = await getMoodLogsForUser(userId);
+    
+    if (moodLogsData.length < 14) {
+      return { userId, error: 'Insufficient data for predictions (need at least 2 weeks of mood logs)' };
     }
+
+    // Check if user has data in all categories
+    const categoryCounts = { activity: 0, social: 0, health: 0, sleep: 0 };
+    moodLogsData.forEach(log => {
+      if (log.category && categoryCounts.hasOwnProperty(log.category)) {
+        categoryCounts[log.category]++;
+      }
+    });
+
+    console.log(`User ${userId} mood log counts:`, categoryCounts);
 
     const categories = ['activity', 'social', 'health', 'sleep'];
     const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -849,13 +853,66 @@ const calculateAndSavePredictionsForUser = async (userId) => {
       sleep: {}
     };
 
-    // Calculate predictions for each category
+    // Call Python service for each category to get predictions
     for (const category of categories) {
-      const categoryLogs = moodLogs.filter(log => log.category === category);
-      
-      for (const day of daysOfWeek) {
-        const dayPrediction = calculateDayPrediction(categoryLogs, day, currentWeekStart);
-        predictions[category][day] = dayPrediction;
+      try {
+        const pythonResponse = await axios.post('http://localhost:5001/api/predict-category-mood-internal', {
+          category: category,
+          mood_logs: moodLogsData
+        }, {
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          timeout: 30000 // 30 second timeout
+        });
+
+        if (pythonResponse.data.success && pythonResponse.data.predictions) {
+          const pythonPredictions = pythonResponse.data.predictions;
+          
+          console.log(`Python predictions for ${category}:`, pythonPredictions);
+          
+          // Map Python predictions to our day structure
+          for (const day of daysOfWeek) {
+            if (pythonPredictions[day]) {
+              predictions[category][day] = {
+                predictedMood: pythonPredictions[day].predicted_mood || 'No data available',
+                actualMood: null, // Will be filled later
+                allMoodProbabilities: pythonPredictions[day].all_mood_probabilities || {}
+              };
+            } else {
+              predictions[category][day] = {
+                predictedMood: 'No data available',
+                actualMood: null,
+                allMoodProbabilities: {}
+              };
+            }
+          }
+        } else {
+          console.warn(`Python service failed for category ${category}:`, pythonResponse.data.message || 'Unknown error');
+          // Fallback: set no data for all days in this category
+          for (const day of daysOfWeek) {
+            predictions[category][day] = {
+              predictedMood: 'No data available',
+              probability: 0.0,
+              actualMood: null
+            };
+          }
+        }
+      } catch (pythonError) {
+        console.error(`Python service error for category ${category}:`, {
+          message: pythonError.message,
+          code: pythonError.code,
+          response: pythonError.response?.data
+        });
+        
+        // Fallback: set no data for all days in this category
+        for (const day of daysOfWeek) {
+          predictions[category][day] = {
+            predictedMood: pythonError.code === 'ECONNREFUSED' ? 'Python service unavailable' : 'No data available',
+            probability: 0.0,
+            actualMood: null
+          };
+        }
       }
     }
 
@@ -893,13 +950,164 @@ const calculateAndSavePredictionsForUser = async (userId) => {
       await existingPrediction.save();
     }
 
-    return { userId, message: 'Predictions calculated and saved successfully' };
+    return { userId, message: 'Predictions calculated and saved successfully using Python service' };
   } catch (error) {
     console.error(`Error calculating predictions for user ${userId}:`, error);
     return { userId, error: error.message };
   }
 };
 
+// New function that exactly matches Python logic
+const calculateDayPredictionPythonLogic = (categoryLogs, targetDay, currentWeekStart) => {
+  // Python logic: week_weights = [1, 2, 3, 4] (oldest to most recent)
+  const weekWeights = [1, 2, 3, 4]; 
+  
+  // Python logic: negative + positive emotions
+  const negativeEmotions = ['bored', 'sad', 'disappointed', 'angry', 'tense'];
+  const positiveEmotions = ['calm', 'relaxed', 'pleased', 'happy', 'excited'];
+  const allEmotions = [...negativeEmotions, ...positiveEmotions];
+  
+  // Python logic: current week starts on Monday, exclude current week data
+  const currentDate = new Date();
+  const currentWeekMonday = new Date(currentDate);
+  currentWeekMonday.setDate(currentDate.getDate() - currentDate.getDay() + 1); // Monday
+  currentWeekMonday.setHours(0, 0, 0, 0);
+  
+  // Python logic: four_weeks_ago = current_week_start - pd.Timedelta(days=28)
+  const fourWeeksAgo = new Date(currentWeekMonday);
+  fourWeeksAgo.setDate(currentWeekMonday.getDate() - 28);
+  
+  // Filter logs for the target day and exclude current week
+  const dayLogs = categoryLogs.filter(log => {
+    const logDay = log.date.toLocaleDateString('en-US', { weekday: 'long' });
+    return logDay === targetDay && log.date < currentWeekMonday && log.date >= fourWeeksAgo;
+  });
+
+  if (dayLogs.length === 0) {
+    return {
+      predictedMood: 'No data available',
+      probability: 0.0,
+      actualMood: null
+    };
+  }
+
+  // Group mood intensities by mood and specific date for averaging
+  const moodDailyIntensities = {};
+  
+  // First pass: collect all intensities per mood per specific date
+  dayLogs.forEach(log => {
+    // Python: ((category_df['timestamp'] - four_weeks_ago).dt.days // 7).astype(int)
+    const daysDiff = Math.floor((log.date - fourWeeksAgo) / (24 * 60 * 60 * 1000));
+    const weekNumber = Math.floor(daysDiff / 7);
+    
+    // Python: category_df = category_df[category_df['week_number'] < 4]
+    if (weekNumber >= 0 && weekNumber < 4) {
+      const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+      const afterIntensity = log.afterIntensity || 0; // Default to 1 if missing
+      const dateStr = log.date.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+      
+      if (afterEmotion && allEmotions.includes(afterEmotion)) {
+        if (!moodDailyIntensities[afterEmotion]) {
+          moodDailyIntensities[afterEmotion] = {};
+        }
+        if (!moodDailyIntensities[afterEmotion][dateStr]) {
+          moodDailyIntensities[afterEmotion][dateStr] = [];
+        }
+        
+        moodDailyIntensities[afterEmotion][dateStr].push({
+          intensity: afterIntensity,
+          weekNumber: weekNumber
+        });
+      }
+    }
+  });
+
+  // Second pass: calculate average intensity per mood per day, then apply week weight
+  const moodWeekWeightedIntensities = {};
+  allEmotions.forEach(emotion => {
+    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0];
+  });
+  
+  Object.keys(moodDailyIntensities).forEach(mood => {
+    Object.keys(moodDailyIntensities[mood]).forEach(dateStr => {
+      const intensityRecords = moodDailyIntensities[mood][dateStr];
+      
+      // Calculate average intensity for this mood on this specific date
+      const avgIntensity = intensityRecords.reduce((sum, record) => sum + record.intensity, 0) / intensityRecords.length;
+      const weekNumber = intensityRecords[0].weekNumber; // All records on same date have same week
+      
+      // Apply weighted mean: weight (per week) * average_intensity
+      const weekWeight = weekWeights[weekNumber];
+      const weightedIntensity = weekWeight * avgIntensity;
+      moodWeekWeightedIntensities[mood][weekNumber] += weightedIntensity;
+    });
+  });
+
+  // Calculate total weighted intensities using weighted mean formula
+  const moodTotalWeightedIntensities = {};
+  let totalWeightedIntensity = 0.0;
+
+  allEmotions.forEach(emotion => {
+    const weekWeightedIntensities = moodWeekWeightedIntensities[emotion];
+    // Sum all weighted intensities for this mood across all weeks
+    const moodWeightedSum = weekWeightedIntensities.reduce((sum, intensity) => sum + intensity, 0);
+    moodTotalWeightedIntensities[emotion] = moodWeightedSum;
+    totalWeightedIntensity += moodWeightedSum;
+  });
+
+  if (totalWeightedIntensity === 0) {
+    return {
+      predictedMood: 'No valid data',
+      probability: 0.0,
+      actualMood: null
+    };
+  }
+
+  // Calculate probabilities using weighted mean formula
+  const moodProbabilities = {};
+  allEmotions.forEach(emotion => {
+    // Weighted Mean = Σ(wi × xi) / Σ(wi)
+    const probability = moodTotalWeightedIntensities[emotion] / totalWeightedIntensity;
+    moodProbabilities[emotion] = probability;
+  });
+
+  // Get the mood with highest probability (if tie, select most recent)
+  const maxProbability = Math.max(...Object.values(moodProbabilities));
+  const tiedMoods = Object.keys(moodProbabilities).filter(mood => moodProbabilities[mood] === maxProbability);
+  
+  let predictedEmotion = 'unknown';
+  
+  if (tiedMoods.length === 1) {
+    predictedEmotion = tiedMoods[0];
+  } else {
+    // In case of tie, select the most recent mood from the data
+    let mostRecentMood = null;
+    let mostRecentTimestamp = null;
+    
+    dayLogs.forEach(log => {
+      const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+      if (afterEmotion && tiedMoods.includes(afterEmotion)) {
+        if (!mostRecentTimestamp || log.date > mostRecentTimestamp) {
+          mostRecentTimestamp = log.date;
+          mostRecentMood = afterEmotion;
+        }
+      }
+    });
+    
+    predictedEmotion = mostRecentMood || tiedMoods[0];
+  }
+
+  // Cap the maximum probability at 90%
+  const cappedProbability = Math.min(maxProbability * 100, 90.0);
+
+  return {
+    predictedMood: predictedEmotion.charAt(0).toUpperCase() + predictedEmotion.slice(1),
+    probability: Math.round(cappedProbability * 10) / 10, // Round to 1 decimal place
+    actualMood: null
+  };
+};
+
+// Keep the old function for backward compatibility if needed elsewhere
 const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
   const weekWeights = [1, 2, 3, 4]; // Week 1 (oldest) = 1, Week 4 (most recent) = 4
   const emotions = ['bored', 'sad', 'disappointed', 'angry', 'tense', 'calm', 'relaxed', 'pleased', 'happy', 'excited'];
@@ -913,62 +1121,112 @@ const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
   if (dayLogs.length === 0) {
     return {
       predictedMood: 'No data',
-      probability: 0,
       actualMood: null
     };
   }
 
-  // Group logs by week (relative to current week)
-  const moodWeekCounts = {};
-  emotions.forEach(emotion => {
-    moodWeekCounts[emotion] = [0, 0, 0, 0]; // 4 weeks
-  });
-
+  // Group mood intensities by mood and specific date for averaging
+  const moodDailyIntensities = {};
+  
+  // First pass: collect all intensities per mood per specific date
   dayLogs.forEach(log => {
     const weeksDiff = Math.floor((currentWeekStart - log.date) / (7 * 24 * 60 * 60 * 1000));
     const weekIndex = Math.min(3, Math.max(0, weeksDiff - 1)); // Weeks 1-4 (index 0-3)
     
     const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+    const afterIntensity = log.afterIntensity || 0; // Default to 1 if missing
+    const dateStr = log.date.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+    
     if (afterEmotion && emotions.includes(afterEmotion)) {
-      moodWeekCounts[afterEmotion][weekIndex]++;
+      if (!moodDailyIntensities[afterEmotion]) {
+        moodDailyIntensities[afterEmotion] = {};
+      }
+      if (!moodDailyIntensities[afterEmotion][dateStr]) {
+        moodDailyIntensities[afterEmotion][dateStr] = [];
+      }
+      
+      moodDailyIntensities[afterEmotion][dateStr].push({
+        intensity: afterIntensity,
+        weekIndex: weekIndex
+      });
     }
   });
 
-  // Calculate weighted frequencies
-  const moodWeightedFrequencies = {};
-  let totalWeightedFrequency = 0;
-
+  // Second pass: calculate average intensity per mood per day, then apply week weight
+  const moodWeekWeightedIntensities = {};
   emotions.forEach(emotion => {
-    const weightedFreq = moodWeekCounts[emotion].reduce((sum, count, index) => {
-      return sum + (count * weekWeights[index]);
-    }, 0);
-    moodWeightedFrequencies[emotion] = weightedFreq;
-    totalWeightedFrequency += weightedFreq;
+    moodWeekWeightedIntensities[emotion] = [0.0, 0.0, 0.0, 0.0]; // 4 weeks
+  });
+  
+  Object.keys(moodDailyIntensities).forEach(mood => {
+    Object.keys(moodDailyIntensities[mood]).forEach(dateStr => {
+      const intensityRecords = moodDailyIntensities[mood][dateStr];
+      
+      // Calculate average intensity for this mood on this specific date
+      const avgIntensity = intensityRecords.reduce((sum, record) => sum + record.intensity, 0) / intensityRecords.length;
+      const weekIndex = intensityRecords[0].weekIndex; // All records on same date have same week
+      
+      // Apply weighted mean: weight (per week) * average_intensity
+      const weekWeight = weekWeights[weekIndex];
+      const weightedIntensity = weekWeight * avgIntensity;
+      moodWeekWeightedIntensities[mood][weekIndex] += weightedIntensity;
+    });
   });
 
-  if (totalWeightedFrequency === 0) {
+  // Calculate total weighted intensities
+  const moodTotalWeightedIntensities = {};
+  let totalWeightedIntensity = 0.0;
+
+  emotions.forEach(emotion => {
+    const moodWeightedSum = moodWeekWeightedIntensities[emotion].reduce((sum, intensity) => sum + intensity, 0);
+    moodTotalWeightedIntensities[emotion] = moodWeightedSum;
+    totalWeightedIntensity += moodWeightedSum;
+  });
+
+  if (totalWeightedIntensity === 0) {
     return {
       predictedMood: 'No valid data',
-      probability: 0,
       actualMood: null
     };
   }
 
-  // Find mood with highest probability
-  let maxProbability = 0;
-  let predictedMood = 'unknown';
-
+  // Find mood with highest probability using weighted mean (if tie, select most recent)
+  const moodProbabilities = {};
   emotions.forEach(emotion => {
-    const probability = moodWeightedFrequencies[emotion] / totalWeightedFrequency;
-    if (probability > maxProbability) {
-      maxProbability = probability;
-      predictedMood = emotion;
-    }
+    moodProbabilities[emotion] = moodTotalWeightedIntensities[emotion] / totalWeightedIntensity;
   });
+  
+  const maxProbability = Math.max(...Object.values(moodProbabilities));
+  const tiedMoods = Object.keys(moodProbabilities).filter(mood => moodProbabilities[mood] === maxProbability);
+  
+  let predictedMood = 'unknown';
+  
+  if (tiedMoods.length === 1) {
+    predictedMood = tiedMoods[0];
+  } else {
+    // In case of tie, select the most recent mood from the data
+    let mostRecentMood = null;
+    let mostRecentTimestamp = null;
+    
+    dayLogs.forEach(log => {
+      const afterEmotion = log.afterEmotion ? log.afterEmotion.toLowerCase() : null;
+      if (afterEmotion && tiedMoods.includes(afterEmotion)) {
+        if (!mostRecentTimestamp || log.date > mostRecentTimestamp) {
+          mostRecentTimestamp = log.date;
+          mostRecentMood = afterEmotion;
+        }
+      }
+    });
+    
+    predictedMood = mostRecentMood || tiedMoods[0];
+  }
+
+  // Cap the maximum probability at 90%
+  const cappedProbability = Math.min(maxProbability * 100, 90.0);
 
   return {
     predictedMood: predictedMood.charAt(0).toUpperCase() + predictedMood.slice(1),
-    probability: Math.round(maxProbability * 100 * 10) / 10,
+    probability: Math.round(cappedProbability * 10) / 10, // Round to 1 decimal place
     actualMood: null
   };
 };
@@ -1076,16 +1334,17 @@ exports.getPredictionComparisons = async (req, res) => {
     categories.forEach(category => {
       comparisonData[category] = {
         days: daysOfWeek,
-        predicted: [],
-        actual: [],
-        accuracy: []
+        matches: [],
+        notMatches: [],
+        predictedMoods: [],
+        actualMoods: []
       };
 
       daysOfWeek.forEach(day => {
+        let matches = 0;
+        let notMatches = 0;
         let predictedMoods = [];
         let actualMoods = [];
-        let matches = 0;
-        let total = 0;
 
         predictions.forEach(prediction => {
           const dayData = prediction.predictions[category][day];
@@ -1094,22 +1353,19 @@ exports.getPredictionComparisons = async (req, res) => {
             
             if (dayData.actualMood) {
               actualMoods.push(dayData.actualMood);
-              total++;
               if (dayData.predictedMood.toLowerCase() === dayData.actualMood.toLowerCase()) {
                 matches++;
+              } else {
+                notMatches++;
               }
             }
           }
         });
 
-        // Get most common predicted and actual moods
-        const mostCommonPredicted = getMostCommonMood(predictedMoods);
-        const mostCommonActual = getMostCommonMood(actualMoods);
-        const accuracy = total > 0 ? Math.round((matches / total) * 100) : 0;
-
-        comparisonData[category].predicted.push(mostCommonPredicted || 'No data');
-        comparisonData[category].actual.push(mostCommonActual || 'No data');
-        comparisonData[category].accuracy.push(accuracy);
+        comparisonData[category].matches.push(matches);
+        comparisonData[category].notMatches.push(notMatches);
+        comparisonData[category].predictedMoods.push(predictedMoods);
+        comparisonData[category].actualMoods.push(actualMoods);
       });
     });
 
@@ -1181,12 +1437,19 @@ exports.updateActualMoods = async (req, res) => {
       const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       let hasUpdates = false;
 
-      // Update actual moods
+      // Update actual moods and probability to reflect actual mood percentage
       for (const category of categories) {
         for (const day of daysOfWeek) {
           const actualMood = getActualMoodForDay(actualMoodLogs, category, day, weekStart);
-          if (actualMood && prediction.predictions[category][day].actualMood !== actualMood) {
+          
+          const currentActualMood = prediction.predictions[category][day].actualMood;
+          
+          if (actualMood && currentActualMood !== actualMood) {
             prediction.predictions[category][day].actualMood = actualMood;
+            hasUpdates = true;
+          } else if (currentActualMood && !actualMood) {
+            // If actual mood was removed (no longer detected), reset actualMood to null
+            prediction.predictions[category][day].actualMood = null;
             hasUpdates = true;
           }
         }
@@ -1206,6 +1469,41 @@ exports.updateActualMoods = async (req, res) => {
 
   } catch (error) {
     console.error('Error updating actual moods:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.getAvailableWeeks = async (req, res) => {
+  try {
+    // Calculate which weekOffsets have data
+    const currentDate = new Date();
+    const availableOffsets = [];
+    
+    // Check offsets 0-4 (current week to 4 weeks ago)
+    for (let offset = 0; offset <= 4; offset++) {
+      const targetDate = new Date();
+      targetDate.setDate(targetDate.getDate() - (offset * 7));
+      
+      const year = targetDate.getFullYear();
+      const weekNumber = getWeekNumber(targetDate);
+      
+      // Check if data exists for this week
+      const dataExists = await PredictedMood.exists({
+        year: year,
+        weekNumber: weekNumber
+      });
+      
+      if (dataExists) {
+        availableOffsets.push(offset);
+      }
+    }
+    
+    res.status(200).json({
+      success: true,
+      availableOffsets: availableOffsets
+    });
+  } catch (error) {
+    console.error('Error getting available weeks:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };

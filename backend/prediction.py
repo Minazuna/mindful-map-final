@@ -3,7 +3,7 @@ import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, time
 import json
 import sys
 import logging
@@ -43,13 +43,13 @@ class CategoryMoodPredictor:
             category_df = df[df['category'] == category].copy()
             
             if category_df.empty:
-                return None, f"No data found for {category} category"
+                return None, f"No data found for {category} category", None
 
             # Get current week boundaries
             most_recent = category_df['timestamp'].max()
             current_date = pd.Timestamp.now(tz=most_recent.tz).date()
             current_week_monday = current_date - pd.Timedelta(days=current_date.weekday())
-            current_week_start = pd.Timestamp.combine(current_week_monday, datetime.min.time()).tz_localize(most_recent.tz)
+            current_week_start = pd.Timestamp.combine(current_week_monday, time.min).tz_localize(most_recent.tz)
 
             # Exclude current week data
             category_df = category_df[category_df['timestamp'] < current_week_start]
@@ -59,11 +59,22 @@ class CategoryMoodPredictor:
             category_df = category_df[category_df['timestamp'] >= four_weeks_ago]
 
             if len(category_df) < 14:  # Need at least 2 weeks of data (14 entries minimum)
-                return None, f"Insufficient data for {category} category. Need at least 2 weeks of data."
+                return None, f"Insufficient data for {category} category. Need at least 2 weeks of data.", None
 
             # Group by weeks (oldest to newest)
             category_df['week_number'] = ((category_df['timestamp'] - four_weeks_ago).dt.days // 7).astype(int)
             category_df = category_df[category_df['week_number'] < 4]  # Only 4 weeks
+
+            # Calculate actual date range used for predictions
+            actual_data_start = category_df['timestamp'].min().strftime('%Y-%m-%d')
+            actual_data_end = category_df['timestamp'].max().strftime('%Y-%m-%d')
+            
+            date_range_info = {
+                'start_date': actual_data_start,
+                'end_date': actual_data_end,
+                'total_entries': len(category_df),
+                'weeks_of_data': len(category_df['week_number'].unique())
+            }
 
             # Calculate weighted probabilities for each day of the week
             day_predictions = {}
@@ -79,17 +90,23 @@ class CategoryMoodPredictor:
                     }
                     continue
 
-                # Count mood occurrences per week
-                mood_week_counts = defaultdict(lambda: [0, 0, 0, 0])  # 4 weeks
+                # Group mood intensities by mood, week, and specific date for averaging
+                mood_daily_intensities = defaultdict(lambda: defaultdict(list))  # {mood: {date_str: [intensities]}}
                 activity_mood_mapping = defaultdict(list)
                 
+                # First pass: collect all intensities per mood per specific date
                 for _, row in day_data.iterrows():
                     week_idx = row['week_number']
                     after_emotion = row['afterEmotion'].lower() if row['afterEmotion'] else 'unknown'
+                    after_intensity = row.get('afterIntensity', 0)  # Default to 1 if missing
+                    date_str = row['timestamp'].strftime('%Y-%m-%d')  # Group by specific date
                     
                     # Skip unknown emotions
                     if after_emotion in self.all_emotions:
-                        mood_week_counts[after_emotion][week_idx] += 1
+                        mood_daily_intensities[after_emotion][date_str].append({
+                            'intensity': after_intensity,
+                            'week_idx': week_idx
+                        })
                         
                         # Track activities/causes for this mood
                         if category == 'sleep':
@@ -97,16 +114,31 @@ class CategoryMoodPredictor:
                         else:
                             activity_mood_mapping[after_emotion].append(row.get('activity', 'Unknown activity'))
 
-                # Calculate weighted frequencies
-                mood_weighted_frequencies = {}
-                total_weighted_frequency = 0
+                # Second pass: calculate average intensity per mood per day, then apply week weight
+                mood_week_weighted_intensities = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # 4 weeks
                 
-                for mood, week_counts in mood_week_counts.items():
-                    weighted_freq = sum(count * weight for count, weight in zip(week_counts, self.week_weights))
-                    mood_weighted_frequencies[mood] = weighted_freq
-                    total_weighted_frequency += weighted_freq
+                for mood, daily_data in mood_daily_intensities.items():
+                    for date_str, intensity_records in daily_data.items():
+                        # Calculate average intensity for this mood on this specific date
+                        avg_intensity = sum(record['intensity'] for record in intensity_records) / len(intensity_records)
+                        week_idx = intensity_records[0]['week_idx']  # All records on same date have same week
+                        
+                        # Apply weighted mean: weight (per week) * average_intensity
+                        week_weight = self.week_weights[week_idx]
+                        weighted_intensity = week_weight * avg_intensity
+                        mood_week_weighted_intensities[mood][week_idx] += weighted_intensity
 
-                if total_weighted_frequency == 0:
+                # Calculate total weighted intensities using weighted mean formula
+                mood_total_weighted_intensities = {}
+                total_weighted_intensity = 0.0
+                
+                for mood, week_weighted_intensities in mood_week_weighted_intensities.items():
+                    # Sum all weighted intensities for this mood across all weeks
+                    mood_weighted_sum = sum(week_weighted_intensities)
+                    mood_total_weighted_intensities[mood] = mood_weighted_sum
+                    total_weighted_intensity += mood_weighted_sum
+
+                if total_weighted_intensity == 0:
                     day_predictions[day] = {
                         'predicted_mood': 'No valid data',
                         'probability': 0.0,
@@ -114,16 +146,34 @@ class CategoryMoodPredictor:
                     }
                     continue
 
-                # Calculate probabilities and find predicted mood
+                # Calculate probabilities using weighted mean formula
                 mood_probabilities = {}
-                for mood, weighted_freq in mood_weighted_frequencies.items():
-                    probability = weighted_freq / total_weighted_frequency
+                for mood, weighted_intensity_sum in mood_total_weighted_intensities.items():
+                    # Weighted Mean = Σ(wi × xi) / Σ(wi)
+                    probability = weighted_intensity_sum / total_weighted_intensity
                     mood_probabilities[mood] = probability
 
-                # Get the mood with highest probability
-                predicted_mood = max(mood_probabilities.items(), key=lambda x: x[1])
-                predicted_emotion = predicted_mood[0]
-                predicted_probability = predicted_mood[1]
+                # Get the mood with highest probability (if tie, select most recent)
+                max_probability = max(mood_probabilities.values())
+                tied_moods = [mood for mood, prob in mood_probabilities.items() if prob == max_probability]
+                
+                if len(tied_moods) == 1:
+                    predicted_emotion = tied_moods[0]
+                else:
+                    # In case of tie, select the most recent mood from the data
+                    most_recent_mood = None
+                    most_recent_timestamp = None
+                    
+                    for _, row in day_data.iterrows():
+                        after_emotion = row['afterEmotion'].lower() if row['afterEmotion'] else 'unknown'
+                        if after_emotion in tied_moods:
+                            if most_recent_timestamp is None or row['timestamp'] > most_recent_timestamp:
+                                most_recent_timestamp = row['timestamp']
+                                most_recent_mood = after_emotion
+                    
+                    predicted_emotion = most_recent_mood if most_recent_mood else tied_moods[0]
+                
+                predicted_probability = max_probability
 
                 # Get the most common cause for this predicted mood
                 causes = activity_mood_mapping.get(predicted_emotion, [])
@@ -134,17 +184,28 @@ class CategoryMoodPredictor:
                 else:
                     most_common_cause = 'Unknown cause'
 
+                # Convert probabilities to percentages with 90% maximum cap
+                all_mood_probabilities = {}
+                for mood, prob in mood_probabilities.items():
+                    # Convert to percentage and cap at 90%
+                    percentage = min(prob * 100, 90.0)
+                    all_mood_probabilities[mood] = round(percentage, 1)
+                
+                # Update predicted probability with capped value
+                predicted_probability_capped = min(predicted_probability * 100, 90.0)
+
                 day_predictions[day] = {
                     'predicted_mood': predicted_emotion.capitalize(),
-                    'probability': round(predicted_probability * 100, 1),
-                    'cause': most_common_cause
+                    'probability': round(predicted_probability_capped, 1),
+                    'cause': most_common_cause,
+                    'all_mood_probabilities': all_mood_probabilities
                 }
 
-            return day_predictions, None
+            return day_predictions, None, date_range_info
 
         except Exception as e:
             logger.error(f"Error in prepare_category_data for {category}: {str(e)}")
-            return None, str(e)
+            return None, str(e), None
 
     def check_category_data_availability(self, mood_logs):
         """
@@ -153,7 +214,7 @@ class CategoryMoodPredictor:
         available_categories = {}
         
         for category in self.categories:
-            category_data, error = self.prepare_category_data(mood_logs, category)
+            category_data, error, date_range = self.prepare_category_data(mood_logs, category)
             available_categories[category] = {
                 'available': category_data is not None,
                 'message': error if category_data is None else 'Sufficient data available'
@@ -167,12 +228,12 @@ def predict_category_moods(mood_logs, category):
     """
     try:
         predictor = CategoryMoodPredictor()
-        predictions, error = predictor.prepare_category_data(mood_logs, category)
+        predictions, error, date_range_info = predictor.prepare_category_data(mood_logs, category)
         
         if error:
             return {'error': error}
         
-        return {'predictions': predictions}
+        return {'predictions': predictions, 'date_range': date_range_info}
     except Exception as e:
         logger.error(f"Error in predict_category_moods: {str(e)}")
         return {'error': str(e)}
@@ -238,7 +299,8 @@ def get_category_prediction():
         return jsonify({
             'success': True,
             'category': category,
-            'predictions': result['predictions']
+            'predictions': result['predictions'],
+            'date_range': result.get('date_range')
         })
         
     except Exception as e:
@@ -318,6 +380,58 @@ def get_prediction_from_node():
         
     except Exception as e:
         logger.error(f"API Error: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Server error: {str(e)}'
+        }), 500
+
+@app.route('/api/predict-category-mood-internal', methods=['POST'])
+def predict_category_mood_internal():
+    """
+    Internal endpoint for admin to get predictions by passing mood logs directly
+    """
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'success': False,
+                'message': 'No data provided'
+            }), 400
+            
+        category = data.get('category')
+        mood_logs = data.get('mood_logs', [])
+        
+        if not category or category not in ['activity', 'social', 'health', 'sleep']:
+            return jsonify({
+                'success': False,
+                'message': 'Invalid or missing category parameter'
+            }), 400
+            
+        if not mood_logs:
+            return jsonify({
+                'success': False,
+                'message': 'No mood logs provided'
+            }), 400
+        
+        # Get predictions for the specific category
+        result = predict_category_moods(mood_logs, category)
+        
+        if 'error' in result:
+            return jsonify({
+                'success': False,
+                'message': result['error']
+            }), 400
+            
+        return jsonify({
+            'success': True,
+            'category': category,
+            'predictions': result['predictions'],
+            'date_range': result.get('date_range')
+        })
+        
+    except Exception as e:
+        logger.error(f"Internal API Error: {str(e)}")
         return jsonify({
             'success': False,
             'message': f'Server error: {str(e)}'

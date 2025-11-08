@@ -19,6 +19,7 @@ const TeachersTable = () => {
     subject: '',
     password: ''
   });
+  const [emailError, setEmailError] = useState('');
 
   const sections = ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'];
 
@@ -60,9 +61,28 @@ const TeachersTable = () => {
     }
   };
 
+  const validateEmail = (email) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
+    
+    // Clear email error when user starts typing
+    if (name === 'email' && emailError) {
+      setEmailError('');
+    }
+  };
+
+  const handleEmailBlur = (e) => {
+    const email = e.target.value;
+    if (email && !validateEmail(email)) {
+      setEmailError('Please enter a valid email address');
+    } else {
+      setEmailError('');
+    }
   };
 
   const handleSectionChange = (section) => {
@@ -90,10 +110,18 @@ const TeachersTable = () => {
       subject: '',
       password: ''
     });
+    setEmailError('');
   };
 
   const handleCreateTeacher = async (e) => {
     e.preventDefault();
+    
+    // Validate email before submitting
+    if (!validateEmail(formData.email)) {
+      setEmailError('Please enter a valid email address');
+      return;
+    }
+    
     try {
       const token = localStorage.getItem('token');
       const response = await axios.post(
@@ -481,9 +509,17 @@ const TeachersTable = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
+                      onBlur={handleEmailBlur}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                        emailError 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                     />
+                    {emailError && (
+                      <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                    )}
                   </div>
                 </div>
 
@@ -545,7 +581,12 @@ const TeachersTable = () => {
                   </button>
                   <button
                     type="submit"
-                    className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                    disabled={emailError || !formData.email}
+                    className={`px-4 py-2 rounded-md ${
+                      emailError || !formData.email
+                        ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
+                    }`}
                   >
                     Create Teacher
                   </button>

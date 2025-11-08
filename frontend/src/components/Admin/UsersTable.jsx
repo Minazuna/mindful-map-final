@@ -2,8 +2,6 @@ import React, { useEffect, useState } from "react";
 import { Box, Avatar, Typography, TextField, IconButton, Button, Checkbox, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
-import VisibilityIcon from '@mui/icons-material/Visibility';
-import DownloadIcon from '@mui/icons-material/Download';
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import axios from "axios";
@@ -132,125 +130,7 @@ const UsersTable = () => {
     }
   };
 
-  const handleViewLogs = (userId) => {
-    navigate(`/admin/student-logs/${userId}`);
-  };
 
-  const handleDownloadStudentLogs = async (user) => {
-    try {
-      const token = localStorage.getItem("token");
-      const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/user/${user.id}/moodlogs`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (response.data && response.data.length > 0) {
-        generateStudentLogsPDF(user, response.data);
-      } else {
-        toast.info("No mood logs found for this student.");
-      }
-    } catch (error) {
-      console.error("Error downloading student logs:", error);
-      toast.error("Failed to download student logs");
-    }
-  };
-
-  const generateStudentLogsPDF = (user, logs) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    
-    // Professional Header with Date and Time
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MINDFUL MAP', pageWidth / 2, 25, { align: 'center' });
-    
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Student Mood Logs Report', pageWidth / 2, 35, { align: 'center' });
-    
-    // Date and Time
-    const now = new Date();
-    const dateTime = `Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(dateTime, pageWidth - margin, 15, { align: 'right' });
-    
-    // Line separator
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(0, 0, 0);
-    doc.line(margin, 45, pageWidth - margin, 45);
-    
-    // Professional Student Information Layout
-    const leftColX = margin;
-    const rightColX = pageWidth / 2 + 10;
-    const startY = 60;
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Student Information', leftColX, startY);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Name: ${user.name}`, leftColX, startY + 15);
-    doc.text(`Email: ${user.email}`, leftColX, startY + 25);
-    
-    doc.text(`Section: ${user.section || 'Not Assigned'}`, rightColX, startY + 15);
-    doc.text(`Total Logs: ${logs.length}`, rightColX, startY + 25);
-
-    if (logs.length === 0) {
-      doc.setFontSize(12);
-      doc.text('No mood logs found for this student.', margin, startY + 50);
-    } else {
-      // Table data with date and time
-      const tableData = logs.map(log => {
-        const logDate = new Date(log.date);
-        const dateTimeStr = `${logDate.toLocaleDateString()} ${logDate.toLocaleTimeString()}`;
-        return [
-          dateTimeStr,
-          log.category || 'N/A',
-          log.category === 'sleep' ? `${log.hrs} hours` : log.activity || 'N/A',
-          log.beforeValence || 'N/A',
-          log.beforeEmotion || 'N/A',
-          log.beforeIntensity || 'N/A',
-          log.afterValence || 'N/A',
-          log.afterEmotion || 'N/A',
-          log.afterIntensity || 'N/A'
-        ];
-      });
-
-      doc.autoTable({
-        head: [['Date & Time', 'Category', 'Activity', 'Before Valence', 'Before Emotion', 'Before Intensity', 'After Valence', 'After Emotion', 'After Intensity']],
-        body: tableData,
-        startY: startY + 40,
-        margin: { left: 10, right: 10 },
-        styles: { 
-          fontSize: 7,
-          cellPadding: 2
-        },
-        headStyles: { 
-          fillColor: [76, 175, 80],
-          textColor: 255,
-          fontSize: 8,
-          fontStyle: 'bold'
-        },
-        columnStyles: {
-          0: { cellWidth: 25 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 28 },
-          3: { cellWidth: 20 },
-          4: { cellWidth: 20 },
-          5: { cellWidth: 18 },
-          6: { cellWidth: 20 },
-          7: { cellWidth: 20 },
-          8: { cellWidth: 18 }
-        }
-      });
-    }
-
-    // Save the PDF
-    doc.save(`${user.name.replace(/\s+/g, '_')}_mood_logs.pdf`);
-    toast.success('Student logs downloaded successfully!');
-  };
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -575,7 +455,7 @@ const UsersTable = () => {
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Section</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Account Status</TableCell>
                   <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Created At</TableCell>
-                  <TableCell width="180px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Actions</TableCell>
+                  <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -645,22 +525,6 @@ const UsersTable = () => {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <IconButton 
-                            onClick={() => handleViewLogs(user.id)}
-                            size="small"
-                            sx={{ color: "#1976D2" }}
-                            title="View Logs"
-                          >
-                            <VisibilityIcon />
-                          </IconButton>
-                          <IconButton 
-                            onClick={() => handleDownloadStudentLogs(user)}
-                            size="small"
-                            sx={{ color: "#4CAF50" }}
-                            title="Download Logs"
-                          >
-                            <DownloadIcon />
-                          </IconButton>
                           {user.isDeactivated || user.pendingDeactivation ? (
                             <IconButton disabled size="small">
                               <DeleteIcon sx={{ color: "#9E9E9E" }} />

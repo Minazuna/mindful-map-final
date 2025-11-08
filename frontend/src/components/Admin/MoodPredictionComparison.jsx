@@ -29,6 +29,7 @@ const MoodPredictionComparison = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [weekOffset, setWeekOffset] = useState(0);
+  const [availableOffsets, setAvailableOffsets] = useState([]);
 
   const categories = [
     { key: 'activity', name: 'Activity', color: '#3B82F6' },
@@ -52,8 +53,31 @@ const MoodPredictionComparison = () => {
   };
 
   useEffect(() => {
+    fetchAvailableWeeks();
     fetchComparisonData();
   }, [weekOffset]);
+
+  const fetchAvailableWeeks = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch(`${import.meta.env.VITE_NODE_API}/api/admin/available-weeks`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setAvailableOffsets(result.availableOffsets || []);
+      }
+    } catch (err) {
+      console.error('Error fetching available weeks:', err);
+      // If fetching available weeks fails, allow all options as fallback
+      setAvailableOffsets([0, 1, 2, 3, 4]);
+    }
+  };
 
   const fetchComparisonData = async () => {
     try {
@@ -164,31 +188,18 @@ const MoodPredictionComparison = () => {
       labels: data.days,
       datasets: [
         {
-          label: 'Predicted Mood',
-          data: data.predicted.map(mood => mood === 'No data' ? 0 : 1),
-          backgroundColor: `${category.color}80`,
-          borderColor: category.color,
+          label: 'Matches',
+          data: data.matches,
+          backgroundColor: '#10B981',
+          borderColor: '#059669',
           borderWidth: 2,
-          type: 'bar',
-          yAxisID: 'y'
         },
         {
-          label: 'Actual Mood',
-          data: data.actual.map(mood => mood === 'No data' ? 0 : 1),
-          backgroundColor: `${category.color}40`,
-          borderColor: category.color,
+          label: 'Not Matches',
+          data: data.notMatches,
+          backgroundColor: '#EF4444',
+          borderColor: '#DC2626',
           borderWidth: 2,
-          type: 'bar',
-          yAxisID: 'y'
-        },
-        {
-          label: 'Accuracy %',
-          data: data.accuracy,
-          borderColor: '#EF4444',
-          backgroundColor: '#EF444480',
-          type: 'line',
-          yAxisID: 'y1',
-          tension: 0.4
         }
       ]
     };
@@ -202,7 +213,7 @@ const MoodPredictionComparison = () => {
       plugins: {
         title: {
           display: true,
-          text: `${category.name} - Predicted vs Actual Mood`,
+          text: `${category.name} - Prediction Match Analysis`,
           font: { size: 16, weight: 'bold' }
         },
         legend: {
@@ -210,14 +221,13 @@ const MoodPredictionComparison = () => {
         },
         tooltip: {
           callbacks: {
-            afterLabel: function(context) {
+            label: function(context) {
+              const datasetLabel = context.dataset.label;
+              const value = context.parsed.y;
               const dayIndex = context.dataIndex;
-              if (context.datasetIndex === 0) {
-                return `Predicted: ${data.predicted[dayIndex]}`;
-              } else if (context.datasetIndex === 1) {
-                return `Actual: ${data.actual[dayIndex]}`;
-              }
-              return '';
+              const totalPredictions = data.matches[dayIndex] + data.notMatches[dayIndex];
+              const percentage = totalPredictions > 0 ? ((value / totalPredictions) * 100).toFixed(1) : 0;
+              return `${datasetLabel}: ${value} (${percentage}%)`;
             }
           }
         }
@@ -232,33 +242,12 @@ const MoodPredictionComparison = () => {
         y: {
           type: 'linear',
           display: true,
-          position: 'left',
-          min: 0,
-          max: 1,
-          ticks: {
-            callback: function(value) {
-              return value === 1 ? 'Has Data' : 'No Data';
-            }
-          },
+          beginAtZero: true,
           title: {
             display: true,
-            text: 'Data Availability'
+            text: 'Number of Users'
           }
-        },
-        y1: {
-          type: 'linear',
-          display: true,
-          position: 'right',
-          min: 0,
-          max: 100,
-          title: {
-            display: true,
-            text: 'Accuracy (%)'
-          },
-          grid: {
-            drawOnChartArea: false,
-          },
-        },
+        }
       },
     };
 
@@ -272,18 +261,29 @@ const MoodPredictionComparison = () => {
     const predictedCounts = {};
     const actualCounts = {};
 
-    // Count mood occurrences
-    data.predicted.forEach(mood => {
-      predictedCounts[mood] = (predictedCounts[mood] || 0) + 1;
+    // Flatten all predicted moods from all days and count occurrences
+    data.predictedMoods.flat().forEach(mood => {
+      if (mood && mood !== 'No data' && mood !== 'No valid data') {
+        predictedCounts[mood] = (predictedCounts[mood] || 0) + 1;
+      }
     });
 
-    data.actual.forEach(mood => {
-      if (mood !== 'No data') {
+    // Flatten all actual moods from all days and count occurrences
+    data.actualMoods.flat().forEach(mood => {
+      if (mood && mood !== 'No data') {
         actualCounts[mood] = (actualCounts[mood] || 0) + 1;
       }
     });
 
     const allMoods = [...new Set([...Object.keys(predictedCounts), ...Object.keys(actualCounts)])];
+
+    if (allMoods.length === 0) {
+      return (
+        <div className="flex items-center justify-center h-40 text-gray-500">
+          <p>No mood data available for {category.name}</p>
+        </div>
+      );
+    }
 
     const chartData = {
       labels: allMoods,
@@ -316,6 +316,20 @@ const MoodPredictionComparison = () => {
         legend: {
           position: 'top',
         },
+        tooltip: {
+          callbacks: {
+            label: function(context) {
+              const mood = context.label;
+              const datasetLabel = context.dataset.label;
+              const value = context.parsed.y;
+              const totalPredicted = Object.values(predictedCounts).reduce((sum, count) => sum + count, 0);
+              const totalActual = Object.values(actualCounts).reduce((sum, count) => sum + count, 0);
+              const total = datasetLabel === 'Predicted' ? totalPredicted : totalActual;
+              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `${datasetLabel} ${mood}: ${value} (${percentage}%)`;
+            }
+          }
+        }
       },
       scales: {
         y: {
@@ -323,6 +337,12 @@ const MoodPredictionComparison = () => {
           title: {
             display: true,
             text: 'Frequency'
+          }
+        },
+        x: {
+          title: {
+            display: true,
+            text: 'Mood Types'
           }
         }
       }
@@ -386,12 +406,27 @@ const MoodPredictionComparison = () => {
               onChange={(e) => setWeekOffset(parseInt(e.target.value))}
               className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value={0}>Current Week</option>
-              <option value={1}>1 Week Ago</option>
-              <option value={2}>2 Weeks Ago</option>
-              <option value={3}>3 Weeks Ago</option>
-              <option value={4}>4 Weeks Ago</option>
+              <option value={0} disabled={!availableOffsets.includes(0)}>
+                Current Week {!availableOffsets.includes(0) }
+              </option>
+              <option value={1} disabled={!availableOffsets.includes(1)}>
+                1 Week Ago {!availableOffsets.includes(1) }
+              </option>
+              <option value={2} disabled={!availableOffsets.includes(2)}>
+                2 Weeks Ago {!availableOffsets.includes(2) }
+              </option>
+              <option value={3} disabled={!availableOffsets.includes(3)}>
+                3 Weeks Ago {!availableOffsets.includes(3) }
+              </option>
+              <option value={4} disabled={!availableOffsets.includes(4)}>
+                4 Weeks Ago {!availableOffsets.includes(4) }
+              </option>
             </select>
+            {availableOffsets.length > 0 && (
+              <p className="text-sm text-gray-500">
+                Available weeks: {availableOffsets.length} of 5
+              </p>
+            )}
           </div>
         </div>
 
