@@ -160,14 +160,14 @@ const WeeklyStatistics = () => {
 
   // Generate comparison insights
   const getComparisonInsights = () => {
-    if (!statistics || !previousWeekStats || statistics.totalEntries === 0 || previousWeekStats.totalEntries === 0) {
+    if (!statistics || !previousWeekStats || statistics.totalLogs === 0 || previousWeekStats.totalLogs === 0) {
       return null;
     }
 
     const insights = [];
 
     // Total entries comparison
-    const entriesDiff = statistics.totalEntries - previousWeekStats.totalEntries;
+    const entriesDiff = statistics.totalLogs - previousWeekStats.totalLogs;
     if (entriesDiff > 0) {
       insights.push({
         type: 'positive',
@@ -179,7 +179,7 @@ const WeeklyStatistics = () => {
       insights.push({
         type: 'neutral',
         icon: <TrendingDownOutlinedIcon />,
-        text: `You logged ${Math.abs(entriesDiff)} fewer mood${Math.abs(entriesDiff) > 1 ? 's' : ''} this week. Every entry counts towards your growth! 📝`,
+        text: `You logged ${Math.abs(entriesDiff)} fewer mood${Math.abs(entriesDiff) > 1 ? 's' : ''} than last week. Every bit of tracking counts! 📝`,
         color: '#FF9800'
       });
     }
@@ -200,14 +200,14 @@ const WeeklyStatistics = () => {
       insights.push({
         type: 'understanding',
         icon: <SentimentDissatisfiedIcon />,
-        text: `This week had fewer positive moments than last week. That's normal - life has its rhythms! 💙`,
+        text: `Fewer positive moods than last week. That's perfectly normal - every week is different! 💙`,
         color: '#2196F3'
       });
     }
 
     // Weekly activity comparison
-    const currentAvgPerDay = (statistics.totalEntries / 7).toFixed(1);
-    const previousAvgPerDay = (previousWeekStats.totalEntries / 7).toFixed(1);
+    const currentAvgPerDay = (statistics.totalLogs / 7).toFixed(1);
+    const previousAvgPerDay = (previousWeekStats.totalLogs / 7).toFixed(1);
     const avgDiff = currentAvgPerDay - previousAvgPerDay;
 
     if (Math.abs(avgDiff) > 0.5) {
@@ -357,7 +357,7 @@ const WeeklyStatistics = () => {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        {statistics?.totalEntries === 0 ? (
+        {statistics?.totalLogs === 0 ? (
           // No data state
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -427,12 +427,12 @@ const WeeklyStatistics = () => {
                   </div>
                 </div>
                 <div className="text-4xl font-bold mb-2" style={{ color: '#272829' }}>
-                  {statistics.totalEntries}
+                  {statistics.totalLogs}
                 </div>
                 <div className="text-base text-gray-500 mb-2 ">Total Entries</div>
                 {previousWeekStats && (
                   <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
-                    Last week: {previousWeekStats.totalEntries}
+                    Last week: {previousWeekStats.totalLogs}
                   </div>
                 )}
               </motion.div>
@@ -450,12 +450,12 @@ const WeeklyStatistics = () => {
                   </div>
                 </div>
                 <div className="text-4xl font-bold mb-2" style={{ color: '#272829' }}>
-                  {(statistics.totalEntries / 7).toFixed(1)}
+                  {(statistics.totalLogs / 7).toFixed(1)}
                 </div>
                 <div className="text-base text-gray-500 mb-2">Per Day</div>
                 {previousWeekStats && (
                   <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
-                    Last week: {(previousWeekStats.totalEntries / 7).toFixed(1)}
+                    Last week: {(previousWeekStats.totalLogs / 7).toFixed(1)}
                   </div>
                 )}
               </motion.div>

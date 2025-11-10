@@ -140,14 +140,14 @@ const DailyStatistics = () => {
 
   // Generate comparison insights
   const getComparisonInsights = () => {
-    if (!statistics || !previousDayStats || statistics.totalEntries === 0 || previousDayStats.totalEntries === 0) {
+    if (!statistics || !previousDayStats || statistics.totalLogs === 0 || previousDayStats.totalLogs === 0) {
       return null;
     }
 
     const insights = [];
 
     // Total entries comparison
-    const entriesDiff = statistics.totalEntries - previousDayStats.totalEntries;
+    const entriesDiff = statistics.totalLogs - previousDayStats.totalLogs;
     if (entriesDiff > 0) {
       insights.push({
         type: 'positive',
@@ -235,9 +235,9 @@ const DailyStatistics = () => {
     if (currentTopEmotion !== previousTopEmotion) {
       insights.push({
         type: 'insight',
-        icon: <EmojiEmotionsIcon />,
-        text: `Your primary emotion shifted from ${formatText(previousTopEmotion)} to ${formatText(currentTopEmotion)}.`,
-        color: '#FF5722'
+        icon: <TrendingFlatOutlinedIcon />,
+        text: `Your primary emotion today is ${formatText(previousTopEmotion)}. Yesterday it was ${formatText(currentTopEmotion)}.`,
+        color: '#5247caff'
       });
     }
 
@@ -344,7 +344,7 @@ const DailyStatistics = () => {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        {statistics?.totalEntries === 0 ? (
+        {statistics?.totalLogs === 0 ? (
           // No data state
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -414,12 +414,12 @@ const DailyStatistics = () => {
                   </div>
                 </div>
                 <div className="text-4xl font-bold mb-2" style={{ color: '#272829' }}>
-                  {statistics.totalEntries}
+                  {statistics.totalLogs}
                 </div>
                 <div className="text-base text-gray-500 mb-2">Total Entries</div>
                 {previousDayStats && (
                   <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
-                    Yesterday: {previousDayStats.totalEntries}
+                    Yesterday: {previousDayStats.totalLogs}
                   </div>
                 )}
               </motion.div>

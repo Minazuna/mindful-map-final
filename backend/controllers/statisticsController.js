@@ -57,9 +57,10 @@ exports.getDailyStatistics = async (req, res) => {
       return res.json({
         success: true,
         data: {
-          totalEntries: 0,
+          totalLogs: 0,
           mostProminentValence: null,
           emotionCounts: {},
+          valenceCounts: { positive: 0, negative: 0 },
           timeSegmentMoods: {
             earlyMorning: null,
             morning: null,
@@ -166,7 +167,7 @@ exports.getDailyStatistics = async (req, res) => {
         : 0;
 
     const responseData = {
-      totalEntries: allEmotions.length,
+      totalLogs: moodLogs.length,
       mostProminentValence: mostProminentValence,
       valenceCounts: valenceCounts,
       emotionCounts: emotionCounts,
@@ -240,7 +241,7 @@ exports.getWeeklyStatistics = async (req, res) => {
       return res.json({
         success: true,
         data: {
-          totalEntries: 0,
+          totalLogs: 0,
           mostProminentValence: null,
           emotionCounts: {},
           valenceCounts: { positive: 0, negative: 0 },
@@ -386,6 +387,7 @@ exports.getWeeklyStatistics = async (req, res) => {
     });
 
     const responseData = {
+      totalLogs: moodLogs.length,
       totalEntries: allEmotions.length,
       mostProminentValence: mostProminentValence,
       valenceCounts: valenceCounts,
