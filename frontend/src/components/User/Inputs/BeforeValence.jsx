@@ -8,21 +8,18 @@ const Valence = ({ categoryFormData, setCategoryFormData }) => {
     { 
       id: 'positive', 
       label: 'Positive', 
-      emoji: '😊',
       color: '#55AD9B',
       path: '/before-positive'
     },
     { 
       id: 'negative', 
       label: 'Negative', 
-      emoji: '😔',
       color: '#55AD9B',
       path: '/before-negative'
     },
     { 
       id: 'can\'t remember', 
       label: "I can't remember", 
-      emoji: '🤔',
       color: '#95D2B3',
       path: '/after-valence'
     }
@@ -103,7 +100,7 @@ const Valence = ({ categoryFormData, setCategoryFormData }) => {
           className="text-4xl font-bold mb-16 text-center max-w-2xl"
           style={{ color: '#272829' }}
         >
-          How do you feel before the activity?
+          How do you feel before doing the activity?
         </h1>
 
         {/* Valence Options */}
@@ -118,7 +115,6 @@ const Valence = ({ categoryFormData, setCategoryFormData }) => {
                 color: '#272829'
               }}
             >
-              <span className="text-2xl">{option.emoji}</span>
               <span>{option.label}</span>
             </button>
           ))}

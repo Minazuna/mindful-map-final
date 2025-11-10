@@ -9,6 +9,7 @@ const Health = ({ categoryFormData, setCategoryFormData }) => {
     { id: 'jog', label: 'Jog', icon: '/images/jog.png' },
     { id: 'walk', label: 'Walk', icon: '/images/walk.png' },
     { id: 'exercise', label: 'Exercise', icon: '/images/exercise.png' },
+    { id: 'sports', label: 'Sports', icon: '/images/sports.png' },
     { id: 'meditate', label: 'Meditate', icon: '/images/meditate.png' },
     { id: 'eat-healthy', label: 'Eat Healthy', icon: '/images/eatHealthy.png' },
     { id: 'no-physical', label: 'No Physical Activity', icon: '/images/noPhysicalActivity.png' },

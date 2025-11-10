@@ -6,9 +6,14 @@ const OverallActivities = ({ categoryFormData, setCategoryFormData }) => {
   const [selectedActivity, setSelectedActivity] = useState(categoryFormData.activity || '');
 
   const activityOptions = [
+    { id: 'commute', label: 'Commute', icon: '/images/commute.png' },
+    { id: 'exam', label: 'Exam', icon: '/images/exam.png' },
+    { id: 'homework', label: 'Homework', icon: '/images/homework.png' },
     { id: 'study', label: 'Study', icon: '/images/study.png' },
+    { id: 'project', label: 'Project', icon: '/images/project.png' },
     { id: 'read', label: 'Read', icon: '/images/read.png' },
     { id: 'extracurricular', label: 'Extracurricular Activities', icon: '/images/extraCurricularActivities.png' },
+    { id: 'household-chores', label: 'Household Chores', icon: '/images/householdChores.png' },
     { id: 'relax', label: 'Relax', icon: '/images/relax.png' },
     { id: 'watch-movie', label: 'Watch Movie', icon: '/images/watchMovie.png' },
     { id: 'listen-music', label: 'Listen to Music', icon: '/images/listenToMusic.png' },

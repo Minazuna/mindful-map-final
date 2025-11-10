@@ -25,13 +25,11 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
       
       // Convert to Philippine time (UTC+8)
       const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-      dateToUse = phTime.toISOString().split('T')[0]; // Get YYYY-MM-DD format
+      dateToUse = phTime.toISOString().split('T')[0]; 
       console.log('ChooseCategory - Calculated PH date for today:', dateToUse);
     }
     
-    // Set the date in the form data and reset state if date changed
     setCategoryFormData(prev => {
-      // If the date changed, reset all fields including isEditing
       if (prev.selectedDate !== dateToUse) {
         return {
           category: '',
@@ -47,7 +45,7 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
           afterReason: '',
           selectedDate: dateToUse,
           selectedTime: null,
-          isEditing: false // Reset editing flag when date changes
+          isEditing: false 
         };
       }
       return {
@@ -69,27 +67,44 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
       
       const path = categoryPaths[categoryFormData.category];
       if (path) {
-        // Use replace to avoid adding this redirect to browser history
         navigate(path, { replace: true });
       }
     }
   }, [location.search, setCategoryFormData, categoryFormData.category, navigate]);
 
   const categories = [
-    { name: 'Activities', path: '/overall-activities', categoryKey: 'activity' },
-    { name: 'Social Interactions', path: '/social-interactions', categoryKey: 'social' },
-    { name: 'Health-related Activities', path: '/health-activities', categoryKey: 'health' },
-    { name: 'Previous Night\'s Sleep (No. of Hours)', path: '/sleep-hours', categoryKey: 'sleep' }
+    { 
+      name: 'Activities', 
+      path: '/overall-activities', 
+      categoryKey: 'activity',
+      icon: '/images/activities.png'
+    },
+    { 
+      name: 'Social Interactions', 
+      path: '/social-interactions', 
+      categoryKey: 'social',
+      icon: '/images/social.png'
+    },
+    { 
+      name: 'Health-related Activities', 
+      path: '/health-activities', 
+      categoryKey: 'health',
+      icon: '/images/health.png'
+    },
+    { 
+      name: "Previous Night's Sleep (No. of Hours)", 
+      path: '/sleep-hours', 
+      categoryKey: 'sleep',
+      icon: '/images/sleep.png'
+    }
   ];
 
   const handleCategorySelect = async (path, categoryKey) => {
     console.log('Category selected:', categoryKey);
     
-    // Set the selected category
     setCategoryFormData(prev => ({
       ...prev,
       category: categoryKey,
-      // Reset other fields when changing category but preserve selectedDate
       activity: '',
       hrs: 0,
       beforeValence: '',
@@ -100,10 +115,9 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
       afterEmotion: '',
       afterIntensity: 0,
       afterReason: '',
-      isEditing: false // Make sure to reset editing state
+      isEditing: false 
     }));
     
-    // Special handling for sleep category
     if (categoryKey === 'sleep') {
       try {
         const token = localStorage.getItem('token');
@@ -263,19 +277,25 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
           Choose a Category
         </h1>
 
-        <div className="flex flex-col space-y-6 w-full max-w-md mb-8">
+        <div className="flex flex-col space-y-6 w-full max-w-md mb-8 items-center">
           {categories.map((category, index) => (
-            <button
-              key={index}
-              onClick={() => handleCategorySelect(category.path, category.categoryKey)}
-              className="w-full py-4 px-8 rounded-2xl text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform"
-              style={{ 
-                backgroundColor: '#F1F8E8',
-                color: '#272829'
-              }}
-            >
-              {category.name}
-            </button>
+        <button
+          key={index}
+          onClick={() => handleCategorySelect(category.path, category.categoryKey)}
+          className="w-full py-4 px-8 rounded-2xl text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform flex justify-center items-center gap-4"
+          style={{ 
+            backgroundColor: '#F1F8E8',
+            color: '#272829'
+          }}
+        >
+          <img
+            src={category.icon}
+            alt={category.name}
+            className="w-8 h-8"
+            style={{ objectFit: 'contain' }}
+          />
+          <span>{category.name}</span>
+        </button>
           ))}
         </div>
 

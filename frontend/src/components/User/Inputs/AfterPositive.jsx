@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import ContinueTrackingModal from './ContinueTrackingModal';
+import { emotionImages } from '../../../../utils/moods';
 
 const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
@@ -12,11 +13,11 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
   const [showContinueModal, setShowContinueModal] = useState(false);
 
   const emotions = [
-    { id: 'calm', emoji: '😌', label: 'Calm' },
-    { id: 'relaxed', emoji: '😊', label: 'Relaxed' },
-    { id: 'pleased', emoji: '🙂', label: 'Pleased' },
-    { id: 'happy', emoji: '😄', label: 'Happy' },
-    { id: 'excited', emoji: '🤩', label: 'Excited' }
+    'calm',
+    'excited',
+    'happy',
+    'pleased',
+    'relaxed'
   ];
 
   const intensityLevels = [1, 2, 3, 4, 5];
@@ -191,29 +192,34 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
           className="text-4xl font-bold mb-12 text-center"
           style={{ color: '#272829' }}
         >
-          Select Your Positive Emotion After
+          Select A Positive Emotion
         </h1>
 
         {/* Emotions Grid */}
         <div className="grid grid-cols-5 gap-6 mb-12">
           {emotions.map((emotion) => (
             <div
-              key={emotion.id}
-              onClick={() => handleEmotionSelect(emotion.id)}
+              key={emotion}
+              onClick={() => handleEmotionSelect(emotion)}
               className={`flex flex-col items-center cursor-pointer transition-all duration-300 hover:scale-105 p-4 rounded-2xl ${
-                selectedEmotion === emotion.id ? 'ring-4 ring-opacity-60' : ''
+                selectedEmotion === emotion ? 'ring-4 ring-opacity-60' : ''
               }`}
               style={{ 
-                backgroundColor: selectedEmotion === emotion.id ? '#95D2B3' : 'transparent',
+                backgroundColor: selectedEmotion === emotion ? '#95D2B3' : 'transparent',
                 ringColor: '#55AD9B'
               }}
             >
-              <div className="text-6xl mb-3">{emotion.emoji}</div>
+            <img
+              src={emotionImages[emotion]}
+              alt={emotion}
+              className="w-16 h-16 mb-3"
+              style={{ objectFit: 'contain' }}
+            />
               <span 
-                className="text-lg font-medium text-center"
+                className="text-lg font-medium text-center capitalize"
                 style={{ color: '#272829' }}
               >
-                {emotion.label}
+                {emotion}
               </span>
             </div>
           ))}

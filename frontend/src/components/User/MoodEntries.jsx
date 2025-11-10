@@ -73,9 +73,14 @@ const MoodEntries = () => {
   const getActivityIcon = (activity, category) => {
     if (category === 'sleep') return <span className="text-3xl">😴</span>;
     const activityImages = {
+      commute: '/images/commute.png',
+      exam: '/images/exam.png',
+      homework: '/images/homework.png',
+      project: '/images/project.png',
       study: '/images/study.png',
       read: '/images/read.png',
       extracurricular: '/images/extraCurricularActivities.png',
+      'household-chores': '/images/householdChores.png',
       relax: '/images/relax.png',
       'watch-movie': '/images/watchMovie.png',
       'listen-music': '/images/listenToMusic.png',
@@ -93,6 +98,7 @@ const MoodEntries = () => {
       walk: '/images/walk.png',
       exercise: '/images/exercise.png',
       meditate: '/images/meditate.png',
+      sports: '/images/sports.png',
       'eat-healthy': '/images/eatHealthy.png',
       'no-physical': '/images/noPhysicalActivity.png',
       'eat-unhealthy': '/images/eatUnhealthy.png',
