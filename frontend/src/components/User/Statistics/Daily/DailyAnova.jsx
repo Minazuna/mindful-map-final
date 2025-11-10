@@ -5,163 +5,153 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import { motion } from 'framer-motion';
 
-const CATEGORY_LABELS = {
-  activity: 'Overall Activities',
-  social: 'Social',
-  health: 'Health',
-  sleep: 'Sleep'
-};
+  const ACTIVITY_LABELS = {
+    commute: 'Commuting',
+    exam: 'Having an exam',
+    homework: 'Doing your homework',
+    study: 'Studying',
+    project: 'Doing a project',
+    read: 'Reading',
+    extracurricular: 'Doing an extracurricular activity',
+    'household-chores': 'Doing household chores',
+    relax: 'Relaxing',
+    'watch-movie': 'Watching a movie',
+    'listen-music': 'Listening to music',
+    gaming: 'Gaming',
+    'browse-internet': 'Browsing the internet',
+    shopping: 'Shopping',
+    travel: 'Traveling',
 
-const sleepQualityColors = {
-  Poor: '#ff6b6b',
-  Sufficient: '#f7b801',
-  Good: '#55AD9B'
-};
+    alone: 'Being alone',
+    friends: 'Socializing with your friends',
+    family: 'Socializing with your family',
+    classmates: 'Socializing with your classmates',
+    relationship: 'Socializing with your significant other',
+    online: 'Socializing online',
+    pet: 'Being with your pet',
+      jog: 'Jogging',
+    walk: 'Walking',
+    exercise: 'Exercising',
+    sports: 'Playing a sport',
+    meditate: 'Meditating',
+    'eat-unhealthy': 'Eating unhealthy food',
+    'eat-healthy': 'Eating healthy food',
+    'no-physical': 'Not doing any physical activity',
+    'drink-alcohol': 'Drinking alcohol'
+  };
 
-// Activity transformation mapping
-const ACTIVITY_TRANSFORMATIONS = {
-  'study': 'Studying',
-  'read': 'Reading',
-  'extracurricular': 'Doing Extracurricular Activities',
-  'relax': 'Relaxing',
-  'watch-movie': 'Watching Movie',
-  'listen-music': 'Listening to Music',
-  'gaming': 'Gaming',
-  'browse-internet': 'Browsing the Internet',
-  'shopping': 'Shopping',
-  'travel': 'Traveling',
-  'alone': 'Being Alone',
-  'friends': 'Being with Friends',
-  'family': 'Being with Family',
-  'classmates': 'Being with Classmates',
-  'relationship': 'Being with Partner',
-  'online-interaction': 'Interacting Online',
-  'pet': 'Being with Pet',
-  'jog': 'Jogging',
-  'walk': 'Walking',
-  'exercise': 'Exercising',
-  'meditate': 'Meditating',
-  'eat-healthy': 'Eating Healthy',
-  'no-physical': 'Not Doing Physical Activity',
-  'eat-unhealthy': 'Eating Unhealthy',
-  'drink-alcohol': 'Drinking Alcohol',
-  'sleep': 'Sleeping'
-};
+  const CATEGORY_LABELS = {
+    activity: 'Overall Activities',
+    social: 'Social',
+    health: 'Health',
+    sleep: 'Sleep'
+  };
 
-// Positive message variations
-const POSITIVE_MESSAGES = [
-  "boosted your mood by {score}% today. Keep it up!",
-  "increased your happiness by {score}% today. Great choice!",
-  "lifted your spirits by {score}% today. Well done!",
-  "brightened your day by {score}% today. Fantastic!",
-  "enhanced your mood by {score}% today. You're doing amazing!"
+  const sleepQualityColors = {
+    Poor: '#ff6b6b',
+    Sufficient: '#f7b801',
+    Good: '#55AD9B'
+  };
+
+  const POSITIVE_COLOR = '#55AD9B';
+  const NEGATIVE_COLOR = '#FF9800';
+
+  function getRandom(arr) {
+    return arr[Math.floor(Math.random() * arr.length)];
+  }
+const POSITIVE_VARIANTS = [
+  (label, score) => `${smartLabel(label, '')} boosted your mood by ${score}%. Keep it up!`,
+  (label, score) => `Great job! ${smartLabel(label, '!')} increased your mood by ${score}%.`,
+  (label, score) => `Awesome! ${smartLabel(label, '!')} helped you feel ${score}% better.`,
+  (label, score) => `You felt ${score}% better after ${smartLabel(label, 'r')}. Keep doing what works!`,
+  (label, score) => `${smartLabel(label, '')} made a positive difference of ${score}% in your mood!`
 ];
 
-// Negative message variations
-const NEGATIVE_MESSAGES = [
-  "decreased your mood by {score}% today. Consider alternatives.",
-  "lowered your energy by {score}% today. Maybe try something else?",
-  "brought your mood down by {score}% today. Time to reassess?",
-  "affected your happiness by {score}% today. Perhaps limit this activity.",
-  "dampened your spirits by {score}% today. Consider changing your approach."
+const NEGATIVE_VARIANTS = [
+  (label, score) => `${smartLabel(label, '')} lowered your mood by ${score}%. That's okay—tomorrow is a new day!`,
+  (label, score) => `You felt ${score}% less upbeat after ${smartLabel(label, 'r')}. Remember, every day is a learning experience!`,
+  (label, score) => `${smartLabel(label, '')} had a negative impact of ${score}% on your mood. Take care of yourself!`,
+  (label, score) => `Not every activity lifts us up—${smartLabel(label, '—')} decreased your mood by ${score}%. You’ve got this!`,
+  (label, score) => `After ${smartLabel(label, '!')}, your mood dropped by ${score}%. Be kind to yourself and try again!`
 ];
 
-// Neutral message variations
-const NEUTRAL_MESSAGES = [
-  "had no significant impact on your mood today. That's okay!",
-  "kept your mood stable today. Consistency is good!",
-  "maintained your current mood today. Sometimes neutral is perfect!",
-  "had a balanced effect on your mood today. Keep exploring!"
+const NEUTRAL_VARIANTS = [
+  (label) => `${smartLabel(label, '')} had a neutral effect on your mood.`,
+  (label) => `No big mood changes after ${smartLabel(label, 'r')}.`,
+  (label) => `${smartLabel(label, '')} kept your mood steady.`,
+  (label) => `Your mood stayed about the same after ${smartLabel(label, 'r')}.`,
+  (label) => `${smartLabel(label, '')} didn't change your mood much this time.`
 ];
 
-// Sleep message variations
-const SLEEP_POSITIVE_MESSAGES = [
-  "last night had a {score}% improvement on your mood today. Good job!",
-  "last night boosted your mood by {score}% today. Excellent sleep routine!",
-  "last night enhanced your well-being by {score}% today. Keep it up!",
-  "last night lifted your spirits by {score}% today. Great job prioritizing rest!",
-  "last night improved your mood by {score}% today. Sleep is so important!"
-];
-
-const SLEEP_NEGATIVE_MESSAGES = [
-  "the previous night brought your mood down by {score}%. Try getting more sleep.",
-  "the previous night affected your mood negatively by {score}%. Consider better sleep habits.",
-  "the previous night lowered your energy by {score}%. Prioritize more rest tonight.",
-  "the previous night impacted your well-being by {score}%. Aim for better sleep quality.",
-  "the previous night decreased your mood by {score}%. Your body needs more rest."
-];
-
-// Format text: capitalize first letter of every word, remove - and _
-const formatText = (text) => {
-  if (!text) return '';
-  return text
-    .replace(/[-_]/g, ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
-};
-
-const transformActivity = (activity) => {
-  const key = activity.toLowerCase().replace(/\s+/g, '-');
-  return ACTIVITY_TRANSFORMATIONS[key] || formatText(activity);
-};
-
-const getSleepMessage = (hours, moodScore) => {
+const getMoodMessage = (activity, moodScore) => {
   const absScore = Math.abs(moodScore);
-  let messages, messageTemplate;
-  
-  if (moodScore > 0) {
-    messages = SLEEP_POSITIVE_MESSAGES;
-  } else {
-    messages = SLEEP_NEGATIVE_MESSAGES;
-  }
-  
-  // Get random message variation
-  messageTemplate = messages[Math.floor(Math.random() * messages.length)];
-  
-  // Replace placeholder with actual score
-  const message = messageTemplate.replace('{score}', absScore);
-  
-  if (hours >= 7) {
-    return `Sleeping for ${hours} hours ${message}`;
-  } else {
-    return `Having ${hours} hours of sleep ${message}`;
-  }
-};
+  const label = ACTIVITY_LABELS[activity] || formatText(activity);
 
-const getMoodMessage = (activity, moodScore, hours = null, category = null) => {
-  // Special handling for sleep category
-  if (category === 'sleep' && hours !== null) {
-    return getSleepMessage(hours, moodScore);
-  }
-  
-  const transformedActivity = transformActivity(activity);
-  const absScore = Math.abs(moodScore);
-  
-  let messages, messageTemplate;
-  
   if (moodScore > 0) {
-    messages = POSITIVE_MESSAGES;
+    return getRandom(POSITIVE_VARIANTS)(label, absScore);
   } else if (moodScore < 0) {
-    messages = NEGATIVE_MESSAGES;
+    return getRandom(NEGATIVE_VARIANTS)(label, absScore);
   } else {
-    messages = NEUTRAL_MESSAGES;
+    return getRandom(NEUTRAL_VARIANTS)(label);
   }
-  
-  // Get random message variation
-  messageTemplate = messages[Math.floor(Math.random() * messages.length)];
-  
-  // Replace placeholder with actual score
-  const message = messageTemplate.replace('{score}', absScore);
-  
-  return `${transformedActivity} ${message}`;
 };
+
+    function smartLabel(label, prev = '') {
+    if (!label) return '';
+    // If previous character is . or ! or empty (start of sentence), capitalize
+    if (!prev || /[.!]\s*$/.test(prev)) {
+      return label.charAt(0).toUpperCase() + label.slice(1);
+    }
+    // Otherwise, lowercase first letter
+    return label.charAt(0).toLowerCase() + label.slice(1);
+  }
+
+  const formatText = (text) => {
+    if (!text) return '';
+    return text
+      .replace(/[-_]/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  };
+
+  const getMoodIcon = (score) => {
+    if (score > 0) return <TrendingUpIcon style={{ color: POSITIVE_COLOR, fontSize: 20 }} />;
+    if (score < 0) return <TrendingDownIcon style={{ color: NEGATIVE_COLOR, fontSize: 20 }} />;
+    return <TrendingFlatIcon style={{ color: '#f7b801', fontSize: 20 }} />;
+  };
+
+
+  const getSleepMessage = (hours, moodScore) => {
+    const absScore = Math.abs(moodScore);
+    if (moodScore > 0) {
+      return `Sleeping for ${hours} hours improved your mood by ${absScore}%. Great job!`;
+    } else if (moodScore < 0) {
+      return `Having ${hours} hours of sleep lowered your mood by ${absScore}%. Try to get more restful sleep.`;
+    } else {
+      return `Your sleep had a neutral effect on your mood today.`;
+    }
+  };
+
+  const getDateString = (date) => {
+    const d = new Date(date);
+    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', weekday: 'long' });
+  };
+
+  const addDays = (date, days) => {
+    const d = new Date(date);
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split('T')[0];
+  };
 
 const DailyAnova = () => {
-  const [topResults, setTopResults] = useState({});
+  const [results, setResults] = useState({});
   const [sleepQuality, setSleepQuality] = useState(null);
   const [sleepHours, setSleepHours] = useState(null);
   const [sleepMoodScore, setSleepMoodScore] = useState(null);
+  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -170,10 +160,10 @@ const DailyAnova = () => {
       const token = localStorage.getItem('token');
       try {
         const res = await axios.get(
-          `${import.meta.env.VITE_NODE_API}/api/statistics/daily-anova`,
+          `${import.meta.env.VITE_NODE_API}/api/statistics/daily-anova?date=${date}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setTopResults(res.data.topResults);
+        setResults(res.data.results);
         setSleepQuality(res.data.sleepQuality);
         setSleepHours(res.data.sleepHours);
         setSleepMoodScore(res.data.sleepMoodScore);
@@ -183,17 +173,35 @@ const DailyAnova = () => {
       setLoading(false);
     };
     fetchAnova();
-  }, []);
+  }, [date]);
 
-  const getMoodIcon = (score) => {
-    if (score > 0) return <TrendingUpIcon style={{ color: '#55AD9B', fontSize: 20 }} />;
-    if (score < 0) return <TrendingDownIcon style={{ color: '#ff6b6b', fontSize: 20 }} />;
-    return <TrendingFlatIcon style={{ color: '#f7b801', fontSize: 20 }} />;
-  };
+  const handlePrev = () => setDate(addDays(date, -1));
+  const handleNext = () => setDate(addDays(date, 1));
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F1F8E8' }}>
       <div className="max-w-4xl mx-auto px-4 py-8">
+        {/* Navigation */}
+        <div className="flex justify-between items-center mb-4">
+          <button
+            onClick={handlePrev}
+            className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
+            aria-label="Previous Day"
+          >
+            <ArrowBackIosNewIcon />
+          </button>
+          <span className="text-xl font-bold text-[#272829]">{getDateString(date)}</span>
+          <button
+            onClick={handleNext}
+            className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
+            aria-label="Next Day"
+            disabled={date >= new Date().toISOString().split('T')[0]}
+            style={{ opacity: date >= new Date().toISOString().split('T')[0] ? 0.5 : 1 }}
+          >
+            <ArrowForwardIosIcon />
+          </button>
+        </div>
+
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
@@ -206,7 +214,7 @@ const DailyAnova = () => {
             </div>
           </div>
           <h1 className="text-4xl font-bold text-[#272829] mb-2">Daily Mood Insights</h1>
-          <p className="text-lg text-[#55AD9B]">Discover how your activities affected your mood today</p>
+          <p className="text-lg text-[#55AD9B]">See how your habits and activities shaped your mood</p>
         </motion.div>
 
         {loading ? (
@@ -269,24 +277,21 @@ const DailyAnova = () => {
                         <div className="flex-shrink-0 mt-1">
                           {getMoodIcon(sleepMoodScore)}
                         </div>
-                        
                         <div className="flex-1">
                           <p className="text-[#272829] text-lg leading-relaxed font-medium">
-                            {getMoodMessage('sleep', sleepMoodScore, sleepHours, 'sleep')}
+                            {getSleepMessage(sleepHours, sleepMoodScore)}
                           </p>
                         </div>
-                        
                         <div className="flex-shrink-0">
                           <span
                             className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
                             style={{
-                              backgroundColor: sleepMoodScore > 0 ? '#55AD9B' : 
-                                             sleepMoodScore < 0 ? '#ff6b6b' : '#f7b801',
+                              backgroundColor: sleepMoodScore > 0 ? POSITIVE_COLOR :
+                                sleepMoodScore < 0 ? NEGATIVE_COLOR : '#f7b801',
                               color: '#fff'
                             }}
                           >
-                            {sleepMoodScore > 0 ? `+${sleepMoodScore}%` : 
-                             sleepMoodScore < 0 ? `${sleepMoodScore}%` : `${sleepMoodScore}%`}
+                            {`${Math.abs(sleepMoodScore)}%`}
                           </span>
                         </div>
                       </div>
@@ -295,14 +300,14 @@ const DailyAnova = () => {
                 ) : (
                   <div className="text-center p-8">
                     <div className="text-4xl mb-3">😴</div>
-                    <span className="text-gray-500 text-lg">No sleep data recorded today</span>
+                    <span className="text-gray-500 text-lg">No sleep data recorded for this day</span>
                   </div>
                 )}
               </div>
             </motion.div>
 
             {/* Mood Results Section */}
-            {Object.keys(topResults).length === 0 ? (
+            {Object.keys(results).length === 0 ? (
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -314,7 +319,7 @@ const DailyAnova = () => {
                 <p className="text-lg text-gray-500">Start logging your activities to see your mood insights!</p>
               </motion.div>
             ) : (
-              Object.entries(topResults).map(([category, items], categoryIndex) => (
+              Object.entries(results).map(([category, { positive, negative }], categoryIndex) => (
                 <motion.div
                   key={category}
                   initial={{ opacity: 0, y: 20 }}
@@ -325,52 +330,100 @@ const DailyAnova = () => {
                 >
                   <div className="bg-gradient-to-r from-[#95D2B3] to-[#55AD9B] p-6">
                     <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                      <TrendingUpIcon style={{ fontSize: 28 }} />
+                      <EmojiEventsIcon style={{ fontSize: 28 }} />
                       {CATEGORY_LABELS[category] || formatText(category)}
                     </h3>
-                    <p className="text-white/80 mt-1">Top activities that affected your mood</p>
+                    <p className="text-white/80 mt-1">How your activities affected your mood</p>
                   </div>
-                  
                   <div className="p-6">
-                    <div className="space-y-4">
-                      {items.map((item, index) => (
-                        <motion.div
-                          key={item.activity}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: (categoryIndex * 0.1) + (index * 0.05) }}
-                          className="flex items-start gap-4 p-4 rounded-xl border transition-all hover:shadow-md"
-                          style={{ 
-                            backgroundColor: '#F1F8E8',
-                            borderColor: '#D8EFD3'
-                          }}
-                        >
-                          <div className="flex-shrink-0 mt-1">
-                            {getMoodIcon(item.moodScore)}
-                          </div>
-                          
-                          <div className="flex-1">
-                            <p className="text-[#272829] text-lg leading-relaxed font-medium">
-                              {getMoodMessage(item.activity, item.moodScore, null, category)}
-                            </p>
-                          </div>
-                          
-                          <div className="flex-shrink-0">
-                            <span
-                              className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                    {/* Positive */}
+                    {positive && positive.length > 0 && (
+                      <div className="mb-6">
+                        <h4 className="text-lg font-bold mb-2" style={{ color: POSITIVE_COLOR }}>
+                          🌱 Habits that boosted your mood
+                        </h4>
+                        <div className="space-y-3">
+                          {positive.map((item, idx) => (
+                            <div
+                              key={item.activity}
+                              className="flex items-start gap-4 p-4 rounded-xl border"
                               style={{
-                                backgroundColor: item.moodScore > 0 ? '#55AD9B' : 
-                                               item.moodScore < 0 ? '#ff6b6b' : '#f7b801',
-                                color: '#fff'
+                                backgroundColor: '#F1F8E8',
+                                borderColor: POSITIVE_COLOR
                               }}
                             >
-                              {item.moodScore > 0 ? `+${item.moodScore}%` : 
-                               item.moodScore < 0 ? `${item.moodScore}%` : `${item.moodScore}%`}
-                            </span>
-                          </div>
-                        </motion.div>
-                      ))}
-                    </div>
+                              <div className="flex-shrink-0 mt-1">
+                                {getMoodIcon(item.moodScore)}
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-[#272829] text-lg leading-relaxed font-medium">
+                                  {getMoodMessage(item.activity, item.moodScore)}
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <span
+                                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                                  style={{
+                                    backgroundColor: POSITIVE_COLOR,
+                                    color: '#fff'
+                                  }}
+                                >
+                                  {`${Math.abs(item.moodScore)}%`}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Negative */}
+                    {negative && negative.length > 0 && (
+                      <div>
+                        <h4 className="text-lg font-bold mb-2" style={{ color: NEGATIVE_COLOR }}>
+                          🍂 Habits that lowered your mood
+                        </h4>
+                        <div className="space-y-3">
+                          {negative.map((item, idx) => (
+                            <div
+                              key={item.activity}
+                              className="flex items-start gap-4 p-4 rounded-xl border"
+                              style={{
+                                backgroundColor: '#FFF7E6',
+                                borderColor: NEGATIVE_COLOR
+                              }}
+                            >
+                              <div className="flex-shrink-0 mt-1">
+                                {getMoodIcon(item.moodScore)}
+                              </div>
+                              <div className="flex-1">
+                                <p className="text-[#272829] text-lg leading-relaxed font-medium">
+                                  {getMoodMessage(item.activity, item.moodScore)}
+                                </p>
+                              </div>
+                              <div className="flex-shrink-0">
+                                <span
+                                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                                  style={{
+                                    backgroundColor: NEGATIVE_COLOR,
+                                    color: '#fff'
+                                  }}
+                                >
+                                  {`${Math.abs(item.moodScore)}%`}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* If no positive or negative */}
+                    {(!positive || positive.length === 0) && (!negative || negative.length === 0) && (
+                      <div className="text-center text-gray-500 py-8">
+                        No significant mood changes from your activities in this category for this day.
+                      </div>
+                    )}
                   </div>
                 </motion.div>
               ))
@@ -384,7 +437,7 @@ const DailyAnova = () => {
               className="text-center bg-gradient-to-r from-[#D8EFD3] to-[#95D2B3] rounded-2xl p-6"
             >
               <p className="text-[#272829] text-lg font-medium">
-                🌟 Remember: Every day is a new opportunity to improve your well-being! 🌟
+                🌟 Every day is a new opportunity to nurture your well-being! 🌟
               </p>
             </motion.div>
           </div>
