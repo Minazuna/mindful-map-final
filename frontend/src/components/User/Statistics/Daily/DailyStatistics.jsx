@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import { 
-  TrendingUp as TrendingUpIcon, 
-  CalendarToday as CalendarTodayIcon, 
+import {
+  TrendingUp as TrendingUpIcon,
+  CalendarToday as CalendarTodayIcon,
   SentimentSatisfied as SentimentSatisfiedIcon,
   SentimentDissatisfied as SentimentDissatisfiedIcon,
   WbSunny as WbSunnyIcon,
@@ -21,6 +21,31 @@ import {
   LightbulbOutlined as LightbulbOutlinedIcon
 } from '@mui/icons-material';
 import { CircularProgress, IconButton, Tooltip, Paper } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
+import { emotionImages } from '../../../../../utils/moods';
+
+const timeSegmentLabels = {
+  earlyMorning: 'Early Morning (12:00 AM - 5:59 AM)',
+  morning: 'Morning (6:00 AM - 11:59 AM)',
+  afternoon: 'Afternoon (12:00 PM - 5:59 PM)',
+  evening: 'Evening (6:00 PM - 11:59 PM)'
+};
+
+const timeSegmentIcons = {
+  earlyMorning: <Brightness3Icon style={{ fontSize: 28, color: '#6C63FF' }} />,
+  morning: <WbSunnyIcon style={{ fontSize: 28, color: '#FFA726' }} />,
+  afternoon: <WbTwilightIcon style={{ fontSize: 28, color: '#FF7043' }} />,
+  evening: <Brightness3Icon style={{ fontSize: 28, color: '#5C6BC0' }} />
+};
+
+const segmentOrder = ['earlyMorning', 'morning', 'afternoon', 'evening'];
+
+const formatText = (text) => {
+  if (!text) return '';
+  return text
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
 
 const DailyStatistics = () => {
   const [statistics, setStatistics] = useState(null);
@@ -28,56 +53,26 @@ const DailyStatistics = () => {
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [error, setError] = useState(null);
-
-  // Emotion emojis mapping
-  const emotionEmojis = {
-    // Positive emotions
-    'calm': '😌',
-    'relaxed': '😊',
-    'pleased': '🙂',
-    'happy': '😄',
-    'excited': '🤩',
-    // Negative emotions
-    'bored': '😑',
-    'sad': '😢',
-    'disappointed': '😞',
-    'angry': '😠',
-    'tense': '😰'
-  };
-
-  // Time segment icons
-  const timeSegmentIcons = {
-    morning: <WbSunnyIcon style={{ fontSize: 28, color: '#FFA726' }} />,
-    afternoon: <WbTwilightIcon style={{ fontSize: 28, color: '#FF7043' }} />,
-    evening: <Brightness3Icon style={{ fontSize: 28, color: '#5C6BC0' }} />
-  };
+  const navigate = useNavigate();
 
   // Format date for display
   const formatDate = (date) => {
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     if (date.toDateString() === today.toDateString()) {
       return 'Today';
     } else if (date.toDateString() === yesterday.toDateString()) {
       return 'Yesterday';
     } else {
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric' 
+      return date.toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
       });
     }
-  };
-
-  // Format text function
-  const formatText = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/[-_]/g, ' ')
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
   };
 
   // Fetch daily statistics
@@ -86,41 +81,37 @@ const DailyStatistics = () => {
       setLoading(true);
       setError(null);
       const token = localStorage.getItem('token');
-      
+
       const formattedDate = date.toISOString().split('T')[0];
-      
+
       // Fetch current day statistics
       const fullUrl = `${import.meta.env.VITE_NODE_API}/api/statistics/daily?date=${formattedDate}`;
-      const response = await axios.get(fullUrl, { 
+      const response = await axios.get(fullUrl, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      
+
       // Fetch previous day statistics for comparison
       const previousDate = new Date(date);
       previousDate.setDate(previousDate.getDate() - 1);
       const previousFormattedDate = previousDate.toISOString().split('T')[0];
-      
+
       try {
         const previousUrl = `${import.meta.env.VITE_NODE_API}/api/statistics/daily?date=${previousFormattedDate}`;
-        const previousResponse = await axios.get(previousUrl, { 
+        const previousResponse = await axios.get(previousUrl, {
           headers: { Authorization: `Bearer ${token}` }
         });
         setPreviousDayStats(previousResponse.data.data);
       } catch (prevError) {
-        console.log('No previous day data available');
         setPreviousDayStats(null);
       }
-      
+
       setStatistics(response.data.data);
     } catch (error) {
-      console.error('❌ Error:', error.response?.data || error.message);
-      
       if (error.response?.status === 401) {
         localStorage.removeItem('token');
         window.location.href = '/login';
         return;
       }
-      
       setError('Failed to load daily statistics');
     } finally {
       setLoading(false);
@@ -137,14 +128,13 @@ const DailyStatistics = () => {
   // Get most frequent emotions (top 3)
   const getTopEmotions = () => {
     if (!statistics?.emotionCounts) return [];
-    
     return Object.entries(statistics.emotionCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 3)
       .map(([emotion, count]) => ({
         emotion,
         count,
-        emoji: emotionEmojis[emotion] || '😐'
+        image: emotionImages[emotion] || null
       }));
   };
 
@@ -180,7 +170,6 @@ const DailyStatistics = () => {
     const positiveDiff = currentPositive - previousPositive;
 
     if (positiveDiff > 0) {
-      const percentage = previousPositive > 0 ? Math.round((positiveDiff / previousPositive) * 100) : 100;
       insights.push({
         type: 'positive',
         icon: <SentimentSatisfiedIcon />,
@@ -236,19 +225,18 @@ const DailyStatistics = () => {
     }
 
     // Most frequent emotion comparison
-    const currentTopEmotion = Object.keys(statistics.emotionCounts).reduce((a, b) => 
+    const currentTopEmotion = Object.keys(statistics.emotionCounts).reduce((a, b) =>
       statistics.emotionCounts[a] > statistics.emotionCounts[b] ? a : b
     );
-    const previousTopEmotion = Object.keys(previousDayStats.emotionCounts).reduce((a, b) => 
+    const previousTopEmotion = Object.keys(previousDayStats.emotionCounts).reduce((a, b) =>
       previousDayStats.emotionCounts[a] > previousDayStats.emotionCounts[b] ? a : b
     );
 
     if (currentTopEmotion !== previousTopEmotion) {
-      const emoji = emotionEmojis[currentTopEmotion] || '😐';
       insights.push({
         type: 'insight',
         icon: <EmojiEmotionsIcon />,
-        text: `Your primary emotion shifted from ${formatText(previousTopEmotion)} to ${formatText(currentTopEmotion)} ${emoji}. Emotional variety is healthy!`,
+        text: `Your primary emotion shifted from ${formatText(previousTopEmotion)} to ${formatText(currentTopEmotion)}.`,
         color: '#FF5722'
       });
     }
@@ -258,12 +246,13 @@ const DailyStatistics = () => {
 
   useEffect(() => {
     fetchDailyStatistics(selectedDate);
+    // eslint-disable-next-line
   }, [selectedDate]);
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F8FBF6' }}>
-        <motion.div 
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#55AD9B' }}>
+        <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           className="flex items-center space-x-3 bg-white px-8 py-6 rounded-2xl shadow-lg"
@@ -277,8 +266,8 @@ const DailyStatistics = () => {
 
   if (error) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ backgroundColor: '#F8FBF6' }}>
-        <motion.div 
+      <div className="min-h-screen flex items-center justify-center" style={{ background: '#55AD9B' }}>
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="text-center bg-white p-12 rounded-3xl shadow-xl max-w-md"
@@ -304,56 +293,60 @@ const DailyStatistics = () => {
   const comparisonInsights = getComparisonInsights();
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#55AD9B' }}>
+    <div className="min-h-screen" style={{ background: '#55AD9B' }}>
       {/* Header */}
       <div className="bg-white/95 backdrop-blur-lg shadow-sm sticky top-0 z-10 border-b border-gray-100">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex flex-col items-center space-y-4">
-
-            {/* Centered Date Navigation */}
-            <Paper 
-              elevation={0}
-              className="flex items-center space-x-4 px-6 py-3 rounded-2xl border"
-              style={{ backgroundColor: '#F1F8E8', borderColor: '#F1F8E8' }}
-            >
+        <div className="container mx-auto px-6 py-6 flex items-center justify-between">
+          <IconButton
+            onClick={() => navigate(-1)}
+            size="large"
+            className="hover:bg-[#e8f5e9] transition-colors"
+            style={{ marginRight: 16 }}
+          >
+            <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 32 }} />
+          </IconButton>
+          <div className="flex flex-col items-center flex-1">
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl font-bold" style={{ color: '#272829', letterSpacing: 1 }}>Daily Mood Statistics</span>
+            </div>
+            <span className="text-sm text-gray-500 mt-1">{formatDate(selectedDate)}</span>
+            <div className="flex items-center justify-center mt-2">
               <Tooltip title="Previous Day">
-                <IconButton 
-                  onClick={() => navigateDate('prev')} 
-                  size="small"
-                  className="hover:bg-white/70 transition-colors"
-                >
-                  <ArrowBackIcon style={{ color: '#55AD9B' }} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    onClick={() => navigateDate('prev')}
+                    size="small"
+                    className="hover:bg-white/70 transition-colors"
+                  >
+                    <ArrowBackIcon style={{ color: '#55AD9B' }} />
+                  </IconButton>
+                </span>
               </Tooltip>
-              
-              <div className="text-center px-4">
-                <div className="text-lg font-semibold" style={{ color: '#272829' }}>
-                  {formatDate(selectedDate)}
-                </div>
-                <div className="text-sm text-gray-500">
-                  {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </div>
+              <div className="text-sm text-gray-500 px-2">
+                {selectedDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
               </div>
-              
               <Tooltip title="Next Day">
-                <IconButton 
-                  onClick={() => navigateDate('next')} 
-                  size="small"
-                  disabled={selectedDate.toDateString() === new Date().toDateString()}
-                  className="hover:bg-white/70 transition-colors disabled:opacity-50"
-                >
-                  <ArrowForwardIcon style={{ color: '#55AD9B' }} />
-                </IconButton>
+                <span>
+                  <IconButton
+                    onClick={() => navigateDate('next')}
+                    size="small"
+                    disabled={selectedDate.toDateString() === new Date().toDateString()}
+                    className="hover:bg-white/70 transition-colors disabled:opacity-50"
+                  >
+                    <ArrowForwardIcon style={{ color: '#55AD9B' }} />
+                  </IconButton>
+                </span>
               </Tooltip>
-            </Paper>
+            </div>
           </div>
+          <div style={{ width: 48 }} /> 
         </div>
       </div>
 
       <div className="container mx-auto px-6 py-8">
         {statistics?.totalEntries === 0 ? (
           // No data state
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="text-center bg-white p-16 rounded-3xl shadow-sm max-w-lg mx-auto border border-gray-100"
@@ -365,7 +358,7 @@ const DailyStatistics = () => {
             </p>
           </motion.div>
         ) : (
-          <div className="space-y-8 max-w-6xl mx-auto">
+          <div className="space-y-10 max-w-6xl mx-auto">
             {/* Comparison Insights */}
             {comparisonInsights && comparisonInsights.length > 0 && (
               <motion.div
@@ -375,7 +368,7 @@ const DailyStatistics = () => {
                 className="bg-gradient-to-br from-blue-50 via-white to-purple-50 rounded-3xl p-8 border border-gray-100 shadow-sm"
               >
                 <div className="flex items-center space-x-3 mb-6">
-                  <div className="p-2 rounded-xl" style={{ backgroundColor: '#E8F5E8' }}>
+                  <div className="p-2 rounded-xl">
                     <LightbulbOutlinedIcon style={{ color: '#55AD9B', fontSize: 24 }} />
                   </div>
                   <h2 className="text-xl font-bold" style={{ color: '#272829' }}>
@@ -391,9 +384,9 @@ const DailyStatistics = () => {
                       transition={{ delay: 0.2 + index * 0.1 }}
                       className="flex items-start space-x-4 p-5 bg-white/80 rounded-2xl border border-gray-100"
                     >
-                      <div 
+                      <div
                         className="p-2 rounded-xl flex-shrink-0"
-                        style={{ backgroundColor: `${insight.color}15`, color: insight.color }}
+                        style={{  color: insight.color }}
                       >
                         {insight.icon}
                       </div>
@@ -407,25 +400,23 @@ const DailyStatistics = () => {
             )}
 
             {/* Overview Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {/* Total Entries */}
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2 }}
-                className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
-                    <EmojiEmotionsIcon style={{ color: '#55AD9B', fontSize: 32 }} />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold" style={{ color: '#272829' }}>
-                      {statistics.totalEntries}
-                    </div>
-                    <div className="text-sm text-gray-500">Total Entries</div>
+                <div className="flex items-center justify-center mb-6">
+                  <div className="p-4 rounded-2xl">
+                    <EmojiEmotionsIcon style={{ color: '#55AD9B', fontSize: 40 }} />
                   </div>
                 </div>
+                <div className="text-4xl font-bold mb-2" style={{ color: '#272829' }}>
+                  {statistics.totalEntries}
+                </div>
+                <div className="text-base text-gray-500 mb-2">Total Entries</div>
                 {previousDayStats && (
                   <div className="text-xs text-gray-400 bg-gray-50 px-3 py-2 rounded-xl">
                     Yesterday: {previousDayStats.totalEntries}
@@ -438,31 +429,25 @@ const DailyStatistics = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <div 
-                    className="p-3 rounded-2xl" 
-                    style={{ 
-                      backgroundColor: statistics.mostProminentValence === 'positive' ? '#E8F5E8' : '#FFF3E0' 
-                    }}
+                <div className="flex items-center justify-center mb-6">
+                  <div
+                    className="p-4 rounded-2xl"
                   >
                     {statistics.mostProminentValence === 'positive' ? (
-                      <SentimentSatisfiedIcon style={{ color: '#4CAF50', fontSize: 32 }} />
+                      <SentimentSatisfiedIcon style={{ color: '#4CAF50', fontSize: 40 }} />
                     ) : (
-                      <SentimentDissatisfiedIcon style={{ color: '#FF9800', fontSize: 32 }} />
+                      <SentimentDissatisfiedIcon style={{ color: '#FF9800', fontSize: 40 }} />
                     )}
                   </div>
-                  <div className="text-right">
-                    <div className="text-2xl font-bold" style={{ 
-                      color: statistics.mostProminentValence === 'positive' ? '#4CAF50' : '#FF9800'
-                    }}>
-                      {formatText(statistics.mostProminentValence)}
-                    </div>
-                    <div className="text-sm text-gray-500">Dominant Mood</div>
-                  </div>
                 </div>
-                <div className="flex justify-between text-sm mb-4">
+                <div className="text-2xl font-bold mb-2" style={{
+                  color: statistics.mostProminentValence === 'positive' ? '#4CAF50' : '#FF9800'
+                }}>
+                  {formatText(statistics.mostProminentValence)}
+                </div>
+                <div className="flex justify-between text-base mb-2 w-full px-4">
                   <span className="text-green-600 font-medium">
                     Positive: {statistics.valenceCounts.positive}
                   </span>
@@ -482,26 +467,24 @@ const DailyStatistics = () => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4 }}
-                className="bg-white rounded-3xl p-6 shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+                className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 hover:shadow-md transition-shadow flex flex-col items-center"
               >
-                <div className="flex items-center justify-between mb-6">
-                  <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
-                    <TrendingUpIcon style={{ color: '#55AD9B', fontSize: 32 }} />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-3xl font-bold" style={{ color: '#272829' }}>
-                      {statistics.averageIntensity?.toFixed(1) || '0.0'}
-                    </div>
-                    <div className="text-sm text-gray-500">Avg Intensity</div>
+                <div className="flex items-center justify-center mb-6">
+                  <div className="p-4 rounded-2xl">
+                    <TrendingUpIcon style={{ color: '#55AD9B', fontSize: 40 }} />
                   </div>
                 </div>
-                <div className="flex space-x-2 mb-4">
+                <div className="text-4xl font-bold mb-2" style={{ color: '#272829' }}>
+                  {statistics.averageIntensity?.toFixed(1) || '0.0'}
+                </div>
+                <div className="text-base text-gray-500 mb-2">Avg Intensity</div>
+                <div className="flex space-x-2 mb-2">
                   {[...Array(5)].map((_, i) => (
                     <div
                       key={i}
-                      className="h-3 flex-1 rounded-full transition-colors"
-                      style={{ 
-                        backgroundColor: i < Math.round(statistics.averageIntensity || 0) ? '#55AD9B' : '#E5E7EB' 
+                      className="h-3 w-8 rounded-full transition-colors"
+                      style={{
+                        backgroundColor: i < Math.round(statistics.averageIntensity || 0) ? '#55AD9B' : '#E5E7EB'
                       }}
                     />
                   ))}
@@ -519,29 +502,44 @@ const DailyStatistics = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
-              className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100"
+              className="bg-white rounded-3xl p-10 shadow-sm border border-gray-100"
             >
               <div className="flex items-center space-x-3 mb-8">
-                <div className="p-2 rounded-xl" style={{ backgroundColor: '#E8F5E8' }}>
+                <div className="p-2 rounded-xl">
                   <EmojiEmotionsIcon style={{ color: '#55AD9B', fontSize: 24 }} />
                 </div>
                 <h2 className="text-xl font-bold" style={{ color: '#272829' }}>
                   Most Frequent Emotions
                 </h2>
               </div>
-              
+
               {getTopEmotions().length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                   {getTopEmotions().map((item, index) => (
                     <motion.div
                       key={item.emotion}
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.6 + index * 0.1 }}
-                      className="text-center p-6 rounded-2xl border border-gray-100 hover:shadow-sm transition-shadow"
-                      style={{ backgroundColor: index === 0 ? '#F0F9F0' : '#FAFAFA' }}
+                      className="text-center p-8 rounded-2xl border border-gray-100 hover:shadow-lg transition-shadow"
+                      style={{
+                        background: index === 0
+                          ? 'linear-gradient(135deg, #e0f7fa 0%, #e8f5e9 100%)'
+                          : '#FAFAFA'
+                      }}
                     >
-                      <div className="text-5xl mb-4">{item.emoji}</div>
+                      <div className="flex justify-center mb-4">
+                        {item.image ? (
+                          <img
+                            src={item.image}
+                            alt={item.emotion}
+                            style={{ width: 60, height: 60, objectFit: 'contain' }}
+                            className="mx-auto"
+                          />
+                        ) : (
+                          <div className="text-5xl mb-4">😐</div>
+                        )}
+                      </div>
                       <div className="text-xl font-semibold mb-2" style={{ color: '#272829' }}>
                         {formatText(item.emotion)}
                       </div>
@@ -569,52 +567,55 @@ const DailyStatistics = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.7 }}
-              className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100"
+              className="bg-white rounded-3xl p-10 shadow-sm border border-gray-100"
             >
               <div className="flex items-center space-x-3 mb-8">
-                <div className="p-2 rounded-xl" style={{ backgroundColor: '#E8F5E8' }}>
+                <div className="p-2 rounded-xl">
                   <AccessTimeIcon style={{ color: '#55AD9B', fontSize: 24 }} />
                 </div>
                 <h2 className="text-xl font-bold" style={{ color: '#272829' }}>
                   Mood by Time of Day
                 </h2>
               </div>
-              
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {Object.entries({
-                  morning: 'Morning (5:00 AM - 11:59 AM)',
-                  afternoon: 'Afternoon (12:00 PM - 5:59 PM)',  
-                  evening: 'Evening (6:00 PM onwards)'
-                }).map(([segment, label], index) => {
-                  const moodData = statistics.timeSegmentMoods[segment];
-                  
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                {segmentOrder.map((segment, index) => {
+                  const moodData = statistics.timeSegmentMoods?.[segment];
                   return (
                     <motion.div
                       key={segment}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.8 + index * 0.1 }}
-                      className="p-6 rounded-2xl border border-gray-100 hover:shadow-sm transition-shadow"
-                      style={{ backgroundColor: '#FAFAFA' }}
+                      className="p-8 rounded-2xl border border-gray-100 hover:shadow-lg transition-shadow bg-[#f8fafc]"
                     >
                       <div className="flex items-center justify-between mb-6">
                         <div className="p-2 rounded-xl bg-white">
                           {timeSegmentIcons[segment]}
                         </div>
                         <div className="text-right">
-                          <div className="text-sm font-medium" style={{ color: '#272829' }}>
-                            {label.split(' (')[0]}
+                          <div className="text-base font-medium" style={{ color: '#272829' }}>
+                            {timeSegmentLabels[segment].split(' (')[0]}
                           </div>
                           <div className="text-xs text-gray-500">
-                            {label.match(/\(([^)]+)\)/)?.[1]}
+                            {timeSegmentLabels[segment].match(/\(([^)]+)\)/)?.[1]}
                           </div>
                         </div>
                       </div>
-                      
+
                       {moodData ? (
                         <div className="text-center">
-                          <div className="text-4xl mb-4">
-                            {emotionEmojis[moodData.emotion] || '😐'}
+                          <div className="flex justify-center mb-4">
+                            {moodData.emotion && emotionImages[moodData.emotion] ? (
+                              <img
+                                src={emotionImages[moodData.emotion]}
+                                alt={moodData.emotion}
+                                style={{ width: 48, height: 48, objectFit: 'contain' }}
+                                className="mx-auto"
+                              />
+                            ) : (
+                              <div className="text-4xl mb-4">😐</div>
+                            )}
                           </div>
                           <div className="text-lg font-semibold mb-2" style={{ color: '#272829' }}>
                             {formatText(moodData.emotion)}
@@ -627,8 +628,8 @@ const DailyStatistics = () => {
                               <div
                                 key={i}
                                 className="w-2 h-2 rounded-full"
-                                style={{ 
-                                  backgroundColor: i < Math.round(moodData.averageIntensity) ? '#55AD9B' : '#E5E7EB' 
+                                style={{
+                                  backgroundColor: i < Math.round(moodData.averageIntensity) ? '#55AD9B' : '#E5E7EB'
                                 }}
                               />
                             ))}

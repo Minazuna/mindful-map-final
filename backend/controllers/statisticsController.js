@@ -12,11 +12,10 @@ exports.getDailyStatistics = async (req, res) => {
 
     const targetDate = date ? new Date(date) : new Date();
     console.log('🔍 Target date:', targetDate);
-    
 
     const startOfDay = new Date(targetDate);
     startOfDay.setUTCHours(0, 0, 0, 0);
-    
+
     const endOfDay = new Date(targetDate);
     endOfDay.setUTCHours(23, 59, 59, 999);
 
@@ -28,11 +27,12 @@ exports.getDailyStatistics = async (req, res) => {
       id: log._id,
       date: log.date,
       dateString: log.date.toISOString(),
-      afterEmotion: log.afterEmotion
+      afterEmotion: log.afterEmotion,
+      beforeEmotion: log.beforeEmotion,
     })));
 
     const moodLogs = await MoodLog.find({
-      user: userId, 
+      user: userId,
       date: {
         $gte: startOfDay,
         $lte: endOfDay
@@ -45,7 +45,9 @@ exports.getDailyStatistics = async (req, res) => {
       console.log('🔍 Found mood logs:', moodLogs.map(log => ({
         id: log._id,
         date: log.date,
+        beforeEmotion: log.beforeEmotion,
         afterEmotion: log.afterEmotion,
+        beforeValence: log.beforeValence,
         afterValence: log.afterValence
       })));
     }
@@ -59,6 +61,7 @@ exports.getDailyStatistics = async (req, res) => {
           mostProminentValence: null,
           emotionCounts: {},
           timeSegmentMoods: {
+            earlyMorning: null,
             morning: null,
             afternoon: null,
             evening: null
@@ -68,42 +71,54 @@ exports.getDailyStatistics = async (req, res) => {
       });
     }
 
-    // Analyze after emotions
-    const afterEmotions = moodLogs.map(log => ({
-      emotion: log.afterEmotion,
-      valence: log.afterValence,
-      intensity: log.afterIntensity,
-      time: new Date(log.date)
-    }));
+    // Combine before and after emotions for a holistic daily summary
+    const allEmotions = [
+      ...moodLogs.map(log => ({
+        emotion: log.beforeEmotion,
+        valence: log.beforeValence,
+        intensity: log.beforeIntensity,
+        time: new Date(log.date)
+      })),
+      ...moodLogs.map(log => ({
+        emotion: log.afterEmotion,
+        valence: log.afterValence,
+        intensity: log.afterIntensity,
+        time: new Date(log.date)
+      }))
+    ];
 
-    console.log('🔍 After emotions extracted:', afterEmotions);
+    console.log('🔍 All emotions extracted:', allEmotions);
 
     // Calculate most prominent valence
     const valenceCounts = { positive: 0, negative: 0 };
-    afterEmotions.forEach(emotion => {
+    allEmotions.forEach(emotion => {
       if (emotion.valence === 'positive') valenceCounts.positive++;
       if (emotion.valence === 'negative') valenceCounts.negative++;
     });
 
-    const mostProminentValence = valenceCounts.positive >= valenceCounts.negative ? 'positive' : 'negative';
+    const mostProminentValence =
+      valenceCounts.positive >= valenceCounts.negative ? 'positive' : 'negative';
 
     // Count emotion occurrences
     const emotionCounts = {};
-    afterEmotions.forEach(emotion => {
+    allEmotions.forEach(emotion => {
+      if (!emotion.emotion) return;
       emotionCounts[emotion.emotion] = (emotionCounts[emotion.emotion] || 0) + 1;
     });
 
     // Categorize by time segments and find most prominent mood for each
     const timeSegments = {
-      morning: [], // 5:00 AM – 11:59 AM
-      afternoon: [], // 12:00 PM – 5:59 PM
-      evening: [] // 6:00 PM onwards
+      earlyMorning: [], // 12:00 AM – 5:59 AM
+      morning: [],      // 6:00 AM – 11:59 AM
+      afternoon: [],    // 12:00 PM – 5:59 PM
+      evening: []       // 6:00 PM – 11:59 PM
     };
 
-    afterEmotions.forEach(emotion => {
+    allEmotions.forEach(emotion => {
       const hour = emotion.time.getHours();
-      
-      if (hour >= 5 && hour < 12) {
+      if (hour >= 0 && hour < 6) {
+        timeSegments.earlyMorning.push(emotion);
+      } else if (hour >= 6 && hour < 12) {
         timeSegments.morning.push(emotion);
       } else if (hour >= 12 && hour < 18) {
         timeSegments.afternoon.push(emotion);
@@ -122,17 +137,19 @@ exports.getDailyStatistics = async (req, res) => {
         // Count emotions in this time segment
         const segmentEmotionCounts = {};
         emotions.forEach(emotion => {
+          if (!emotion.emotion) return;
           segmentEmotionCounts[emotion.emotion] = (segmentEmotionCounts[emotion.emotion] || 0) + 1;
         });
 
         // Find most frequent emotion
-        const mostFrequentEmotion = Object.keys(segmentEmotionCounts).reduce((a, b) => 
+        const mostFrequentEmotion = Object.keys(segmentEmotionCounts).reduce((a, b) =>
           segmentEmotionCounts[a] > segmentEmotionCounts[b] ? a : b
         );
 
         // Calculate average intensity for this emotion in this segment
         const emotionInstances = emotions.filter(e => e.emotion === mostFrequentEmotion);
-        const avgIntensity = emotionInstances.reduce((sum, e) => sum + e.intensity, 0) / emotionInstances.length;
+        const avgIntensity =
+          emotionInstances.reduce((sum, e) => sum + e.intensity, 0) / emotionInstances.length;
 
         timeSegmentMoods[segment] = {
           emotion: mostFrequentEmotion,
@@ -143,18 +160,19 @@ exports.getDailyStatistics = async (req, res) => {
       }
     });
 
-    const avgIntensity = afterEmotions.length > 0 
-      ? afterEmotions.reduce((sum, e) => sum + e.intensity, 0) / afterEmotions.length 
-      : 0;
+    const avgIntensity =
+      allEmotions.length > 0
+        ? allEmotions.reduce((sum, e) => sum + e.intensity, 0) / allEmotions.length
+        : 0;
 
     const responseData = {
-      totalEntries: moodLogs.length,
+      totalEntries: allEmotions.length,
       mostProminentValence: mostProminentValence,
       valenceCounts: valenceCounts,
       emotionCounts: emotionCounts,
       timeSegmentMoods: timeSegmentMoods,
       date: targetDate.toISOString().split('T')[0],
-      averageIntensity: avgIntensity
+      averageIntensity: Math.round(avgIntensity * 10) / 10
     };
 
     console.log('🔍 Final response data:', responseData);
@@ -173,6 +191,7 @@ exports.getDailyStatistics = async (req, res) => {
     });
   }
 };
+
 
 exports.getWeeklyStatistics = async (req, res) => {
   try {
@@ -227,25 +246,39 @@ exports.getWeeklyStatistics = async (req, res) => {
           valenceCounts: { positive: 0, negative: 0 },
           averageIntensity: 0,
           dailyBreakdown: {},
+          timeSegmentMoods: {
+            earlyMorning: null,
+            morning: null,
+            afternoon: null,
+            evening: null
+          },
           weekStart: weekStart.toISOString().split('T')[0],
           weekEnd: weekEnd.toISOString().split('T')[0]
         }
       });
     }
 
-    // Analyze after emotions
-    const afterEmotions = moodLogs.map(log => ({
-      emotion: log.afterEmotion,
-      valence: log.afterValence,
-      intensity: log.afterIntensity,
-      date: new Date(log.date)
-    }));
+    // Combine before and after emotions for a holistic weekly summary
+    const allEmotions = [
+      ...moodLogs.map(log => ({
+        emotion: log.beforeEmotion,
+        valence: log.beforeValence,
+        intensity: log.beforeIntensity,
+        time: new Date(log.date)
+      })),
+      ...moodLogs.map(log => ({
+        emotion: log.afterEmotion,
+        valence: log.afterValence,
+        intensity: log.afterIntensity,
+        time: new Date(log.date)
+      }))
+    ];
 
-    console.log('🔍 After emotions extracted:', afterEmotions.length);
+    console.log('🔍 All emotions extracted:', allEmotions.length);
 
     // Calculate most prominent valence
     const valenceCounts = { positive: 0, negative: 0 };
-    afterEmotions.forEach(emotion => {
+    allEmotions.forEach(emotion => {
       if (emotion.valence === 'positive') valenceCounts.positive++;
       if (emotion.valence === 'negative') valenceCounts.negative++;
     });
@@ -254,20 +287,73 @@ exports.getWeeklyStatistics = async (req, res) => {
 
     // Count emotion occurrences
     const emotionCounts = {};
-    afterEmotions.forEach(emotion => {
+    allEmotions.forEach(emotion => {
+      if (!emotion.emotion) return;
       emotionCounts[emotion.emotion] = (emotionCounts[emotion.emotion] || 0) + 1;
     });
 
+    // Categorize by time segments and find most prominent mood for each (WEEKLY)
+    const timeSegments = {
+      earlyMorning: [], // 12:00 AM – 5:59 AM
+      morning: [],      // 6:00 AM – 11:59 AM
+      afternoon: [],    // 12:00 PM – 5:59 PM
+      evening: []       // 6:00 PM – 11:59 PM
+    };
+
+    allEmotions.forEach(emotion => {
+      const hour = emotion.time.getHours();
+      if (hour >= 0 && hour < 6) {
+        timeSegments.earlyMorning.push(emotion);
+      } else if (hour >= 6 && hour < 12) {
+        timeSegments.morning.push(emotion);
+      } else if (hour >= 12 && hour < 18) {
+        timeSegments.afternoon.push(emotion);
+      } else {
+        timeSegments.evening.push(emotion);
+      }
+    });
+
+    // Find most prominent mood for each time segment
+    const timeSegmentMoods = {};
+    Object.keys(timeSegments).forEach(segment => {
+      const emotions = timeSegments[segment];
+      if (emotions.length === 0) {
+        timeSegmentMoods[segment] = null;
+      } else {
+        // Count emotions in this time segment
+        const segmentEmotionCounts = {};
+        emotions.forEach(emotion => {
+          if (!emotion.emotion) return;
+          segmentEmotionCounts[emotion.emotion] = (segmentEmotionCounts[emotion.emotion] || 0) + 1;
+        });
+
+        // Find most frequent emotion
+        const mostFrequentEmotion = Object.keys(segmentEmotionCounts).reduce((a, b) =>
+          segmentEmotionCounts[a] > segmentEmotionCounts[b] ? a : b
+        );
+
+        // Calculate average intensity for this emotion in this segment
+        const emotionInstances = emotions.filter(e => e.emotion === mostFrequentEmotion);
+        const avgIntensity =
+          emotionInstances.reduce((sum, e) => sum + e.intensity, 0) / emotionInstances.length;
+
+        timeSegmentMoods[segment] = {
+          emotion: mostFrequentEmotion,
+          count: segmentEmotionCounts[mostFrequentEmotion],
+          averageIntensity: Math.round(avgIntensity * 10) / 10,
+          totalEntries: emotions.length
+        };
+      }
+    });
+
     // Calculate average intensity
-    const avgIntensity = afterEmotions.length > 0 
-      ? afterEmotions.reduce((sum, e) => sum + e.intensity, 0) / afterEmotions.length 
+    const avgIntensity = allEmotions.length > 0
+      ? allEmotions.reduce((sum, e) => sum + e.intensity, 0) / allEmotions.length
       : 0;
 
-    // Create daily breakdown
+    // Create daily breakdown (Monday to Sunday)
     const dailyBreakdown = {};
     const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-    
-    // Initialize all days
     daysOfWeek.forEach(day => {
       dailyBreakdown[day] = {
         count: 0,
@@ -277,13 +363,10 @@ exports.getWeeklyStatistics = async (req, res) => {
     });
 
     // Group emotions by day of week
-    afterEmotions.forEach(emotion => {
-      const dayOfWeek = emotion.date.toLocaleDateString('en-US', { weekday: 'long' });
-      
+    allEmotions.forEach(emotion => {
+      const dayOfWeek = emotion.time.toLocaleDateString('en-US', { weekday: 'long' });
       if (dailyBreakdown[dayOfWeek]) {
         dailyBreakdown[dayOfWeek].count++;
-        
-        // Count emotions for this day
         if (!dailyBreakdown[dayOfWeek].emotions[emotion.emotion]) {
           dailyBreakdown[dayOfWeek].emotions[emotion.emotion] = 0;
         }
@@ -295,21 +378,21 @@ exports.getWeeklyStatistics = async (req, res) => {
     Object.keys(dailyBreakdown).forEach(day => {
       const dayData = dailyBreakdown[day];
       if (dayData.count > 0 && Object.keys(dayData.emotions).length > 0) {
-        dayData.dominantEmotion = Object.keys(dayData.emotions).reduce((a, b) => 
+        dayData.dominantEmotion = Object.keys(dayData.emotions).reduce((a, b) =>
           dayData.emotions[a] > dayData.emotions[b] ? a : b
         );
       }
-      // Remove the detailed emotions object to keep response clean
       delete dayData.emotions;
     });
 
     const responseData = {
-      totalEntries: moodLogs.length,
+      totalEntries: allEmotions.length,
       mostProminentValence: mostProminentValence,
       valenceCounts: valenceCounts,
       emotionCounts: emotionCounts,
       averageIntensity: Math.round(avgIntensity * 10) / 10,
       dailyBreakdown: dailyBreakdown,
+      timeSegmentMoods: timeSegmentMoods,
       weekStart: weekStart.toISOString().split('T')[0],
       weekEnd: weekEnd.toISOString().split('T')[0]
     };
