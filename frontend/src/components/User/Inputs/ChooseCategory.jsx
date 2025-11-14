@@ -1,10 +1,44 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
 
 const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [hasExistingSleepLog, setHasExistingSleepLog] = useState(false);
+
+  // Function to check for existing sleep logs
+  const checkExistingSleepLog = async (dateToCheck) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        console.log('Checking for existing sleep log on date:', dateToCheck);
+        
+        const response = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/mood-log/today-last?category=sleep&date=${dateToCheck}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+
+        console.log('Sleep check API Response:', response.data);
+        
+        if (response.data.success && response.data.lastLog) {
+          console.log('Existing sleep log found - disabling sleep category');
+          setHasExistingSleepLog(true);
+        } else {
+          console.log('No existing sleep log found - sleep category enabled');
+          setHasExistingSleepLog(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error checking existing sleep log:', error);
+      // If error occurs, default to allowing sleep logging
+      setHasExistingSleepLog(false);
+    }
+  };
 
   useEffect(() => {
     // Check if there's a date parameter in the URL
@@ -54,6 +88,9 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
       };
     });
 
+    // Check for existing sleep logs for the determined date
+    checkExistingSleepLog(dateToUse);
+
     // If coming back from time segment, navigate to appropriate activity page
     // Note: This is now handled directly by TimeSegmentSelector for cleaner history
     // Keeping this as fallback for edge cases
@@ -102,6 +139,12 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
   const handleCategorySelect = async (path, categoryKey) => {
     console.log('Category selected:', categoryKey);
     
+    // If sleep category is selected and user already has a sleep log, prevent selection
+    if (categoryKey === 'sleep' && hasExistingSleepLog) {
+      console.log('Sleep category blocked - user already has a sleep log for this date');
+      return; // Block the selection
+    }
+    
     setCategoryFormData(prev => ({
       ...prev,
       category: categoryKey,
@@ -119,84 +162,7 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
     }));
     
     if (categoryKey === 'sleep') {
-      try {
-        const token = localStorage.getItem('token');
-        if (token) {
-          // Determine the date to check for existing sleep logs
-          const searchParams = new URLSearchParams(location.search);
-          const dateParam = searchParams.get('date');
-          
-          let checkDate;
-          if (dateParam) {
-            // Use the calendar-selected date (for missed days)
-            checkDate = dateParam;
-            console.log('Using calendar selected date for sleep check:', dateParam);
-          } else {
-            // Use today's date for normal logging (after sign-in)
-            const now = new Date();
-            console.log('Current browser time for sleep check:', now.toISOString());
-            
-            // Convert to Philippine time (UTC+8)
-            const phTime = new Date(now.getTime() + (8 * 60 * 60 * 1000));
-            checkDate = phTime.toISOString().split('T')[0]; // Get YYYY-MM-DD format
-            console.log('Calculated PH date for today sleep check:', checkDate);
-          }
-          
-          console.log('Checking sleep log for date:', checkDate);
-          console.log('Current categoryFormData.selectedDate:', categoryFormData.selectedDate);
-          
-          const response = await axios.get(
-            `${import.meta.env.VITE_NODE_API}/api/mood-log/today-last?category=sleep&date=${checkDate}`,
-            {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            }
-          );
-
-          console.log('Sleep API Response:', response.data);
-          
-          if (response.data.success && response.data.lastLog) {
-            // Existing sleep log found, populate form data and go directly to sleep page
-            const existingLog = response.data.lastLog;
-            console.log('Existing sleep log found:', existingLog);
-            
-            setCategoryFormData(prev => {
-              const formDataUpdate = {
-                ...prev,
-                category: categoryKey,
-                hrs: existingLog.hrs,
-                beforeValence: existingLog.beforeValence || '',
-                beforeEmotion: existingLog.beforeEmotion,
-                beforeIntensity: existingLog.beforeIntensity || 0,
-                beforeReason: existingLog.beforeReason,
-                afterValence: existingLog.afterValence || '',
-                afterEmotion: existingLog.afterEmotion || '',
-                afterIntensity: existingLog.afterIntensity || 0,
-                afterReason: existingLog.afterReason || '',
-                isEditing: true // Flag to indicate we're editing an existing entry
-              };
-              
-              console.log('Updating form data with:', formDataUpdate);
-              return formDataUpdate;
-            });
-            
-            // ONLY skip time segment if there's an existing sleep log
-            // Add a small delay to ensure state is updated before navigation
-            setTimeout(() => {
-              navigate('/sleep-hours');
-            }, 100);
-            return;
-          } else {
-            console.log('No existing sleep log found for this date - will go directly to sleep hours');
-          }
-        }
-      } catch (error) {
-        console.error('Error checking existing sleep log:', error);
-        // Continue with normal flow if error occurs
-      }
-      
-      // For NEW sleep entries, go directly to sleep hours (skip time segment)
+      // For sleep entries, go directly to sleep hours (skip time segment)
       // Sleep is logged for the entire day/night, so no specific time needed
       setTimeout(() => {
         navigate('/sleep-hours');
@@ -278,25 +244,37 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
         </h1>
 
         <div className="flex flex-col space-y-6 w-full max-w-md mb-8 items-center">
-          {categories.map((category, index) => (
-        <button
-          key={index}
-          onClick={() => handleCategorySelect(category.path, category.categoryKey)}
-          className="w-full py-4 px-8 rounded-2xl text-lg transition-all duration-300 hover:scale-105 hover:shadow-lg transform flex justify-center items-center gap-4"
-          style={{ 
-            backgroundColor: '#F1F8E8',
-            color: '#272829'
-          }}
-        >
-          <img
-            src={category.icon}
-            alt={category.name}
-            className="w-8 h-8"
-            style={{ objectFit: 'contain' }}
-          />
-          <span>{category.name}</span>
-        </button>
-          ))}
+          {categories.map((category, index) => {
+            const isDisabled = category.categoryKey === 'sleep' && hasExistingSleepLog;
+            
+            return (
+              <button
+                key={index}
+                onClick={() => handleCategorySelect(category.path, category.categoryKey)}
+                disabled={isDisabled}
+                className={`w-full py-4 px-8 rounded-2xl text-lg transition-all duration-300 transform flex justify-center items-center gap-4 ${
+                  isDisabled 
+                    ? 'opacity-50 cursor-not-allowed' 
+                    : 'hover:scale-105 hover:shadow-lg'
+                }`}
+                style={{ 
+                  backgroundColor: isDisabled ? '#E5E5E5' : '#F1F8E8',
+                  color: isDisabled ? '#888888' : '#272829'
+                }}
+              >
+                <img
+                  src={category.icon}
+                  alt={category.name}
+                  className="w-8 h-8"
+                  style={{ objectFit: 'contain', opacity: isDisabled ? 0.5 : 1 }}
+                />
+                <span>
+                  {category.name}
+                  {isDisabled && <span className="text-sm ml-2">(Already logged today)</span>}
+                </span>
+              </button>
+            );
+          })}
         </div>
 
 

@@ -20,6 +20,8 @@ const TeachersTable = () => {
     password: ''
   });
   const [emailError, setEmailError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const sections = ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)'];
 
@@ -66,9 +68,131 @@ const TeachersTable = () => {
     return emailRegex.test(email);
   };
 
+  // Validation functions
+  const validateFirstName = (name) => {
+    if (!name.trim()) return 'First name is required';
+    if (name.length < 2) {
+      return 'Name must be at least 2 characters long.';
+    }
+    if (name.length > 50) {
+      return 'Name cannot exceed 50 characters.';
+    }
+    if (!/^[a-zA-Z]+([a-zA-Z\s-]*[a-zA-Z])*$/.test(name)) {
+      return 'Name can only contain letters, spaces, and dashes.';
+    }
+    return '';
+  };
+
+  const validateLastName = (name) => {
+    if (!name.trim()) return 'Last name is required';
+    if (name.length < 2) {
+      return 'Name must be at least 2 characters long.';
+    }
+    if (name.length > 50) {
+      return 'Name cannot exceed 50 characters.';
+    }
+    if (!/^[a-zA-Z]+([a-zA-Z\s-]*[a-zA-Z])*$/.test(name)) {
+      return 'Name can only contain letters, spaces, and dashes.';
+    }
+    return '';
+  };
+
+  const validateMiddleInitial = (mi) => {
+    if (mi && !/^[A-Za-z.]{1,2}$/.test(mi)) {
+      return 'Middle initial: letters only, max 2';
+    }
+    return '';
+  };
+
+  const validateEmailField = (email) => {
+    if (!email.trim()) return 'Email is required';
+    if (!validateEmail(email)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const validatePassword = (password) => {
+    if (!password) return 'Password is required';
+    if (password.length < 6) return 'Password must be at least 6 characters long.';
+    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password)) {
+      return 'Password must include one uppercase letter, one number, and one special character.';
+    }
+    return '';
+  };
+
+  const validateSubject = (subject) => {
+    if (!subject.trim()) return 'Subject is required';
+    if (subject.length < 2 || subject.length > 100) {
+      return 'Subject must be between 2 and 100 characters';
+    }
+    return '';
+  };
+
+  const validateAssignedSections = (sections) => {
+    if (!sections || sections.length === 0) {
+      return 'At least one section must be assigned';
+    }
+    if (sections.length > 6) {
+      return 'Cannot assign more than 6 sections';
+    }
+    return '';
+  };
+
+  const validateField = (name, value) => {
+    let error = '';
+    switch (name) {
+      case 'firstName':
+        error = validateFirstName(value);
+        break;
+      case 'lastName':
+        error = validateLastName(value);
+        break;
+      case 'middleInitial':
+        error = validateMiddleInitial(value);
+        break;
+      case 'email':
+        error = validateEmailField(value);
+        break;
+      case 'password':
+        error = validatePassword(value);
+        break;
+      case 'subject':
+        error = validateSubject(value);
+        break;
+      case 'assignedSections':
+        error = validateAssignedSections(value);
+        break;
+      default:
+        break;
+    }
+    return error;
+  };
+
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    let processedValue = value;
+    
+    // Auto-uppercase middle initial
+    if (name === 'middleInitial') {
+      processedValue = value.toUpperCase();
+    }
+    
+    // Trim leading spaces and capitalize first letter of each word for name fields
+    if (name === 'firstName' || name === 'lastName') {
+      processedValue = processedValue.replace(/^\s+/, ''); // Remove leading spaces
+      if (processedValue.length > 0) {
+        // Capitalize first letter of each word (separated by spaces or hyphens)
+        processedValue = processedValue.replace(/\b\w/g, (char) => char.toUpperCase());
+      }
+    }
+    
+    setFormData({ ...formData, [name]: processedValue });
+    
+    // Real-time validation
+    const error = validateField(name, processedValue);
+    setValidationErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
     
     // Clear email error when user starts typing
     if (name === 'email' && emailError) {
@@ -87,17 +211,25 @@ const TeachersTable = () => {
 
   const handleSectionChange = (section) => {
     const currentSections = formData.assignedSections;
+    let newSections;
+    
     if (currentSections.includes(section)) {
-      setFormData({
-        ...formData,
-        assignedSections: currentSections.filter(s => s !== section)
-      });
+      newSections = currentSections.filter(s => s !== section);
     } else {
-      setFormData({
-        ...formData,
-        assignedSections: [...currentSections, section]
-      });
+      newSections = [...currentSections, section];
     }
+    
+    setFormData({
+      ...formData,
+      assignedSections: newSections
+    });
+
+    // Validate sections
+    const error = validateAssignedSections(newSections);
+    setValidationErrors(prev => ({
+      ...prev,
+      assignedSections: error
+    }));
   };
 
   const resetForm = () => {
@@ -111,14 +243,30 @@ const TeachersTable = () => {
       password: ''
     });
     setEmailError('');
+    setValidationErrors({});
+    setShowPassword(false);
   };
 
   const handleCreateTeacher = async (e) => {
     e.preventDefault();
     
-    // Validate email before submitting
-    if (!validateEmail(formData.email)) {
-      setEmailError('Please enter a valid email address');
+    // Validate all fields before submission
+    const errors = {
+      firstName: validateFirstName(formData.firstName),
+      lastName: validateLastName(formData.lastName),
+      middleInitial: validateMiddleInitial(formData.middleInitial),
+      email: validateEmailField(formData.email),
+      password: validatePassword(formData.password),
+      subject: validateSubject(formData.subject),
+      assignedSections: validateAssignedSections(formData.assignedSections)
+    };
+
+    // Check if there are any validation errors
+    const hasErrors = Object.values(errors).some(error => error !== '');
+    
+    if (hasErrors) {
+      setValidationErrors(errors);
+      toast.error('Please fix the validation errors before submitting.');
       return;
     }
     
@@ -474,8 +622,15 @@ const TeachersTable = () => {
                       value={formData.firstName}
                       onChange={handleInputChange}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                        validationErrors.firstName 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                     />
+                    {validationErrors.firstName && (
+                      <p className="mt-1 text-sm text-red-600">{validationErrors.firstName}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Last Name *</label>
@@ -485,8 +640,15 @@ const TeachersTable = () => {
                       value={formData.lastName}
                       onChange={handleInputChange}
                       required
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                        validationErrors.lastName 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                     />
+                    {validationErrors.lastName && (
+                      <p className="mt-1 text-sm text-red-600">{validationErrors.lastName}</p>
+                    )}
                   </div>
                 </div>
                 
@@ -499,8 +661,15 @@ const TeachersTable = () => {
                       value={formData.middleInitial}
                       onChange={handleInputChange}
                       maxLength="2"
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                        validationErrors.middleInitial 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                     />
+                    {validationErrors.middleInitial && (
+                      <p className="mt-1 text-sm text-red-600">{validationErrors.middleInitial}</p>
+                    )}
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Email *</label>
@@ -512,20 +681,24 @@ const TeachersTable = () => {
                       onBlur={handleEmailBlur}
                       required
                       className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
-                        emailError 
+                        validationErrors.email || emailError
                           ? 'border-red-300 focus:ring-red-500' 
                           : 'border-gray-300 focus:ring-blue-500'
                       }`}
                     />
-                    {emailError && (
-                      <p className="mt-1 text-sm text-red-600">{emailError}</p>
+                    {(validationErrors.email || emailError) && (
+                      <p className="mt-1 text-sm text-red-600">{validationErrors.email || emailError}</p>
                     )}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Assigned Sections *</label>
-                  <div className="grid grid-cols-2 gap-2">
+                  <div className={`grid grid-cols-2 gap-2 p-3 border rounded-md ${
+                    validationErrors.assignedSections 
+                      ? 'border-red-300 bg-red-50' 
+                      : 'border-gray-300'
+                  }`}>
                     {getAllSections().map(section => (
                       <label key={section} className="flex items-center space-x-2">
                         <input
@@ -538,6 +711,9 @@ const TeachersTable = () => {
                       </label>
                     ))}
                   </div>
+                  {validationErrors.assignedSections && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.assignedSections}</p>
+                  )}
                 </div>
 
                 <div>
@@ -550,22 +726,57 @@ const TeachersTable = () => {
                       onChange={handleInputChange}
                       required
                       placeholder="e.g., Mathematics, English, Science"
-                      className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className={`mt-1 block w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 ${
+                        validationErrors.subject 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                     />
+                    {validationErrors.subject && (
+                      <p className="mt-1 text-sm text-red-600">{validationErrors.subject}</p>
+                    )}
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700">Password *</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    required
-                    minLength="6"
-                    className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      required
+                      minLength="6"
+                      className={`mt-1 block w-full border rounded-md px-3 py-2 pr-10 focus:outline-none focus:ring-2 ${
+                        validationErrors.password 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPassword ? (
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L8.464 8.464M9.878 9.878a3 3 0 104.243 4.243M14.121 14.121L15.536 15.536M14.121 14.121a3 3 0 01-4.243-4.243M14.121 14.121L9.878 9.878M14.121 14.121l1.415 1.415M8.464 8.464L6.05 6.05M8.464 8.464l1.414 1.414" />
+                        </svg>
+                      ) : (
+                        <svg className="h-5 w-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                      )}
+                    </button>
+                  </div>
+                  {validationErrors.password && (
+                    <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
+                  )}
+                  {formData.password && !validationErrors.password && (
+                    <p className="mt-1 text-sm text-green-600">✓ Password meets requirements</p>
+                  )}
                 </div>
 
                 <div className="flex justify-end space-x-3 pt-4">
@@ -581,9 +792,25 @@ const TeachersTable = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={emailError || !formData.email}
+                    disabled={
+                      Object.values(validationErrors).some(error => error !== '') ||
+                      emailError || 
+                      !formData.email || 
+                      !formData.firstName || 
+                      !formData.lastName || 
+                      !formData.password || 
+                      !formData.subject ||
+                      formData.assignedSections.length === 0
+                    }
                     className={`px-4 py-2 rounded-md ${
-                      emailError || !formData.email
+                      Object.values(validationErrors).some(error => error !== '') ||
+                      emailError || 
+                      !formData.email || 
+                      !formData.firstName || 
+                      !formData.lastName || 
+                      !formData.password || 
+                      !formData.subject ||
+                      formData.assignedSections.length === 0
                         ? 'bg-gray-400 text-gray-200 cursor-not-allowed'
                         : 'bg-blue-600 text-white hover:bg-blue-700'
                     }`}
