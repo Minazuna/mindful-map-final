@@ -600,14 +600,7 @@ exports.createTeacher = async (req, res) => {
       });
     }
 
-    // Check if we already have 3 teachers
-    const teacherCount = await User.countDocuments({ role: 'teacher' });
-    if (teacherCount >= 3) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Maximum limit of 3 teacher accounts reached.' 
-      });
-    }
+
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -741,7 +734,6 @@ exports.deleteTeacher = async (req, res) => {
 exports.getTeacherStats = async (req, res) => {
   try {
     const totalTeachers = await User.countDocuments({ role: 'teacher' });
-    const availableSlots = 3 - totalTeachers;
     
     // Get sections and their assigned teachers
     const sections = ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)'];
@@ -764,8 +756,6 @@ exports.getTeacherStats = async (req, res) => {
       success: true,
       data: {
         totalTeachers,
-        availableSlots,
-        maxTeachers: 3,
         sectionStatus
       }
     });

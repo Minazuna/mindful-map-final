@@ -86,9 +86,6 @@ const Signup = () => {
   const validatePassword = (password) => {
     if (!password) return 'Password is required';
     if (password.length < 6) return 'Password must be at least 6 characters long.';
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password)) {
-      return 'Password must include one uppercase letter, one number, and one special character.';
-    }
     return '';
   };
 
