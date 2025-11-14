@@ -474,6 +474,15 @@ exports.calculateDailyAnova = async (req, res) => {
       }
     });
 
+      if (sleepHours !== null && sleepMoodScore !== null) {
+    await MoodScore.findOneAndUpdate(
+      { user: userId, date: targetDate, category: 'sleep', activity: 'sleep' },
+      { moodScore: sleepMoodScore, sleepHours },
+      { upsert: true, new: true }
+    );
+  }
+
+
     // Calculate moodScore and save/update MoodScore
     const scores = [];
     for (const key in aggregate) {
@@ -535,8 +544,9 @@ exports.calculateWeeklyAnova = async (req, res) => {
       endOfWeek.setHours(23,59,59,999);
     } else {
       const today = new Date();
-      startOfWeek = new Date(today);
-      startOfWeek.setDate(today.getDate() - today.getDay());
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1); // Monday
+      startOfWeek = new Date(today.setDate(diff));
       startOfWeek.setHours(0,0,0,0);
       endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(startOfWeek.getDate() + 6);

@@ -27,6 +27,10 @@ const MoodScoreSchema = new mongoose.Schema({
     required: true,
     min: -100,
     max: 100
+  },
+    sleepHours: {
+    type: Number,
+    required: false 
   }
 });
 

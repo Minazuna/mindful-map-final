@@ -7,62 +7,70 @@ import TrendingDownIcon from '@mui/icons-material/TrendingDown';
 import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PeopleIcon from '@mui/icons-material/People';
+import FavoriteIcon from '@mui/icons-material/Favorite';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
-  const ACTIVITY_LABELS = {
-    commute: 'Commuting',
-    exam: 'Having an exam',
-    homework: 'Doing your homework',
-    study: 'Studying',
-    project: 'Doing a project',
-    read: 'Reading',
-    extracurricular: 'Doing an extracurricular activity',
-    'household-chores': 'Doing household chores',
-    relax: 'Relaxing',
-    'watch-movie': 'Watching a movie',
-    'listen-music': 'Listening to music',
-    gaming: 'Gaming',
-    'browse-internet': 'Browsing the internet',
-    shopping: 'Shopping',
-    travel: 'Traveling',
+const CATEGORY_ICONS = {
+  sleep: <BedtimeIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
+  activity: <EmojiEventsIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
+  social: <PeopleIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
+  health: <FavoriteIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
+};
 
-    alone: 'Being alone',
-    friends: 'Socializing with your friends',
-    family: 'Socializing with your family',
-    classmates: 'Socializing with your classmates',
-    relationship: 'Socializing with your significant other',
-    online: 'Socializing online',
-    pet: 'Being with your pet',
-      jog: 'Jogging',
-    walk: 'Walking',
-    exercise: 'Exercising',
-    sports: 'Playing a sport',
-    meditate: 'Meditating',
-    'eat-unhealthy': 'Eating unhealthy food',
-    'eat-healthy': 'Eating healthy food',
-    'no-physical': 'Not doing any physical activity',
-    'drink-alcohol': 'Drinking alcohol'
-  };
+const ACTIVITY_LABELS = {
+  commute: 'Commuting',
+  exam: 'Having an exam',
+  homework: 'Doing your homework',
+  study: 'Studying',
+  project: 'Doing a project',
+  read: 'Reading',
+  extracurricular: 'Doing an extracurricular activity',
+  'household-chores': 'Doing household chores',
+  relax: 'Relaxing',
+  'watch-movie': 'Watching a movie',
+  'listen-music': 'Listening to music',
+  gaming: 'Gaming',
+  'browse-internet': 'Browsing the internet',
+  shopping: 'Shopping',
+  travel: 'Traveling',
 
-  const CATEGORY_LABELS = {
-    activity: 'Overall Activities',
-    social: 'Social',
-    health: 'Health',
-    sleep: 'Sleep'
-  };
+  alone: 'Being alone',
+  friends: 'Socializing with your friends',
+  family: 'Socializing with your family',
+  classmates: 'Socializing with your classmates',
+  relationship: 'Socializing with your significant other',
+  online: 'Socializing online',
+  pet: 'Being with your pet',
+  jog: 'Jogging',
+  walk: 'Walking',
+  exercise: 'Exercising',
+  sports: 'Playing a sport',
+  meditate: 'Meditating',
+  'eat-unhealthy': 'Eating unhealthy food',
+  'eat-healthy': 'Eating healthy food',
+  'no-physical': 'Not doing any physical activity',
+  'drink-alcohol': 'Drinking alcohol'
+};
 
-  const sleepQualityColors = {
-    Poor: '#ff6b6b',
-    Sufficient: '#f7b801',
-    Good: '#55AD9B'
-  };
+const CATEGORY_LABELS = {
+  activity: 'Overall Activities',
+  social: 'Social',
+  health: 'Health',
+  sleep: 'Sleep'
+};
 
-  const POSITIVE_COLOR = '#55AD9B';
-  const NEGATIVE_COLOR = '#FF9800';
+const sleepQualityColors = {
+  Poor: '#ff6b6b',
+  Sufficient: '#f7b801',
+  Good: '#55AD9B'
+};
 
-  function getRandom(arr) {
-    return arr[Math.floor(Math.random() * arr.length)];
-  }
+const POSITIVE_COLOR = '#55AD9B';
+const NEGATIVE_COLOR = '#FF9800';
+
 const POSITIVE_VARIANTS = [
   (label, score) => `${smartLabel(label, '')} boosted your mood by ${score}%. Keep it up!`,
   (label, score) => `Great job! ${smartLabel(label, '!')} increased your mood by ${score}%.`,
@@ -87,64 +95,64 @@ const NEUTRAL_VARIANTS = [
   (label) => `${smartLabel(label, '')} didn't change your mood much this time.`
 ];
 
-const getMoodMessage = (activity, moodScore) => {
+function smartLabel(label, prev = '') {
+  if (!label) return '';
+  if (!prev || /[.!]\s*$/.test(prev)) {
+    return label.charAt(0).toUpperCase() + label.slice(1);
+  }
+  return label.charAt(0).toLowerCase() + label.slice(1);
+}
+
+const formatText = (text) => {
+  if (!text) return '';
+  return text
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const getMoodMessage = (activity, moodScore, idx = 0) => {
   const absScore = Math.abs(moodScore);
   const label = ACTIVITY_LABELS[activity] || formatText(activity);
 
+  let variants;
   if (moodScore > 0) {
-    return getRandom(POSITIVE_VARIANTS)(label, absScore);
+    variants = POSITIVE_VARIANTS;
   } else if (moodScore < 0) {
-    return getRandom(NEGATIVE_VARIANTS)(label, absScore);
+    variants = NEGATIVE_VARIANTS;
   } else {
-    return getRandom(NEUTRAL_VARIANTS)(label);
+    variants = NEUTRAL_VARIANTS;
+  }
+  const variantIndex = idx % variants.length;
+  return variants[variantIndex](label, absScore);
+};
+
+const getMoodIcon = (score) => {
+  if (score > 0) return <TrendingUpIcon style={{ color: POSITIVE_COLOR, fontSize: 20 }} />;
+  if (score < 0) return <TrendingDownIcon style={{ color: NEGATIVE_COLOR, fontSize: 20 }} />;
+  return <TrendingFlatIcon style={{ color: '#f7b801', fontSize: 20 }} />;
+};
+
+const getSleepMessage = (hours, moodScore) => {
+  const absScore = Math.abs(moodScore);
+  if (moodScore > 0) {
+    return `Sleeping for ${hours} hours improved your mood by ${absScore}%. Great job!`;
+  } else if (moodScore < 0) {
+    return `Having ${hours} hours of sleep lowered your mood by ${absScore}%. Try to get more restful sleep.`;
+  } else {
+    return `Your sleep had a neutral effect on your mood today.`;
   }
 };
 
-    function smartLabel(label, prev = '') {
-    if (!label) return '';
-    // If previous character is . or ! or empty (start of sentence), capitalize
-    if (!prev || /[.!]\s*$/.test(prev)) {
-      return label.charAt(0).toUpperCase() + label.slice(1);
-    }
-    // Otherwise, lowercase first letter
-    return label.charAt(0).toLowerCase() + label.slice(1);
-  }
+const getDateString = (date) => {
+  const d = new Date(date);
+  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', weekday: 'long' });
+};
 
-  const formatText = (text) => {
-    if (!text) return '';
-    return text
-      .replace(/[-_]/g, ' ')
-      .replace(/\b\w/g, (letter) => letter.toUpperCase());
-  };
-
-  const getMoodIcon = (score) => {
-    if (score > 0) return <TrendingUpIcon style={{ color: POSITIVE_COLOR, fontSize: 20 }} />;
-    if (score < 0) return <TrendingDownIcon style={{ color: NEGATIVE_COLOR, fontSize: 20 }} />;
-    return <TrendingFlatIcon style={{ color: '#f7b801', fontSize: 20 }} />;
-  };
-
-
-  const getSleepMessage = (hours, moodScore) => {
-    const absScore = Math.abs(moodScore);
-    if (moodScore > 0) {
-      return `Sleeping for ${hours} hours improved your mood by ${absScore}%. Great job!`;
-    } else if (moodScore < 0) {
-      return `Having ${hours} hours of sleep lowered your mood by ${absScore}%. Try to get more restful sleep.`;
-    } else {
-      return `Your sleep had a neutral effect on your mood today.`;
-    }
-  };
-
-  const getDateString = (date) => {
-    const d = new Date(date);
-    return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', weekday: 'long' });
-  };
-
-  const addDays = (date, days) => {
-    const d = new Date(date);
-    d.setDate(d.getDate() + days);
-    return d.toISOString().split('T')[0];
-  };
+const addDays = (date, days) => {
+  const d = new Date(date);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+};
 
 const DailyAnova = () => {
   const [results, setResults] = useState({});
@@ -153,6 +161,8 @@ const DailyAnova = () => {
   const [sleepMoodScore, setSleepMoodScore] = useState(null);
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
+
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchAnova = async () => {
@@ -178,270 +188,277 @@ const DailyAnova = () => {
   const handlePrev = () => setDate(addDays(date, -1));
   const handleNext = () => setDate(addDays(date, 1));
 
+  const getDayLabel = () => {
+    const today = new Date().toISOString().split('T')[0];
+    if (date === today) return 'Today';
+    return getDateString(date);
+  };
+
+  const headerBg = {
+    sleep: 'from-[#95D2B3] to-[#55AD9B]',
+    activity: 'from-[#95D2B3] to-[#55AD9B]',
+    social: 'from-[#95D2B3] to-[#55AD9B]',
+    health: 'from-[#95D2B3] to-[#55AD9B]'
+  };
+
+  const gridData = [
+  {
+    key: 'sleep',
+    title: 'Sleep',
+    icon: CATEGORY_ICONS.sleep,
+    header: 'How your sleep affected your mood',
+    content: (
+      <div className="flex flex-col justify-center items-center h-full w-full">
+        <div className="w-full max-w-xl mx-auto">
+          {sleepQuality && sleepHours ? (
+            <div className="flex flex-col items-center justify-center w-full">
+              {sleepMoodScore !== null && (
+                <div
+                  className="flex flex-col items-center bg-[#FFF7E6] border-2 rounded-xl px-5 py-6 w-full"
+                  style={{
+                    borderColor:
+                      sleepMoodScore > 0
+                        ? POSITIVE_COLOR
+                        : sleepMoodScore < 0
+                        ? NEGATIVE_COLOR
+                        : '#f7b801',
+                    minHeight: 100,
+                    maxWidth: 600,
+                    margin: '0 auto'
+                  }}
+                >
+                  {/* Badge centered at the top inside the container */}
+                  <span
+                    className="px-4 py-1 rounded-full font-bold text-base mb-4"
+                    style={{
+                      backgroundColor: sleepQualityColors[sleepQuality],
+                      color: '#fff'
+                    }}
+                  >
+                    {formatText(sleepQuality)}
+                  </span>
+                  <div className="flex flex-col md:flex-row items-center gap-3 w-full">
+                    <span className="flex-shrink-0 mb-2 md:mb-0">{getMoodIcon(sleepMoodScore)}</span>
+                    <span className="text-base text-[#272829] flex-1 text-center">
+                      {getSleepMessage(sleepHours, sleepMoodScore)}
+                    </span>
+                    <span
+                      className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                      style={{
+                        backgroundColor:
+                          sleepMoodScore > 0
+                            ? POSITIVE_COLOR
+                            : sleepMoodScore < 0
+                            ? NEGATIVE_COLOR
+                            : '#f7b801',
+                        color: '#fff'
+                      }}
+                    >
+                      {`${Math.abs(sleepMoodScore)}%`}
+                    </span>
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex justify-center items-center h-40 w-full">
+              <span className="text-gray-500 text-lg font-medium text-center">
+                No sleep data recorded
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    ),
+    },
+    {
+      key: 'activity',
+      title: 'Overall Activities',
+      icon: CATEGORY_ICONS.activity,
+      header: 'How your activities affected your mood',
+      content: renderCategoryResults('activity', results.activity)
+    },
+    {
+      key: 'social',
+      title: 'Social',
+      icon: CATEGORY_ICONS.social,
+      header: 'How your social life affected your mood',
+      content: renderCategoryResults('social', results.social)
+    },
+    {
+      key: 'health',
+      title: 'Health',
+      icon: CATEGORY_ICONS.health,
+      header: 'How your health habits affected your mood',
+      content: renderCategoryResults('health', results.health)
+    }
+  ];
+
+  function renderCategoryResults(category, data) {
+    if (!data || (!data.positive?.length && !data.negative?.length)) {
+    return (
+      <div className="flex items-center justify-center h-full w-full">
+        <span className="text-gray-500 text-lg text-center">No data for this category</span>
+      </div>
+    );
+    }
+    return (
+      <>
+        {data.positive && data.positive.length > 0 && (
+          <div className="mb-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUpIcon style={{ color: POSITIVE_COLOR }} />
+              <span className="font-bold text-lg" style={{ color: POSITIVE_COLOR }}>
+                Habits that boosted your mood
+              </span>
+            </div>
+            {data.positive.map((item, idx) => (
+              <div
+                key={item.activity}
+                className="flex items-center gap-3 bg-[#F1F8E8] border-2 rounded-xl px-5 py-4 mb-3"
+                style={{
+                  borderColor: POSITIVE_COLOR,
+                  minHeight: 60
+                }}
+              >
+                <span className="flex-shrink-0">{getMoodIcon(item.moodScore)}</span>
+                <span className="text-base text-[#272829] flex-1">{getMoodMessage(item.activity, item.moodScore, idx)}</span>
+                <span
+                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                  style={{
+                    backgroundColor: POSITIVE_COLOR,
+                    color: '#fff'
+                  }}
+                >
+                  {`${Math.abs(item.moodScore)}%`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {data.negative && data.negative.length > 0 && (
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingDownIcon style={{ color: NEGATIVE_COLOR }} />
+              <span className="font-bold text-lg" style={{ color: NEGATIVE_COLOR }}>
+                Habits that lowered your mood
+              </span>
+            </div>
+            {data.negative.map((item, idx) => (
+              <div
+                key={item.activity}
+                className="flex items-center gap-3 bg-[#FFF7E6] border-2 rounded-xl px-5 py-4 mb-3"
+                style={{
+                  borderColor: NEGATIVE_COLOR,
+                  minHeight: 60
+                }}
+              >
+                <span className="flex-shrink-0">{getMoodIcon(item.moodScore)}</span>
+                <span className="text-base text-[#272829] flex-1">{getMoodMessage(item.activity, item.moodScore, idx)}</span>
+                <span
+                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                  style={{
+                    backgroundColor: NEGATIVE_COLOR,
+                    color: '#fff'
+                  }}
+                >
+                  {`${Math.abs(item.moodScore)}%`}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </>
+    );
+  }
+
   return (
     <div className="min-h-screen" style={{ backgroundColor: '#F1F8E8' }}>
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        {/* Navigation */}
-        <div className="flex justify-between items-center mb-4">
+      {/* Header */}
+      <div className="bg-[#F7FBF9] py-8 border-b border-[#5EB5A6] mb-8">
+        <div className="max-w-4xl mx-auto flex items-center justify-between px-4">
           <button
-            onClick={handlePrev}
+            onClick={() => navigate(-1)}
             className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
-            aria-label="Previous Day"
+            aria-label="Back"
           >
-            <ArrowBackIosNewIcon />
+            <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
           </button>
-          <span className="text-xl font-bold text-[#272829]">{getDateString(date)}</span>
-          <button
-            onClick={handleNext}
-            className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
-            aria-label="Next Day"
-            disabled={date >= new Date().toISOString().split('T')[0]}
-            style={{ opacity: date >= new Date().toISOString().split('T')[0] ? 0.5 : 1 }}
-          >
-            <ArrowForwardIosIcon />
-          </button>
-        </div>
-
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8"
-        >
-          <div className="flex justify-center items-center gap-3 mb-4">
-            <div className="p-3 rounded-full" style={{ backgroundColor: '#D8EFD3' }}>
-              <EmojiEventsIcon style={{ color: '#55AD9B', fontSize: 32 }} />
+          <div className="flex-1 text-center">
+            <div className="text-gray-500">{getDayLabel()}</div>
+            <div className="flex justify-center items-center gap-2 mt-2">
+              <button
+                onClick={handlePrev}
+                className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
+                aria-label="Previous Day"
+              >
+                <ArrowBackIosNewIcon style={{ color: '#55AD9B' }} />
+              </button>
+              <span className="text-base text-[#5EB5A6] font-semibold">{getDateString(date)}</span>
+              <button
+                onClick={handleNext}
+                className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
+                aria-label="Next Day"
+                disabled={date >= new Date().toISOString().split('T')[0]}
+                style={{ opacity: date >= new Date().toISOString().split('T')[0] ? 0.5 : 1 }}
+              >
+                <ArrowForwardIosIcon style={{ color: '#55AD9B' }} />
+              </button>
             </div>
           </div>
-          <h1 className="text-4xl font-bold text-[#272829] mb-2">Daily Mood Insights</h1>
-          <p className="text-lg text-[#55AD9B]">See how your habits and activities shaped your mood</p>
-        </motion.div>
+          <div style={{ width: 40 }} /> {/* Spacer for symmetry */}
+        </div>
+      </div>
 
+      {/* Grid */}
+      <div className="max-w-7xl mx-auto px-4">
         {loading ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex justify-center items-center h-64"
-          >
+          <div className="flex justify-center items-center h-64">
             <div className="text-center">
               <div className="w-12 h-12 border-4 border-[#D8EFD3] border-t-[#55AD9B] rounded-full animate-spin mx-auto mb-4"></div>
               <span className="text-xl text-[#55AD9B] font-semibold">Analyzing your day...</span>
             </div>
-          </motion.div>
+          </div>
         ) : (
-          <div className="space-y-8">
-            {/* Sleep Quality Section */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="bg-gradient-to-r from-white to-[#F1F8E8] rounded-2xl shadow-lg border-2 overflow-hidden"
-              style={{ borderColor: '#D8EFD3' }}
-            >
-              <div className="bg-gradient-to-r from-[#95D2B3] to-[#55AD9B] p-6">
-                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
-                  <BedtimeIcon style={{ fontSize: 28 }} />
-                  Sleep Analysis
-                </h2>
-                <p className="text-white/80 mt-1">How your sleep affected your mood</p>
-              </div>
-
-              <div className="p-6">
-                {sleepQuality && sleepHours ? (
-                  <div className="space-y-4">
-                    {/* Sleep Quality Info */}
-                    <div className="flex items-center justify-between p-4 rounded-xl border" style={{ backgroundColor: '#F1F8E8', borderColor: '#D8EFD3' }}>
-                      <div className="flex items-center gap-4">
-                        <span className="text-4xl">😴</span>
-                        <div>
-                          <div className="flex items-center gap-3">
-                            <span
-                              className="px-3 py-1 rounded-full font-bold text-sm"
-                              style={{
-                                backgroundColor: sleepQualityColors[sleepQuality],
-                                color: '#fff'
-                              }}
-                            >
-                              {formatText(sleepQuality)}
-                            </span>
-                            <span className="text-lg font-semibold text-[#272829]">
-                              {sleepHours} Hours
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Sleep Mood Impact */}
-                    {sleepMoodScore !== null && (
-                      <div className="flex items-start gap-4 p-4 rounded-xl border transition-all hover:shadow-md" style={{ backgroundColor: '#F1F8E8', borderColor: '#D8EFD3' }}>
-                        <div className="flex-shrink-0 mt-1">
-                          {getMoodIcon(sleepMoodScore)}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-[#272829] text-lg leading-relaxed font-medium">
-                            {getSleepMessage(sleepHours, sleepMoodScore)}
-                          </p>
-                        </div>
-                        <div className="flex-shrink-0">
-                          <span
-                            className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
-                            style={{
-                              backgroundColor: sleepMoodScore > 0 ? POSITIVE_COLOR :
-                                sleepMoodScore < 0 ? NEGATIVE_COLOR : '#f7b801',
-                              color: '#fff'
-                            }}
-                          >
-                            {`${Math.abs(sleepMoodScore)}%`}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="text-center p-8">
-                    <div className="text-4xl mb-3">😴</div>
-                    <span className="text-gray-500 text-lg">No sleep data recorded for this day</span>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-
-            {/* Mood Results Section */}
-            {Object.keys(results).length === 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+            {gridData.map((cat, idx) => (
               <motion.div
+                key={cat.key}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white rounded-2xl shadow-lg p-8 text-center border-2"
-                style={{ borderColor: '#D8EFD3' }}
+                transition={{ delay: idx * 0.1 }}
+                className="rounded-2xl shadow-lg border-2 flex flex-col"
+                style={{
+                  borderColor: '#D8EFD3',
+                  minHeight: 400,
+                  background: '#fff'
+                }}
               >
-                <div className="text-6xl mb-4">📊</div>
-                <h3 className="text-2xl font-semibold text-[#272829] mb-2">No Activity Data Yet</h3>
-                <p className="text-lg text-gray-500">Start logging your activities to see your mood insights!</p>
+                {/* Card header */}
+                <div className={`rounded-t-2xl p-6 bg-gradient-to-r ${headerBg[cat.key]}`}>
+                  <div className="flex items-center gap-3">
+                    {cat.icon}
+                    <h2 className="text-2xl font-bold text-white">{cat.title}</h2>
+                  </div>
+                  <div className="text-white/90 mt-1">{cat.header}</div>
+                </div>
+                {/* Card content */}
+                <div className="flex-1 p-6 flex flex-col justify-center">{cat.content}</div>
               </motion.div>
-            ) : (
-              Object.entries(results).map(([category, { positive, negative }], categoryIndex) => (
-                <motion.div
-                  key={category}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: categoryIndex * 0.1 }}
-                  className="bg-white rounded-2xl shadow-lg border-2 overflow-hidden"
-                  style={{ borderColor: '#D8EFD3' }}
-                >
-                  <div className="bg-gradient-to-r from-[#95D2B3] to-[#55AD9B] p-6">
-                    <h3 className="text-2xl font-bold text-white flex items-center gap-3">
-                      <EmojiEventsIcon style={{ fontSize: 28 }} />
-                      {CATEGORY_LABELS[category] || formatText(category)}
-                    </h3>
-                    <p className="text-white/80 mt-1">How your activities affected your mood</p>
-                  </div>
-                  <div className="p-6">
-                    {/* Positive */}
-                    {positive && positive.length > 0 && (
-                      <div className="mb-6">
-                        <h4 className="text-lg font-bold mb-2" style={{ color: POSITIVE_COLOR }}>
-                          🌱 Habits that boosted your mood
-                        </h4>
-                        <div className="space-y-3">
-                          {positive.map((item, idx) => (
-                            <div
-                              key={item.activity}
-                              className="flex items-start gap-4 p-4 rounded-xl border"
-                              style={{
-                                backgroundColor: '#F1F8E8',
-                                borderColor: POSITIVE_COLOR
-                              }}
-                            >
-                              <div className="flex-shrink-0 mt-1">
-                                {getMoodIcon(item.moodScore)}
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-[#272829] text-lg leading-relaxed font-medium">
-                                  {getMoodMessage(item.activity, item.moodScore)}
-                                </p>
-                              </div>
-                              <div className="flex-shrink-0">
-                                <span
-                                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
-                                  style={{
-                                    backgroundColor: POSITIVE_COLOR,
-                                    color: '#fff'
-                                  }}
-                                >
-                                  {`${Math.abs(item.moodScore)}%`}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Negative */}
-                    {negative && negative.length > 0 && (
-                      <div>
-                        <h4 className="text-lg font-bold mb-2" style={{ color: NEGATIVE_COLOR }}>
-                          🍂 Habits that lowered your mood
-                        </h4>
-                        <div className="space-y-3">
-                          {negative.map((item, idx) => (
-                            <div
-                              key={item.activity}
-                              className="flex items-start gap-4 p-4 rounded-xl border"
-                              style={{
-                                backgroundColor: '#FFF7E6',
-                                borderColor: NEGATIVE_COLOR
-                              }}
-                            >
-                              <div className="flex-shrink-0 mt-1">
-                                {getMoodIcon(item.moodScore)}
-                              </div>
-                              <div className="flex-1">
-                                <p className="text-[#272829] text-lg leading-relaxed font-medium">
-                                  {getMoodMessage(item.activity, item.moodScore)}
-                                </p>
-                              </div>
-                              <div className="flex-shrink-0">
-                                <span
-                                  className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
-                                  style={{
-                                    backgroundColor: NEGATIVE_COLOR,
-                                    color: '#fff'
-                                  }}
-                                >
-                                  {`${Math.abs(item.moodScore)}%`}
-                                </span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* If no positive or negative */}
-                    {(!positive || positive.length === 0) && (!negative || negative.length === 0) && (
-                      <div className="text-center text-gray-500 py-8">
-                        No significant mood changes from your activities in this category for this day.
-                      </div>
-                    )}
-                  </div>
-                </motion.div>
-              ))
-            )}
-
-            {/* Motivational Footer */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.5 }}
-              className="text-center bg-gradient-to-r from-[#D8EFD3] to-[#95D2B3] rounded-2xl p-6"
-            >
-              <p className="text-[#272829] text-lg font-medium">
-                🌟 Every day is a new opportunity to nurture your well-being! 🌟
-              </p>
-            </motion.div>
+            ))}
           </div>
         )}
+        {/* Motivational Footer */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="text-center bg-gradient-to-r from-[#D8EFD3] to-[#95D2B3] rounded-2xl p-6 mt-10"
+        >
+          <p className="text-[#272829] text-lg font-medium">
+            🌟 Every day is a new opportunity to nurture your well-being! 🌟
+          </p>
+        </motion.div>
       </div>
     </div>
   );
