@@ -50,6 +50,7 @@ const Profile = () => {
     firstName: '',
     lastName: '',
     email: '',
+    section: '',
     avatar: '',
     password: ''
   });
@@ -99,6 +100,7 @@ const Profile = () => {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
+        section: user.section || '',
         avatar: user.avatar || '',
         password: ''
       });
@@ -285,13 +287,30 @@ const Profile = () => {
               <Card className="h-full">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-6">
-                    <Typography variant="h6" className="font-semibold text-[#4a8063]">
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
+                        fontWeight: 600,
+                        fontSize: '1.25rem',
+                        color: '#1f2937',
+                        letterSpacing: '-0.01em'
+                      }}
+                    >
                       Profile Information
                     </Typography>
                     <IconButton 
                       onClick={() => setIsEditing(!isEditing)}
-                      className="text-[#6fba94]"
                       disabled={loading}
+                      sx={{
+                        color: '#6fba94',
+                        backgroundColor: 'rgba(111, 186, 148, 0.1)',
+                        '&:hover': {
+                          backgroundColor: 'rgba(111, 186, 148, 0.2)',
+                        },
+                        borderRadius: '12px',
+                        padding: '8px'
+                      }}
                     >
                       {isEditing ? <CancelIcon /> : <EditIcon />}
                     </IconButton>
@@ -332,16 +351,63 @@ const Profile = () => {
                       )}
                     </div>
 
-                    <Typography variant="h6" className="font-semibold text-center text-[#4a8063]">
+                    <Typography 
+                      variant="h5" 
+                      className="font-bold text-center text-black"
+                      sx={{ 
+                        fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
+                        fontWeight: 700,
+                        fontSize: '1.5rem',
+                        letterSpacing: '-0.02em',
+                        lineHeight: 1.2,
+                        mb: 1
+                      }}
+                    >
                       {profileData.firstName} {profileData.lastName}
                     </Typography>
+                    
+                    {/* Email display under name */}
+                    <Typography 
+                      variant="body1" 
+                      className="text-center text-gray-600"
+                      sx={{ 
+                        fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
+                        fontWeight: 400,
+                        fontSize: '0.95rem',
+                        color: '#6b7280',
+                        mb: 1
+                      }}
+                    >
+                      {profileData.email || 'No email set'}
+                    </Typography>
+                    
+                    {/* Section display */}
+                    {profileData.section && (
+                      <Typography 
+                        variant="body2" 
+                        className="text-center"
+                        sx={{ 
+                          fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
+                          fontWeight: 500,
+                          fontSize: '0.875rem',
+                          color: '#6fba94',
+                          backgroundColor: 'rgba(111, 186, 148, 0.1)',
+                          padding: '6px 16px',
+                          borderRadius: '20px',
+                          display: 'inline-block',
+                          border: '1px solid rgba(111, 186, 148, 0.2)'
+                        }}
+                      >
+                        {profileData.section}
+                      </Typography>
+                    )}
                   </div>
 
-                  <div className="space-y-4">
-                    {/* Email Field */}
-                    <div className="flex items-center space-x-3">
-                      <EmailIcon className="text-[#6fba94]" />
-                      {isEditing ? (
+                  <div className="space-y-4 mt-6">
+                    {/* Email Field (only show when editing) */}
+                    {isEditing && (
+                      <div className="flex items-center space-x-3">
+                        <EmailIcon className="text-[#6fba94]" />
                         <TextField
                           fullWidth
                           name="email"
@@ -352,12 +418,8 @@ const Profile = () => {
                           size="small"
                           placeholder="Enter email"
                         />
-                      ) : (
-                        <Typography className="text-gray-700">
-                          {profileData.email || 'No email set'}
-                        </Typography>
-                      )}
-                    </div>
+                      </div>
+                    )}
 
                     {/* Password Fields (only show when editing) */}
                     {isEditing && (
@@ -432,7 +494,17 @@ const Profile = () => {
             >
               <Card className="h-full">
                 <CardContent className="p-6">
-                  <Typography variant="h6" className="font-semibold text-[#4a8063] mb-6">
+                  <Typography 
+                    variant="h6" 
+                    sx={{ 
+                      fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
+                      fontWeight: 600,
+                      fontSize: '1.25rem',
+                      color: '#1f2937',
+                      letterSpacing: '-0.01em',
+                      mb: 3
+                    }}
+                  >
                     Account Statistics
                   </Typography>
 
