@@ -310,3 +310,233 @@ exports.requestReactivation = async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 };
+
+exports.getProfileStats = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const MoodLog = require('../models/MoodLog');
+
+    // Get total mood logs count
+    const totalMoodLogs = await MoodLog.countDocuments({ user: userId });
+
+    // Calculate consecutive days logging
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    let consecutiveDays = 0;
+    let checkDate = new Date(today);
+    
+    // Check backwards from today
+    while (true) {
+      const startOfDay = new Date(checkDate);
+      startOfDay.setHours(0, 0, 0, 0);
+      
+      const endOfDay = new Date(checkDate);
+      endOfDay.setHours(23, 59, 59, 999);
+      
+      const logExists = await MoodLog.findOne({
+        user: userId,
+        date: { $gte: startOfDay, $lte: endOfDay }
+      });
+      
+      if (logExists) {
+        consecutiveDays++;
+        checkDate.setDate(checkDate.getDate() - 1);
+      } else {
+        break;
+      }
+      
+      // Safety limit to prevent infinite loops
+      if (consecutiveDays > 365) break;
+    }
+
+    // Get most frequent mood for this week
+    const startOfWeek = new Date(today);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); // Get Monday
+    startOfWeek.setDate(diff);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    // Get weekly emotions
+    const weeklyMoodLogs = await MoodLog.find({
+      user: userId,
+      date: { $gte: startOfWeek, $lte: endOfWeek },
+      $or: [
+        { beforeEmotion: { $exists: true, $ne: null } },
+        { afterEmotion: { $exists: true, $ne: null } }
+      ]
+    });
+
+    // Count weekly emotions
+    const weeklyEmotionCounts = {};
+    let weeklyTotalEmotions = 0;
+
+    weeklyMoodLogs.forEach(log => {
+      if (log.beforeEmotion) {
+        weeklyEmotionCounts[log.beforeEmotion] = (weeklyEmotionCounts[log.beforeEmotion] || 0) + 1;
+        weeklyTotalEmotions++;
+      }
+      if (log.afterEmotion) {
+        weeklyEmotionCounts[log.afterEmotion] = (weeklyEmotionCounts[log.afterEmotion] || 0) + 1;
+        weeklyTotalEmotions++;
+      }
+    });
+
+    // Find most frequent weekly mood
+    let weeklyMostFrequentMood = null;
+    if (Object.keys(weeklyEmotionCounts).length > 0) {
+      const topWeeklyEmotion = Object.keys(weeklyEmotionCounts).reduce((a, b) =>
+        weeklyEmotionCounts[a] > weeklyEmotionCounts[b] ? a : b
+      );
+      weeklyMostFrequentMood = {
+        emotion: topWeeklyEmotion,
+        count: weeklyEmotionCounts[topWeeklyEmotion],
+        percentage: (weeklyEmotionCounts[topWeeklyEmotion] / weeklyTotalEmotions) * 100
+      };
+    }
+
+    // Get overall most frequent mood (all time)
+    const allMoodLogs = await MoodLog.find({
+      user: userId,
+      $or: [
+        { beforeEmotion: { $exists: true, $ne: null } },
+        { afterEmotion: { $exists: true, $ne: null } }
+      ]
+    });
+
+    // Count overall emotions
+    const overallEmotionCounts = {};
+    let overallTotalEmotions = 0;
+
+    allMoodLogs.forEach(log => {
+      if (log.beforeEmotion) {
+        overallEmotionCounts[log.beforeEmotion] = (overallEmotionCounts[log.beforeEmotion] || 0) + 1;
+        overallTotalEmotions++;
+      }
+      if (log.afterEmotion) {
+        overallEmotionCounts[log.afterEmotion] = (overallEmotionCounts[log.afterEmotion] || 0) + 1;
+        overallTotalEmotions++;
+      }
+    });
+
+    // Find most frequent overall mood
+    let overallMostFrequentMood = null;
+    if (Object.keys(overallEmotionCounts).length > 0) {
+      const topOverallEmotion = Object.keys(overallEmotionCounts).reduce((a, b) =>
+        overallEmotionCounts[a] > overallEmotionCounts[b] ? a : b
+      );
+      overallMostFrequentMood = {
+        emotion: topOverallEmotion,
+        count: overallEmotionCounts[topOverallEmotion],
+        percentage: (overallEmotionCounts[topOverallEmotion] / overallTotalEmotions) * 100
+      };
+    }
+
+    res.json({
+      consecutiveDays,
+      totalMoodLogs,
+      weeklyMostFrequentMood,
+      overallMostFrequentMood
+    });
+
+  } catch (error) {
+    console.error('Error fetching profile stats:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
+  }
+};
+
+exports.updateProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { email, password, avatar } = req.body;
+
+    // Find the user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+
+    // Prepare update object
+    const updateData = {};
+
+    // Update email if provided and different
+    if (email && email !== user.email) {
+      // Check if email already exists
+      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'Email already exists' });
+      }
+      updateData.email = email;
+    }
+
+    // Update password if provided
+    if (password && password.trim() !== '') {
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
+      }
+      updateData.password = password; // Will be hashed by the pre-save hook
+    }
+
+    // Update avatar if provided
+    if (avatar) {
+      updateData.avatar = avatar;
+    }
+
+    // Update user
+    Object.keys(updateData).forEach(key => {
+      user[key] = updateData[key];
+    });
+
+    await user.save();
+
+    // Return updated user (without password)
+    const updatedUser = await User.findById(userId).select('-password');
+    
+    res.json({
+      success: true,
+      message: 'Profile updated successfully',
+      user: updatedUser
+    });
+
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    });
+  }
+};
+
+exports.uploadAvatar = [
+  upload.single('avatar'),
+  async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ success: false, message: 'No file uploaded' });
+      }
+
+      res.json({
+        success: true,
+        message: 'Avatar uploaded successfully',
+        avatarUrl: req.file.path
+      });
+
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      res.status(500).json({ 
+        success: false, 
+        message: 'Server Error', 
+        error: error.message 
+      });
+    }
+  }
+];

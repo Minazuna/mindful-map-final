@@ -1,5 +1,5 @@
 const express = require('express');
-const { signup, login, getMe, requestReactivation, googleAuth } = require('../controllers/authController');
+const { signup, login, getMe, requestReactivation, googleAuth, getProfileStats, updateProfile, uploadAvatar } = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/authMiddleware'); // Destructure the import
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -22,6 +22,11 @@ router.post('/login', login);
 router.get('/me', authMiddleware, getMe); // Protect the /me route with authMiddleware
 router.get('/request-reactivation', requestReactivation);
 router.post('/google-auth', googleAuth);
+
+// Profile routes
+router.get('/profile-stats', authMiddleware, getProfileStats);
+router.put('/update-profile', authMiddleware, updateProfile);
+router.post('/upload-avatar', authMiddleware, uploadAvatar);
 
 router.get('/home', authMiddleware, (req, res) => {
   res.status(200).json({ success: true, message: 'Welcome to the home page!' });

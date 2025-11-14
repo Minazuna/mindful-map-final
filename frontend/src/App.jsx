@@ -27,6 +27,7 @@ import Activities from './components/User/Activities';
 import Meditation from './components/User/Activities/Meditation';
 import ForumDiscussion from './components/User/Forum';
 import PersonalJournal from './components/User/Journal/PersonalJournal';
+import Profile from './components/User/Profile';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import axios from 'axios';
@@ -591,6 +592,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <PersonalJournal />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <UserPrivateRoute>
+              <Profile />
             </UserPrivateRoute>
           }
         />
