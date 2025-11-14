@@ -103,7 +103,7 @@ exports.googleAuth = async (req, res) => {
         password: randomPassword, 
         role: 'user',
         verified: true,
-        section: 'Grade 11 - A', // Set section as N/A for Google users - they can update later
+        section: 'N/A', // Set section as N/A for Google users - they can update later
       });
       
       await user.save();
@@ -115,7 +115,7 @@ exports.googleAuth = async (req, res) => {
       
       // Only set section to N/A if it's not already set
       if (!user.section) {
-        user.section = 'Grade 11 - A';
+        user.section = 'N/A';
       }
       
       if (!user.firebaseUid) {

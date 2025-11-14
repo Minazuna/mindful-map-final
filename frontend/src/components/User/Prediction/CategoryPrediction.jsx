@@ -542,7 +542,7 @@ const CategoryPrediction = () => {
                                 }}
                               >
                                 {category === 'sleep' 
-                                  ? `${prediction.cause || 'Unknown'} hours`
+                                  ? `${prediction.cause || 'Unknown'}`
                                   : getActivityDisplayName(prediction.cause)
                                 }
                               </Typography>

@@ -27,12 +27,13 @@ const UserSchema = new mongoose.Schema({
   },
   section: {
     type: String,
-    enum: ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'],
+    enum: ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)', 'N/A'],
+    default: 'N/A',
     required: false,
   },
   assignedSections: {
     type: [String],
-    enum: ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'],
+    enum: ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)'],
     required: function() {
       return this.role === 'teacher';
     },

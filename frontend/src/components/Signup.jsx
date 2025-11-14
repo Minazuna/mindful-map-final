@@ -389,10 +389,12 @@ const Signup = () => {
                     },
                   }}
                 >
-                  <MenuItem value="Grade 11 - A">Grade 11 - A</MenuItem>
-                  <MenuItem value="Grade 11 - B">Grade 11 - B</MenuItem>
-                  <MenuItem value="Grade 11 - C">Grade 11 - C</MenuItem>
-                  <MenuItem value="Grade 11 - D">Grade 11 - D</MenuItem>
+                  <MenuItem value="St. John Paul II (STEM 1)">St. John Paul II (STEM 1)</MenuItem>
+                  <MenuItem value="St. Paul VI (STEM 2)">St. Paul VI (STEM 2)</MenuItem>
+                  <MenuItem value="St. John XXIII (STEM 3)">St. John XXIII (STEM 3)</MenuItem>
+                  <MenuItem value="St. Pius X (HUMSS)">St. Pius X (HUMSS)</MenuItem>
+                  <MenuItem value="St. Tarcisius (ABM)">St. Tarcisius (ABM)</MenuItem>
+                  <MenuItem value="St. Jose Sanchez Del Rio (ICT)">St. Jose Sanchez Del Rio (ICT)</MenuItem>
                 </Select>
               </FormControl>
             </div>
