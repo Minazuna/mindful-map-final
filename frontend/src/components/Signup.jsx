@@ -19,12 +19,13 @@ const Signup = () => {
     middleInitial: '',
     lastName: '',
     email: '',
-    gender: '',
+    gender: 'Rather not say',
     section: '',
     password: '',
     avatar: null,
   });
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
   // Initialize Firebase
@@ -41,16 +42,131 @@ const Signup = () => {
     initializeApp(firebaseConfig);
   }, []);
 
+  // Validation functions
+  const validateEmail = (email) => {
+    if (!email) return 'Email is required';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const validateFirstName = (name) => {
+    if (name && name.length < 2) {
+      return 'Name must be at least 2 characters long.';
+    }
+    if (name && name.length > 50) {
+      return 'Name cannot exceed 50 characters.';
+    }
+    if (name && !/^[a-zA-Z]+([a-zA-Z\s-]*[a-zA-Z])*$/.test(name)) {
+      return 'Name can only contain letters, spaces, and dashes.';
+    }
+    return '';
+  };
+
+  const validateLastName = (name) => {
+    if (name && name.length < 2) {
+      return 'Name must be at least 2 characters long.';
+    }
+    if (name && name.length > 50) {
+      return 'Name cannot exceed 50 characters.';
+    }
+    if (name && !/^[a-zA-Z]+([a-zA-Z\s-]*[a-zA-Z])*$/.test(name)) {
+      return 'Name can only contain letters, spaces, and dashes.';
+    }
+    return '';
+  };
+
+  const validateMiddleInitial = (mi) => {
+    if (mi && !/^[A-Za-z.]{1,2}$/.test(mi)) {
+      return 'Middle initial must contain only letters and periods';
+    }
+    return '';
+  };
+
+  const validatePassword = (password) => {
+    if (!password) return 'Password is required';
+    if (password.length < 6) return 'Password must be at least 6 characters long.';
+    return '';
+  };
+
+  const validateField = (name, value) => {
+    let error = '';
+    switch (name) {
+      case 'email':
+        error = validateEmail(value);
+        break;
+      case 'firstName':
+        error = validateFirstName(value);
+        break;
+      case 'lastName':
+        error = validateLastName(value);
+        break;
+      case 'middleInitial':
+        error = validateMiddleInitial(value);
+        break;
+      case 'password':
+        error = validatePassword(value);
+        break;
+      default:
+        break;
+    }
+    return error;
+  };
+
   const handleChange = (e) => {
     const { name, value, files } = e.target;
+    let newValue = files ? files[0] : value;
+    
+    // Auto-uppercase middle initial
+    if (name === 'middleInitial') {
+      newValue = newValue.toUpperCase();
+    }
+    
+    // Trim leading spaces and capitalize first letter of each word for name fields
+    if (name === 'firstName' || name === 'lastName') {
+      newValue = newValue.replace(/^\s+/, ''); // Remove leading spaces
+      if (newValue.length > 0) {
+        // Capitalize first letter of each word (separated by spaces or hyphens)
+        newValue = newValue.replace(/\b\w/g, (char) => char.toUpperCase());
+      }
+    }
+    
     setFormData({
       ...formData,
-      [name]: files ? files[0] : value,
+      [name]: newValue,
     });
+
+    // Real-time validation
+    if (!files) { // Don't validate file uploads
+      const error = validateField(name, newValue);
+      setValidationErrors(prev => ({
+        ...prev,
+        [name]: error
+      }));
+    }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields before submission
+    const errors = {
+      email: validateEmail(formData.email),
+      firstName: validateFirstName(formData.firstName),
+      lastName: validateLastName(formData.lastName),
+      middleInitial: validateMiddleInitial(formData.middleInitial),
+      password: validatePassword(formData.password),
+    };
+
+    // Check if there are any validation errors
+    const hasErrors = Object.values(errors).some(error => error !== '');
+    
+    if (hasErrors) {
+      setValidationErrors(errors);
+      toast.error('Please fix the validation errors before submitting.');
+      return;
+    }
+
     const data = new FormData();
     data.append('firstName', formData.firstName);
     data.append('middleInitial', formData.middleInitial);
@@ -72,7 +188,8 @@ const Signup = () => {
     if (response.data.success) {
       toast.success('Registration successful!');
       setError('');
-      localStorage.setItem('token', response.data.token); // <-- Add this line
+      setValidationErrors({});
+      localStorage.setItem('token', response.data.token);
       setTimeout(() => {
         navigate('/choose-category');
       }, 3000);
@@ -191,6 +308,16 @@ const Signup = () => {
           border-color: #6fba94 !important;
           box-shadow: 0 0 0 2px rgba(111, 186, 148, 0.2) !important;
         }
+        
+        /* Validation error styles */
+        .border-red-500 {
+          border-color: #ef4444 !important;
+        }
+        
+        /* Flex layout for name fields */
+        .flex-2 {
+          flex: 2;
+        }
       `}</style>
       
       {/* Left Side - Form */}
@@ -202,49 +329,64 @@ const Signup = () => {
           
 
           {/* First Name, Middle Initial, and Last Name */}
-          <div className="w-full flex gap-3 mb-4">
-            <input
-              type="text"
-              name="firstName"
-              placeholder="First Name"
-              className={inputStyles.base}
-              style={{ 
-                color: '#000000',
-                backgroundColor: '#F1F8E8',
-                fontSize: '16px',
-                flex: '2'
-              }}
-              onChange={handleChange}
-            />
-            <input
-              type="text"
-              name="middleInitial"
-              placeholder="M.I."
-              className={inputStyles.base}
-              maxLength="2"
-              style={{ 
-                color: '#000000',
-                backgroundColor: '#F1F8E8',
-                fontSize: '16px',
-                width: '60px',
-                flex: 'none'
-              }}
-              onChange={handleChange}
-            />
-            <input
-              type="text"
-              name="lastName"
-              placeholder="Last Name"
-              className={inputStyles.base}
-              style={{ 
-                color: '#000000',
-                backgroundColor: '#F1F8E8',
-                fontSize: '16px',
-                flex: '2'
-              }}
-              onChange={handleChange}
-            />
+          <div className="w-full flex gap-3 mb-2">
+            <div className="flex-2">
+              <input
+                type="text"
+                name="firstName"
+                placeholder="First Name"
+                className={`${inputStyles.base} ${validationErrors.firstName ? 'border-red-500' : ''}`}
+                style={{ 
+                  color: '#000000',
+                  backgroundColor: '#F1F8E8',
+                  fontSize: '16px'
+                }}
+                value={formData.firstName}
+                onChange={handleChange}
+              />
+              {validationErrors.firstName && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.firstName}</p>
+              )}
+            </div>
+            <div className="w-16">
+              <input
+                type="text"
+                name="middleInitial"
+                placeholder="M.I."
+                className={`${inputStyles.base} ${validationErrors.middleInitial ? 'border-red-500' : ''}`}
+                maxLength="2"
+                style={{ 
+                  color: '#000000',
+                  backgroundColor: '#F1F8E8',
+                  fontSize: '16px'
+                }}
+                value={formData.middleInitial}
+                onChange={handleChange}
+              />
+              {validationErrors.middleInitial && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.middleInitial}</p>
+              )}
+            </div>
+            <div className="flex-2">
+              <input
+                type="text"
+                name="lastName"
+                placeholder="Last Name"
+                className={`${inputStyles.base} ${validationErrors.lastName ? 'border-red-500' : ''}`}
+                style={{ 
+                  color: '#000000',
+                  backgroundColor: '#F1F8E8',
+                  fontSize: '16px'
+                }}
+                value={formData.lastName}
+                onChange={handleChange}
+              />
+              {validationErrors.lastName && (
+                <p className="text-red-500 text-xs mt-1">{validationErrors.lastName}</p>
+              )}
+            </div>
           </div>
+          <div className="mb-4"></div>
           
           {/* Gender and Section Dropdowns */}
           <div className="w-full flex gap-3 mb-4">
@@ -389,34 +531,24 @@ const Signup = () => {
                     },
                   }}
                 >
-                  <MenuItem value="Grade 11 - A">Grade 11 - A</MenuItem>
-                  <MenuItem value="Grade 11 - B">Grade 11 - B</MenuItem>
-                  <MenuItem value="Grade 11 - C">Grade 11 - C</MenuItem>
-                  <MenuItem value="Grade 11 - D">Grade 11 - D</MenuItem>
+                  <MenuItem value="St. John Paul II (STEM 1)">St. John Paul II (STEM 1)</MenuItem>
+                  <MenuItem value="St. Paul VI (STEM 2)">St. Paul VI (STEM 2)</MenuItem>
+                  <MenuItem value="St. John XXIII (STEM 3)">St. John XXIII (STEM 3)</MenuItem>
+                  <MenuItem value="St. Pius X (HUMSS)">St. Pius X (HUMSS)</MenuItem>
+                  <MenuItem value="St. Tarcisius (ABM)">St. Tarcisius (ABM)</MenuItem>
+                  <MenuItem value="St. Jose Sanchez Del Rio (ICT)">St. Jose Sanchez Del Rio (ICT)</MenuItem>
                 </Select>
               </FormControl>
             </div>
           </div>
 
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            className={inputStyles.base + " mb-4"}
-            onChange={handleChange}
-            style={{ 
-              color: '#000000',
-              backgroundColor: '#F1F8E8',
-              fontSize: '16px'
-            }}
-          />
-
-          <div className="w-full relative mb-6">
+          <div className="w-full mb-4">
             <input
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              placeholder="Password"
-              className={inputStyles.base}
+              type="email"
+              name="email"
+              placeholder="Email"
+              className={`${inputStyles.base} ${validationErrors.email ? 'border-red-500' : ''}`}
+              value={formData.email}
               onChange={handleChange}
               style={{ 
                 color: '#000000',
@@ -424,12 +556,39 @@ const Signup = () => {
                 fontSize: '16px'
               }}
             />
-            <div
-              className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-              onClick={() => setShowPassword(!showPassword)}
-            >
-              {showPassword ? <VisibilityOffIcon className="text-[#6fba94]"/> : <VisibilityIcon className="text-[#6fba94]"/>}
+            {validationErrors.email && (
+              <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+            )}
+          </div>
+
+          <div className="w-full mb-6">
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Password"
+                className={`${inputStyles.base} ${validationErrors.password ? 'border-red-500' : ''}`}
+                value={formData.password}
+                onChange={handleChange}
+                style={{ 
+                  color: '#000000',
+                  backgroundColor: '#F1F8E8',
+                  fontSize: '16px'
+                }}
+              />
+              <div
+                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <VisibilityOffIcon className="text-[#6fba94]"/> : <VisibilityIcon className="text-[#6fba94]"/>}
+              </div>
             </div>
+            {validationErrors.password && (
+              <p className="text-red-500 text-xs mt-1">{validationErrors.password}</p>
+            )}
+            {formData.password && !validationErrors.password && (
+              <p className="text-green-600 text-xs mt-1">✓ Password meets requirements</p>
+            )}
           </div>
 
           <div className="w-full flex flex-col items-center mb-6">

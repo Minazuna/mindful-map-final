@@ -7,7 +7,7 @@ const Sidebar = ({ teacher }) => {
   const currentPath = window.location.pathname;
 
   // All available sections
-  const allSections = ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'];
+  const allSections = ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)'];
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/teacher/dashboard' },

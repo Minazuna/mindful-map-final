@@ -8,6 +8,7 @@ import ForumIcon from '@mui/icons-material/Forum';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import BookIcon from '@mui/icons-material/Book';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
+import PersonIcon from '@mui/icons-material/Person';
 import ExitToAppIcon from '@mui/icons-material/ExitToApp';
 import Dialog from '@mui/material/Dialog';
 import DialogActions from '@mui/material/DialogActions';
@@ -44,6 +45,9 @@ const BottomNav = ({ value, setValue }) => {
         break;
       case 'prediction':
         navigate('/prediction');
+        break;
+      case 'profile':
+        navigate('/profile');
         break;
       case 'logout':
         handleLogoutClick();
@@ -115,6 +119,12 @@ const BottomNav = ({ value, setValue }) => {
           value="prediction"
           icon={<LightbulbIcon />}
           style={{ color: value === 'prediction' ? '#6fba94' : '#b1b1b1' }}
+        />
+        <BottomNavigationAction
+          label="Profile"
+          value="profile"
+          icon={<PersonIcon />}
+          style={{ color: value === 'profile' ? '#6fba94' : '#b1b1b1' }}
         />
         <BottomNavigationAction
           label="Logout"

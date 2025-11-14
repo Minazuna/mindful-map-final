@@ -347,9 +347,11 @@ const CalendarLog = () => {
 
     // If there's only one emotion with max count and it appears more than once, it's clearly frequent
     if (emotionsWithMaxCount.length === 1 && maxCount > 1) {
+      const emotionType = emotionMap[emotionsWithMaxCount[0]]?.type || 'neutral';
       return {
         type: 'frequent',
         emotion: emotionsWithMaxCount[0],
+        emotionType: emotionType,
         isFrequent: true,
         count: logsForDate.length
       };
@@ -368,9 +370,11 @@ const CalendarLog = () => {
         }
       });
 
+      const emotionType = emotionMap[mostRecentEmotion]?.type || 'neutral';
       return {
         type: 'frequent',
         emotion: mostRecentEmotion,
+        emotionType: emotionType,
         isFrequent: true,
         count: logsForDate.length
       };
@@ -535,37 +539,24 @@ const CalendarLog = () => {
                 Your Mood Calendar
               </h2>
               <p className="text-sm text-gray-600 leading-relaxed max-w-2xl mx-auto mb-4">
-                Track your daily emotions and activities. <strong>Click any circle in the current week</strong> to log a mood. 
-                <strong>Click circles with existing moods</strong> to add multiple entries for the same day.
-                The <strong>numbers on circles indicate total logs</strong> for that day.
+                Track your daily emotions and activities. <strong> Click any circle in the current week</strong> to log multiple moods. 
+                {'\n'} Past weeks are view-only.
               </p>
             </div>
 
             {/* Legend */}
             <div className="flex justify-center items-center gap-6 bg-gray-50 rounded-lg py-3 px-4">
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-white border-2 border-sky-400 flex items-center justify-center shadow-sm">
-                  <span className="text-xs">😊</span>
+                <div className="w-8 h-8 rounded-full bg-white flex items-center justify-center shadow-md">
+                  <span className="text-sm">😊</span>
                 </div>
-                <span className="text-xs text-gray-700 font-medium">Most Frequent</span>
+                <span className="text-xs text-gray-700 font-medium">Frequent Mood</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-white border border-gray-400 flex items-center justify-center shadow-sm">
-                  <span className="text-xs">😊</span>
+                <div className="w-6 h-6 rounded-full bg-gradient-to-r from-[#6fba94] to-[#5ea983] text-white text-xs rounded-full flex items-center justify-center font-bold shadow-lg border-2 border-white">
+                  <span className="text-xs">2</span>
                 </div>
-                <span className="text-xs text-gray-700 font-medium">Latest Entry</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-gray-50 border-2 border-dashed border-gray-400 flex items-center justify-center">
-                  <span className="text-gray-500 text-sm font-bold">+</span>
-                </div>
-                <span className="text-xs text-gray-700 font-medium">Add Mood</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-6 h-6 rounded-full bg-white border-2 border-[#6fba94] flex items-center justify-center shadow-sm">
-                  <span className="text-xs">😊</span>
-                </div>
-                <span className="text-xs text-gray-700 font-medium">Today</span>
+                <span className="text-xs text-gray-700 font-medium">Total Logs</span>
               </div>
             </div>
           </div>
@@ -625,10 +616,8 @@ const CalendarLog = () => {
                             'border-[#6fba94] border-2 bg-white shadow-md' :
                             moodData.type === 'plus' ? 
                               'bg-gradient-to-br from-gray-50 to-gray-100 hover:from-[#f0f9f5] hover:to-[#e8f5ea] border-2 border-dashed border-gray-400 hover:border-[#6fba94] cursor-pointer' : 
-                              moodData.type === 'empty' ? 'bg-gray-50 border border-gray-200' : 
-                              moodData.isFrequent ? 
-                                'bg-white border-2 border-sky-400 hover:border-sky-500 shadow-lg hover:shadow-xl cursor-pointer transform hover:scale-110' :
-                                'bg-white border-2 border-gray-400 hover:border-gray-500 shadow-md hover:shadow-lg cursor-pointer transform hover:scale-105'
+                              moodData.type === 'empty' ? 'bg-gradient-to-br from-[#f0f9f5] to-[#e8f5ea]' : 
+                              'bg-white shadow-md hover:shadow-lg cursor-pointer transform hover:scale-105'
                           }
                           ${isClickable ? 'cursor-pointer' : 'cursor-default'}
                         `}
@@ -637,7 +626,7 @@ const CalendarLog = () => {
                         {moodData.type === 'plus' ? (
                           <span className="text-xl text-gray-500 group-hover:text-[#6fba94] transition-colors font-bold">+</span>
                         ) : moodData.type === 'empty' ? null : (
-                          <span className="text-2xl drop-shadow-sm">{emotionMap[moodData.emotion]?.emoji || '😊'}</span>
+                          <span className="text-3xl drop-shadow-sm">{emotionMap[moodData.emotion]?.emoji || '😊'}</span>
                         )}
                         
                         {/* Multiple entries indicator */}

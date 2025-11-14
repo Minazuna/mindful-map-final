@@ -6,19 +6,25 @@ const UserSchema = new mongoose.Schema({
     type: String,
     required: true,
     unique: true,
+    lowercase: true,
+    trim: true
   },
   firstName: {
     type: String,
     required: false,
+    trim: true
   },
   middleInitial: {
     type: String,
     required: false,
     maxlength: 2,
+    trim: true,
+    uppercase: true
   },
   lastName: {
     type: String,
     required: false,
+    trim: true
   },
   gender: {
     type: String,
@@ -27,40 +33,38 @@ const UserSchema = new mongoose.Schema({
   },
   section: {
     type: String,
-    enum: ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'],
+    enum: ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)', 'N/A'],
+    default: 'N/A',
     required: false,
   },
   assignedSections: {
     type: [String],
-    enum: ['Grade 11 - A', 'Grade 11 - B', 'Grade 11 - C', 'Grade 11 - D'],
+    enum: ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)'],
     required: function() {
       return this.role === 'teacher';
-    },
-    validate: {
-      validator: function(sections) {
-        return this.role !== 'teacher' || (sections && sections.length > 0);
-      },
-      message: 'Teachers must have at least one assigned section'
     }
   },
   subject: {
     type: String,
     required: function() {
       return this.role === 'teacher';
-    }
+    },
+    trim: true
   },
   avatar: {
     type: String, 
     required: false,
-    default: 'https://res.cloudinary.com/your-cloud/image/upload/v1/default-avatar.png' // Default avatar
+    default: 'https://res.cloudinary.com/your-cloud/image/upload/v1/default-avatar.png'
   },
   firebaseUid: {
     type: String,
     required: true,
+    unique: true
   },
   password: {
     type: String,
     required: true,
+    minlength: 6
   },
   role: {
     type: String,
