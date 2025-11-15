@@ -656,12 +656,13 @@ exports.getSleepHours = async (req, res) => {
     const today = new Date();
     
     if (period === 'weekly') {
-      startDate = new Date(today);
-      startDate.setDate(today.getDate() - today.getDay()); // Start of current week (Sunday)
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1); 
+      startDate = new Date(today.setDate(diff));
       startDate.setHours(0, 0, 0, 0);
-      
+
       endDate = new Date(startDate);
-      endDate.setDate(startDate.getDate() + 6); // End of current week (Saturday)
+      endDate.setDate(startDate.getDate() + 6); 
       endDate.setHours(23, 59, 59, 999);
     } else {
       // Monthly

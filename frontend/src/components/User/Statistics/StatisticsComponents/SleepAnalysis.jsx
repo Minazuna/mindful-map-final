@@ -1,10 +1,9 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import BedtimeIcon from '@mui/icons-material/Bedtime';
 import { Line } from 'react-chartjs-2';
 import moment from 'moment';
 
-// Chart.js registration (if not done globally)
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -26,6 +25,14 @@ ChartJS.register(
   Legend
 );
 
+const PAGE_SIZE = 10;
+
+const getPeriodText = (period) => {
+  if (period === 'weekly') return 'this week';
+  if (period === 'monthly') return 'this month';
+  return '';
+};
+
 const SleepAnalysis = ({
   sleepHoursData,
   sleepAnalytics,
@@ -33,9 +40,19 @@ const SleepAnalysis = ({
   setSleepPeriod,
   sleepChartRef
 }) => {
-  // Chart Data
+  const [page, setPage] = useState(0);
+  const [showSummary, setShowSummary] = useState(false);
+
+  const pagedSleepHoursData = useMemo(() => {
+    if (sleepPeriod === 'monthly') {
+      const start = page * PAGE_SIZE;
+      return sleepHoursData.slice(start, start + PAGE_SIZE);
+    }
+    return sleepHoursData;
+  }, [sleepHoursData, sleepPeriod, page]);
+
   const sleepHoursChartData = useMemo(() => ({
-    labels: sleepHoursData.map(data =>
+    labels: pagedSleepHoursData.map(data =>
       sleepPeriod === 'weekly'
         ? moment(data.date).format('ddd')
         : moment(data.date).format('MMM D')
@@ -43,7 +60,7 @@ const SleepAnalysis = ({
     datasets: [
       {
         label: 'Hours of Sleep',
-        data: sleepHoursData.map(data => data.hours),
+        data: pagedSleepHoursData.map(data => data.hours),
         borderColor: '#55AD9B',
         backgroundColor: 'rgba(149, 210, 179, 0.2)',
         fill: true,
@@ -59,16 +76,14 @@ const SleepAnalysis = ({
         borderWidth: 4,
       }
     ]
-  }), [sleepHoursData, sleepPeriod]);
+  }), [pagedSleepHoursData, sleepPeriod]);
 
-  // Chart Options
+
   const sleepHoursChartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: {
-        display: false
-      },
+      legend: { display: false },
       tooltip: {
         backgroundColor: 'rgba(149, 210, 179, 0.95)',
         titleColor: '#ffffff',
@@ -82,12 +97,10 @@ const SleepAnalysis = ({
         callbacks: {
           title: (context) => {
             return sleepPeriod === 'weekly'
-              ? moment(sleepHoursData[context[0].dataIndex].date).format('dddd')
-              : moment(sleepHoursData[context[0].dataIndex].date).format('MMMM D, YYYY');
+              ? moment(pagedSleepHoursData[context[0].dataIndex].date).format('dddd')
+              : moment(pagedSleepHoursData[context[0].dataIndex].date).format('MMMM D, YYYY');
           },
-          label: (context) => {
-            return `Sleep: ${context.raw} hours`;
-          }
+          label: (context) => `Sleep: ${context.raw} hours`
         }
       }
     },
@@ -97,47 +110,35 @@ const SleepAnalysis = ({
         max: 12,
         ticks: {
           stepSize: 2,
-          callback: function (value) {
-            return value + 'h';
-          },
-          font: {
-            family: "'Inter', sans-serif",
-            size: 12,
-            weight: '500'
-          },
+          callback: value => value + 'h',
+          font: { family: "'Inter', sans-serif", size: 12, weight: '500' },
           color: '#55AD9B'
         },
-        grid: {
-          color: 'rgba(149, 210, 179, 0.3)',
-          lineWidth: 1
-        },
-        border: {
-          display: false
-        }
+        grid: { color: 'rgba(149, 210, 179, 0.3)', lineWidth: 1 },
+        border: { display: false }
       },
       x: {
-        grid: {
-          display: false
-        },
+        grid: { display: false },
         ticks: {
           maxRotation: 0,
-          font: {
-            family: "'Inter', sans-serif",
-            size: 11,
-            weight: '500'
-          },
+          font: { family: "'Inter', sans-serif", size: 11, weight: '500' },
           color: '#55AD9B'
         },
-        border: {
-          display: false
-        }
+        border: { display: false }
       }
     },
-    interaction: {
-      intersect: false,
-      mode: 'index'
-    }
+    interaction: { intersect: false, mode: 'index' }
   };
+
+  const totalPages = sleepPeriod === 'monthly'
+    ? Math.ceil(sleepHoursData.length / PAGE_SIZE)
+    : 1;
+
+  const handlePrev = () => setPage(p => Math.max(0, p - 1));
+  const handleNext = () => setPage(p => Math.min(totalPages - 1, p + 1));
+
+  React.useEffect(() => { setPage(0); }, [sleepPeriod, sleepHoursData]);
+
 
   return (
     <motion.div
@@ -255,10 +256,34 @@ const SleepAnalysis = ({
                 {sleepPeriod === 'weekly' ? 'Past 7 Days' : 'This Month'}
               </div>
             </div>
-            <div className="h-80 w-full rounded-xl overflow-hidden bg-white/70 backdrop-blur-sm border border-purple-200/50">
-              {sleepHoursData.length > 0 ? (
-                <Line data={sleepHoursChartData} options={sleepHoursChartOptions} />
-              ) : (
+        <div className="h-80 w-full rounded-xl overflow-hidden bg-white/70 backdrop-blur-sm border border-purple-200/50 relative">
+          {pagedSleepHoursData.length > 0 ? (
+            <>
+              <Line data={sleepHoursChartData} options={sleepHoursChartOptions} />
+              {sleepPeriod === 'monthly' && totalPages > 1 && (
+                <div className="flex justify-center items-center gap-4 mt-4">
+                  <button
+                    onClick={handlePrev}
+                    disabled={page === 0}
+                    className={`px-4 py-2 rounded-full bg-black text-white font-bold text-lg shadow transition 
+                      ${page === 0 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'}`}
+                    aria-label="Previous"
+                  >
+                    &lt;
+                  </button>
+                  <button
+                    onClick={handleNext}
+                    disabled={page === totalPages - 1}
+                    className={`px-4 py-2 rounded-full bg-black text-white font-bold text-lg shadow transition 
+                      ${page === totalPages - 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'}`}
+                    aria-label="Next"
+                  >
+                    &gt;
+                  </button>
+                </div>
+              )}
+            </>
+          ) : (
                 <div className="h-full flex items-center justify-center">
                   <div className="text-center">
                     <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 rounded-full flex items-center justify-center">
@@ -271,7 +296,6 @@ const SleepAnalysis = ({
               )}
             </div>
           </motion.div>
-          {/* Sleep Quality Indicators */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
