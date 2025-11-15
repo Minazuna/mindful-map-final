@@ -80,6 +80,7 @@ import WeeklyStatistics from './components/User/Statistics/Weekly/WeeklyStatisti
 import DailyAnova from './components/User/Statistics/Daily/DailyAnova';
 import WeeklyAnova from './components/User/Statistics/Weekly/WeeklyAnova';
 import MoodStatistics from './components/User/Statistics/MoodStatistics';
+import ActivityStatistics from './components/User/Statistics/StatisticsComponents/ActivitiesStatistics';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -370,7 +371,15 @@ const App = () => {
               <MoodStatistics />
             </UserPrivateRoute>
           }
-        />       
+        />
+        <Route
+          path="/statistics/activities"
+          element={
+            <UserPrivateRoute>
+              <ActivityStatistics />
+            </UserPrivateRoute>
+          }
+        />         
         <Route
           path="/calendar-log"
           element={

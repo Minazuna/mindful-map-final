@@ -102,7 +102,7 @@ const MoodEntries = () => {
       'eat-healthy': '/images/eatHealthy.png',
       'no-physical': '/images/noPhysicalActivity.png',
       'eat-unhealthy': '/images/eatUnhealthy.png',
-      'drink-alcohol': '/images/alcoho.png'
+      'drink-alcohol': '/images/alcohol.png'
     };
     const imageSrc = activityImages[activity];
     if (imageSrc) {

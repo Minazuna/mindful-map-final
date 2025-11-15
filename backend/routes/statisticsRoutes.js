@@ -9,5 +9,5 @@ router.get('/statistics/weekly', authMiddleware, userMiddleware, getWeeklyStatis
 router.get('/statistics/daily-anova', authMiddleware, userMiddleware, calculateDailyAnova);
 router.get('/statistics/weekly-anova', authMiddleware, userMiddleware, calculateWeeklyAnova);
 router.get('/statistics/sleep-hours', authMiddleware, userMiddleware, getSleepHours);
-router.get('/statistics/mood-statistics', authMiddleware, userMiddleware, getMoodActivities);
+router.get('/statistics/mood-activities', authMiddleware, userMiddleware, getMoodActivities);
 module.exports = router;

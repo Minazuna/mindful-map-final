@@ -2,8 +2,6 @@ import React, { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import SentimentSatisfiedIcon from '@mui/icons-material/SentimentSatisfied';
 import { Doughnut } from 'react-chartjs-2';
-
-// Chart.js registration (if not done globally)
 import {
   Chart as ChartJS,
   ArcElement,
@@ -11,8 +9,8 @@ import {
   Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-
 import { emotionImages } from '../../../../../utils/moods';
+import { useNavigate } from 'react-router-dom';
 
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -26,7 +24,7 @@ const emotionColors = {
   'sad': '#092b9cff',
   'disappointed': '#4e4d4dff',
   'angry': '#cc062dff',
-  'tense': '#fdf8fdff'
+  'tense': '#a854a8ff'
 };
 
 const capitalizeText = (text) => {
@@ -40,9 +38,9 @@ const MoodAnalysis = ({
   setMoodType,
   setMoodPeriod,
   moodChartRef,
-  handleMoodClick
 }) => {
   const [showSummary, setShowSummary] = useState(false);
+  const navigate = useNavigate();
 
   // Filter mood logs based on selected period
   const filteredMoodLogs = useMemo(() => {
@@ -146,7 +144,7 @@ const MoodAnalysis = ({
         }
       },
       datalabels: {
-        color: '#000000',
+        color: '#f6f4f4ff',
         font: {
           weight: 'bold',
           size: 12
@@ -167,6 +165,17 @@ const MoodAnalysis = ({
       ? 'this week'
       : 'this month';
 
+  // Handle click to navigate to ActivitiesStatistics
+  const handleMoodClick = (emotion) => {
+    navigate('/statistics/activities', {
+      state: {
+        emotion,
+        moodType,
+        moodPeriod,
+      }
+    });
+  };
+
   return (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
@@ -177,7 +186,7 @@ const MoodAnalysis = ({
       <div className="p-8">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center space-x-3">
-            <div className="p-3 rounded-2xl" style={{ backgroundColor: '#E8F5E8' }}>
+            <div className="p-3 rounded-2xl">
               <SentimentSatisfiedIcon style={{ color: '#55AD9B', fontSize: 28 }} />
             </div>
             <div>
@@ -217,7 +226,7 @@ const MoodAnalysis = ({
               onClick={() => setMoodPeriod('daily')}
               className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
                 moodPeriod === 'daily'
-                  ? 'bg-white text-gray-800 shadow-sm'
+                  ? 'bg-[#55AD9B] text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -227,7 +236,7 @@ const MoodAnalysis = ({
               onClick={() => setMoodPeriod('weekly')}
               className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
                 moodPeriod === 'weekly'
-                  ? 'bg-white text-gray-800 shadow-sm'
+                  ? 'bg-[#55AD9B] text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -237,7 +246,7 @@ const MoodAnalysis = ({
               onClick={() => setMoodPeriod('monthly')}
               className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
                 moodPeriod === 'monthly'
-                  ? 'bg-white text-gray-800 shadow-sm'
+                  ? 'bg-[#55AD9B] text-white shadow-sm'
                   : 'text-gray-600 hover:text-gray-800'
               }`}
             >
@@ -308,10 +317,10 @@ const MoodAnalysis = ({
                       style={{ width: '48px', height: '48px', objectFit: 'contain' }}
                     />
                   </div>
-                  <p className="font-semibold text-gray-800 capitalize text-sm text-center">
+                  <p className="font-semibold capitalize text-sm text-center" style={{ color: '#e9eaeaff' }}>
                     {capitalizeText(emotion)}
                   </p>
-                  <p className="font-bold text-lg mt-1" style={{ color: '#272829' }}>
+                  <p className="font-bold text-lg mt-1" style={{ color: '#e9eaeaff' }}>
                     {currentMoodCounts[emotion]}
                   </p>
                   <p className="text-xs text-gray-100 mt-2 text-center">Click for details</p>
@@ -319,46 +328,6 @@ const MoodAnalysis = ({
               ))}
             </div>
           </div>
-          {/* Summary Button and Container */}
-          {Object.keys(currentMoodCounts).length > 0 && (
-            <div className="w-full flex justify-center mt-8">
-              <button
-                onClick={() => setShowSummary(!showSummary)}
-                className="px-6 py-2 rounded-xl bg-[#55AD9B] text-white font-semibold shadow hover:bg-[#469a7b] transition-all"
-              >
-                {showSummary ? 'Hide Summary' : 'Show Summary'}
-              </button>
-            </div>
-          )}
-          {showSummary && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full flex justify-center mt-6"
-            >
-              <div className="bg-white border border-[#55AD9B] rounded-2xl shadow-lg p-6 max-w-xl w-full">
-                <h3 className="text-xl font-bold mb-4 text-[#55AD9B] flex items-center">
-                  <SentimentSatisfiedIcon style={{ marginRight: 8 }} />
-                  Mood Summary
-                </h3>
-                <ul className="list-disc pl-6 space-y-3 text-gray-800 text-base">
-                  <li>
-                    Your top mood for <span className="font-semibold text-[#55AD9B]">{periodLabel}</span> is{' '}
-                    <span className="font-bold">{sortedMoods[0] ? capitalizeText(sortedMoods[0]) : 'N/A'}</span>
-                  </li>
-                  <li>
-                    Your total unique emotions are{' '}
-                    <span className="font-bold">{Object.keys(currentMoodCounts).length}</span>
-                  </li>
-                  <li>
-                    Your least amount of mood is{' '}
-                    <span className="font-bold">{leastMood ? capitalizeText(leastMood) : 'N/A'}</span>
-                  </li>
-                </ul>
-              </div>
-            </motion.div>
-          )}
         </div>
       </div>
     </motion.div>

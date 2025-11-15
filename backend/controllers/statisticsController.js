@@ -759,146 +759,76 @@ exports.getSleepHours = async (req, res) => {
 
 exports.getMoodActivities = async (req, res) => {
   try {
-    const userId = req.user.userId;
-    const { emotion, moodType, period } = req.query;
+    const userId = req.user._id;
+    const { emotion, moodType = 'before', period = 'weekly' } = req.query;
+    if (!emotion) return res.status(400).json({ error: 'Emotion is required.' });
 
-    if (!emotion || !moodType || !period) {
-      return res.status(400).json({ 
-        message: 'Missing required parameters: emotion, moodType, and period' 
-      });
-    }
-
-    // Calculate date range based on period
-    let startOfPeriod, endOfPeriod;
-    const moment = require('moment');
-    
-    if (period === 'weekly') {
-      startOfPeriod = moment().startOf('isoWeek').toDate();
-      endOfPeriod = moment().endOf('isoWeek').toDate();
-    } else if (period === 'daily') {
-      startOfPeriod = moment().startOf('day').toDate();
-      endOfPeriod = moment().endOf('day').toDate();
-    } else if (period === 'monthly') {
-      startOfPeriod = moment().startOf('month').toDate();
-      endOfPeriod = moment().endOf('month').toDate();
+    const today = new Date();
+    let startDate, endDate;
+    if (period === 'daily') {
+      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999);
+    } else if (period === 'weekly') {
+      const day = today.getDay();
+      const diff = today.getDate() - day + (day === 0 ? -6 : 1);
+      startDate = new Date(today.setDate(diff));
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
     } else {
-      return res.status(400).json({ message: 'Invalid period. Use daily, weekly, or monthly' });
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0, 23, 59, 59, 999);
     }
 
-    // Build query based on moodType (before or after)
-    let query = {
+    const moodQuery = {
       user: userId,
-      date: {
-        $gte: startOfPeriod,
-        $lte: endOfPeriod
-      }
+      date: { $gte: startDate, $lte: endDate },
+    };
+    moodQuery[moodType === 'before' ? 'beforeEmotion' : 'afterEmotion'] = emotion;
+
+    const logs = await MoodLog.find(moodQuery);
+
+    // Group activities by category
+    const grouped = { activity: [], social: [], health: [], sleep: [] };
+    const total = logs.length;
+
+    // Count per activity in each category
+    const countMaps = {
+      activity: {},
+      social: {},
+      health: {},
+      sleep: {}
     };
 
-    // Add emotion filter based on moodType
-    if (moodType === 'before') {
-      query.beforeEmotion = emotion.toLowerCase();
-    } else {
-      query.afterEmotion = emotion.toLowerCase();
-    }
+    logs.forEach(log => {
+      const category = (log.category || 'activity').toLowerCase();
+      const activity = category === 'sleep'
+  ? (log.hrs ? String(log.hrs) : 'Unknown')
+  : (log.activity || 'Other');
+      if (!countMaps[category]) return; // skip unknown categories
 
-    const moodLogs = await MoodLog.find(query);
-
-    // Count activities by category and activity, calculate percentages
-    const activityCounts = {};
-    let totalEntries = moodLogs.length;
-
-    if (totalEntries === 0) {
-      return res.json({
-        activities: [],
-        categoryBreakdown: [],
-        totalEntries: 0,
-        emotion: emotion,
-        moodType: moodType,
-        period: period,
-        dateRange: {
-          start: startOfPeriod,
-          end: endOfPeriod
-        }
-      });
-    }
-
-    moodLogs.forEach(log => {
-      let activityKey;
-      
-      // Handle different categories based on your schema
-      if (log.category === 'sleep') {
-        activityKey = `Sleep - ${log.hrs} hours`;
-      } else {
-        // For activity, social, health categories
-        const activity = log.activity || 'Unknown Activity';
-        const categoryName = log.category.charAt(0).toUpperCase() + log.category.slice(1);
-        activityKey = `${categoryName}: ${activity}`;
-      }
-
-      if (activityCounts[activityKey]) {
-        activityCounts[activityKey]++;
-      } else {
-        activityCounts[activityKey] = 1;
-      }
+      if (!countMaps[category][activity]) countMaps[category][activity] = 0;
+      countMaps[category][activity]++;
     });
 
-    // Convert to array and calculate percentages
-    const activities = Object.entries(activityCounts)
-      .map(([activity, count]) => ({
-        activity: activity,
-        count: count,
-        percentage: parseFloat(((count / totalEntries) * 100).toFixed(1))
-      }))
-      .sort((a, b) => b.percentage - a.percentage);
-
-    // Category breakdown for additional insights
-    const categoryBreakdown = {};
-    moodLogs.forEach(log => {
-      const category = log.category.charAt(0).toUpperCase() + log.category.slice(1);
-      if (categoryBreakdown[category]) {
-        categoryBreakdown[category]++;
-      } else {
-        categoryBreakdown[category] = 1;
-      }
+    // Prepare grouped data with percentages
+    Object.keys(countMaps).forEach(category => {
+      const map = countMaps[category];
+      const totalInCategory = Object.values(map).reduce((a, b) => a + b, 0);
+      grouped[category] = Object.entries(map).map(([activity, count]) => ({
+        activity,
+        count,
+        percent: totalInCategory ? Math.round((count / totalInCategory) * 100) : 0
+      })).sort((a, b) => b.count - a.count);
     });
-
-    const categoryStats = Object.entries(categoryBreakdown)
-      .map(([category, count]) => ({
-        category: category,
-        count: count,
-        percentage: parseFloat(((count / totalEntries) * 100).toFixed(1))
-      }))
-      .sort((a, b) => b.percentage - a.percentage);
-
-    // Additional statistics
-    const stats = {
-      totalEntries,
-      uniqueActivities: activities.length,
-      topActivity: activities[0]?.activity || 'None',
-      topActivityPercentage: activities[0]?.percentage || 0,
-      topCategory: categoryStats[0]?.category || 'None',
-      topCategoryPercentage: categoryStats[0]?.percentage || 0
-    };
 
     res.json({
-      activities: activities,
-      categoryBreakdown: categoryStats,
-      totalEntries: totalEntries,
-      emotion: emotion,
-      moodType: moodType,
-      period: period,
-      stats: stats,
-      dateRange: {
-        start: startOfPeriod,
-        end: endOfPeriod
-      }
+      totalEntries: total,
+      groupedActivities: grouped
     });
-
-  } catch (error) {
-    console.error('Error fetching mood activities:', error);
-    res.status(500).json({ 
-      message: 'Internal server error',
-      error: error.message 
-    });
+  } catch (err) {
+    console.error('Error in getMoodActivities:', err);
+    res.status(500).json({ error: err.message });
   }
 };
