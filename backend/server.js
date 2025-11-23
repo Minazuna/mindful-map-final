@@ -16,6 +16,7 @@ const statisticsRoutes = require('./routes/statisticsRoutes');
 const recommendationRoutes = require('./routes/recommendationRoutes');
 const anovaRoutes = require('./routes/anovaRoutes');
 const activityRoutes = require('./routes/activityRoutes');
+const musicRoutes = require('./routes/musicRoutes');
 
 const app = express();
 
@@ -39,6 +40,7 @@ app.use('/api', statisticsRoutes);
 app.use('/api/anova', anovaRoutes);
 app.use('/api/recommendations', recommendationRoutes);
 app.use('/api/activity', activityRoutes);
+app.use('/api/music', musicRoutes);
 initScheduledTasks();
 
 mongoose.connect(process.env.MONGO_URI, {
