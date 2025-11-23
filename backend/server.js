@@ -13,6 +13,9 @@ const teacherRoutes = require('./routes/teacherRoutes');
 const correlationRoutes = require('./routes/correlationRoutes');
 const forumRoutes = require('./routes/forumRoutes');
 const statisticsRoutes = require('./routes/statisticsRoutes');
+const recommendationRoutes = require('./routes/recommendationRoutes');
+const anovaRoutes = require('./routes/anovaRoutes');
+const activityRoutes = require('./routes/activityRoutes');
 
 const app = express();
 
@@ -33,6 +36,9 @@ app.use('/api', forumRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api', statisticsRoutes);
+app.use('/api/anova', anovaRoutes);
+app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/activity', activityRoutes);
 initScheduledTasks();
 
 mongoose.connect(process.env.MONGO_URI, {

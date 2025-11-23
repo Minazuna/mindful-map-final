@@ -81,6 +81,7 @@ import DailyAnova from './components/User/Statistics/Daily/DailyAnova';
 import WeeklyAnova from './components/User/Statistics/Weekly/WeeklyAnova';
 import MoodStatistics from './components/User/Statistics/MoodStatistics';
 import ActivityStatistics from './components/User/Statistics/StatisticsComponents/ActivitiesStatistics';
+import Recommendation from './components/User/Statistics/Daily/Recommendation';
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -361,6 +362,14 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <WeeklyAnova />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/recommendation/:moodScoreId"
+          element={
+            <UserPrivateRoute>
+              <Recommendation />
             </UserPrivateRoute>
           }
         />

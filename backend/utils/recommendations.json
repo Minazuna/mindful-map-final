@@ -1,0 +1,375 @@
+{
+  "Activity": {
+    "commute": {
+      "positive": [
+        "Listening to music or podcasts during your commute can help reduce stress and improve your mood. (APA, 2021)",
+        "Using commute time for mindfulness or reflection can make the journey more enjoyable. (Mayo Clinic, 2022)",
+        "Walking or biking part of your commute can boost your physical and mental health. (CDC, 2022)"
+      ],
+      "negative": [
+        "Try deep breathing exercises during your commute to manage stress. (APA, 2021)",
+        "If possible, adjust your route or timing to avoid traffic and reduce frustration. (CDC, 2022)",
+        "Bring a book or listen to calming music to make your commute more pleasant. (Mayo Clinic, 2022)"
+      ]
+    },
+    "exam": {
+      "positive": [
+        "Reviewing material regularly and not cramming helps reduce exam anxiety. (APA, 2021)",
+        "Taking practice tests can boost your confidence and performance. (APA, 2021)",
+        "Staying organized with a study schedule can help you feel prepared. (APA, 2021)"
+      ],
+      "negative": [
+        "Take regular short breaks while studying to improve concentration. (APA, 2021)",
+        "Practice deep breathing or mindfulness before and during exams to manage anxiety. (APA, 2021)",
+        "Get enough sleep before your exam—rest improves memory and focus. (Sleep Foundation, 2022)",
+        "Talk to a teacher or counselor if you're feeling overwhelmed. Support can make a difference. (CDC, 2022)"
+      ]
+    },
+    "homework": {
+      "positive": [
+        "Completing homework on time helps reduce stress and supports learning. (APA, 2021)",
+        "Setting specific goals for each homework session can boost productivity. (APA, 2021)",
+        "Reward yourself after finishing homework to stay motivated. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "Break homework into smaller tasks and take short breaks to stay focused. (CDC, 2022)",
+        "Create a quiet, organized workspace to help you concentrate. (APA, 2021)",
+        "Ask for help if you're stuck—teachers and classmates can be great resources. (CDC, 2022)"
+      ]
+    },
+    "project": {
+      "positive": [
+        "Working on projects builds valuable skills and teamwork. (APA, 2021)",
+        "Celebrate milestones as you complete parts of your project. (Mayo Clinic, 2022)",
+        "Collaborating with others can make projects more enjoyable. (APA, 2021)"
+      ],
+      "negative": [
+        "If projects feel overwhelming, create a timeline and break tasks into steps. (APA, 2021)",
+        "Don’t hesitate to ask for help or delegate tasks when possible. (CDC, 2022)",
+        "Stay organized with checklists to track your progress. (Mayo Clinic, 2022)"
+      ]
+    },
+    "study": {
+      "positive": [
+        "Consistent study habits support learning and reduce last-minute stress. (APA, 2021)",
+        "Teaching someone else what you've learned can reinforce your knowledge. (APA, 2021)",
+        "Using flashcards and practice questions can improve retention. (APA, 2021)"
+      ],
+      "negative": [
+        "Try active study methods like summarizing or teaching someone else. (APA, 2021)",
+        "Take breaks every 30-45 minutes to keep your mind fresh. (CDC, 2022)",
+        "Switch up your study environment to stay engaged. (Mayo Clinic, 2022)"
+      ]
+    },
+    "read": {
+      "positive": [
+        "Reading for pleasure or learning is a great way to relax and expand your mind. (Sleep Foundation, 2022)",
+        "Reading before bed can help you wind down and improve sleep quality. (Sleep Foundation, 2022)",
+        "Joining a book club can make reading more social and fun. (APA, 2021)"
+      ],
+      "negative": [
+        "If reading feels tiring, try a different genre or read in a comfortable, quiet space. (Sleep Foundation, 2022)",
+        "Set small reading goals to avoid feeling overwhelmed. (APA, 2021)",
+        "Take breaks to rest your eyes and mind. (CDC, 2022)"
+      ]
+    },
+    "extracurricular": {
+      "positive": [
+        "Participating in extracurriculars helps you build new skills and friendships. (CDC, 2022)",
+        "Balancing activities with schoolwork supports overall well-being. (APA, 2021)",
+        "Trying new activities can boost your confidence. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If you're feeling overwhelmed, consider limiting activities to what you enjoy most. (CDC, 2022)",
+        "Prioritize your time and don't be afraid to say no to extra commitments. (APA, 2021)",
+        "Schedule downtime to recharge between activities. (Mayo Clinic, 2022)"
+      ]
+    },
+    "household-chores": {
+      "positive": [
+        "Completing chores can give a sense of accomplishment and keep your space organized. (APA, 2021)",
+        "Doing chores together with family can make them more enjoyable. (CDC, 2022)",
+        "Listening to music while cleaning can make chores feel less tedious. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "Try setting a timer and playing music to make chores more enjoyable. (APA, 2021)",
+        "Break chores into smaller tasks and tackle them one at a time. (CDC, 2022)",
+        "Reward yourself after finishing chores to stay motivated. (Mayo Clinic, 2022)"
+      ]
+    },
+    "relax": {
+      "positive": [
+        "Taking time to relax is important for your mental health. Keep it up! (APA, 2021)",
+        "Practicing relaxation techniques like deep breathing can reduce stress. (APA, 2021)",
+        "Enjoying hobbies is a great way to relax and recharge. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If relaxing is hard, try mindfulness or guided meditation apps. (APA, 2021)",
+        "Schedule regular breaks to unwind during your day. (CDC, 2022)",
+        "Engage in creative activities like drawing or music to relax. (Mayo Clinic, 2022)"
+      ]
+    },
+    "watch-movie": {
+      "positive": [
+        "Watching movies can be a fun way to unwind. Enjoy your downtime! (APA, 2021)",
+        "Sharing movies with friends or family can strengthen bonds. (CDC, 2022)",
+        "Watching uplifting or funny movies can boost your mood. (APA, 2021)"
+      ],
+      "negative": [
+        "If you feel down after watching, choose uplifting or funny movies. (APA, 2021)",
+        "Limit screen time before bed to improve sleep quality. (Sleep Foundation, 2022)",
+        "Take breaks between movies to move around and rest your eyes. (CDC, 2022)"
+      ]
+    },
+    "listen-music": {
+      "positive": [
+        "Listening to music can boost your mood and help you relax. (APA, 2021)",
+        "Creating playlists of your favorite songs can be uplifting. (Mayo Clinic, 2022)",
+        "Music can help you focus during study or chores. (APA, 2021)"
+      ],
+      "negative": [
+        "Try listening to your favorite upbeat songs or calming playlists. (APA, 2021)",
+        "Explore new genres to find music that lifts your spirits. (Mayo Clinic, 2022)",
+        "Use music as a background for relaxation or meditation. (APA, 2021)"
+      ]
+    },
+    "gaming": {
+      "positive": [
+        "Gaming can be a fun way to connect with friends and relax. (APA, 2021)",
+        "Playing games in moderation can improve problem-solving skills. (CDC, 2022)",
+        "Cooperative games can strengthen teamwork and communication. (APA, 2021)"
+      ],
+      "negative": [
+        "If gaming feels frustrating, take breaks and try cooperative games. (APA, 2021)",
+        "Set time limits to balance gaming with other activities. (CDC, 2022)",
+        "Choose games that are fun and not overly competitive. (APA, 2021)"
+      ]
+    },
+    "browse-internet": {
+      "positive": [
+        "Browsing the internet can be informative and entertaining. (APA, 2021)",
+        "Use the internet to learn new skills or explore hobbies. (Mayo Clinic, 2022)",
+        "Connecting with friends online can support social well-being. (CDC, 2022)"
+      ],
+      "negative": [
+        "Limit screen time if you feel overwhelmed, and take breaks to move around. (CDC, 2022)",
+        "Be mindful of the content you consume and avoid negative news overload. (APA, 2021)",
+        "Schedule offline time to relax and recharge. (Mayo Clinic, 2022)"
+      ]
+    },
+    "shopping": {
+      "positive": [
+        "Shopping can be enjoyable and a way to treat yourself. (APA, 2021)",
+        "Shopping with friends or family can be a fun social activity. (CDC, 2022)",
+        "Making a list before shopping helps you stay organized. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If shopping feels stressful, make a list and set a budget before you go. (APA, 2021)",
+        "Shop during less busy hours to avoid crowds and reduce stress. (CDC, 2022)",
+        "Take breaks if you feel overwhelmed while shopping. (Mayo Clinic, 2022)"
+      ]
+    },
+    "travel": {
+      "positive": [
+        "Traveling exposes you to new experiences and cultures. Enjoy your journey! (CDC, 2022)",
+        "Planning ahead can make travel more enjoyable and less stressful. (APA, 2021)",
+        "Documenting your travels with photos or a journal can create lasting memories. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If travel is stressful, plan ahead and bring comfort items. (CDC, 2022)",
+        "Stay hydrated and take breaks during long trips. (Mayo Clinic, 2022)",
+        "Practice relaxation techniques if you feel anxious while traveling. (APA, 2021)"
+      ]
+    }
+  },
+  "Social": {
+    "alone": {
+      "positive": [
+        "Enjoying alone time is healthy and helps you recharge. (APA, 2021)",
+        "Use alone time for self-reflection or pursuing hobbies. (Mayo Clinic, 2022)",
+        "Practicing mindfulness alone can boost your well-being. (APA, 2021)"
+      ],
+      "negative": [
+        "If you feel lonely, reach out to a friend or join a group activity. (CDC, 2022)",
+        "Consider joining a club or online community to meet new people. (APA, 2021)",
+        "Volunteering can help you connect with others and feel more engaged. (Mayo Clinic, 2022)"
+      ]
+    },
+    "friends": {
+      "positive": [
+        "Spending time with friends boosts happiness and reduces stress. (CDC, 2022)",
+        "Plan regular get-togethers to maintain strong friendships. (APA, 2021)",
+        "Share your feelings with friends for emotional support. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If you're feeling left out, try inviting a friend to do something you enjoy. (APA, 2021)",
+        "Communicate openly with friends to resolve misunderstandings. (CDC, 2022)",
+        "Join new groups or clubs to expand your social circle. (Mayo Clinic, 2022)"
+      ]
+    },
+    "family": {
+      "positive": [
+        "Family support is important for well-being. Cherish your moments together. (CDC, 2022)",
+        "Plan family activities to strengthen your bond. (APA, 2021)",
+        "Express gratitude to family members for their support. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If family time is tense, try open communication or take a short break to cool off. (APA, 2021)",
+        "Set boundaries to maintain healthy family relationships. (CDC, 2022)",
+        "Seek support from a counselor if family issues persist. (Mayo Clinic, 2022)"
+      ]
+    },
+    "classmates": {
+      "positive": [
+        "Working with classmates can make learning more enjoyable. (APA, 2021)",
+        "Collaborative projects can help you develop teamwork skills. (CDC, 2022)",
+        "Share study tips with classmates to support each other. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If group work is challenging, set clear goals and communicate openly. (APA, 2021)",
+        "Divide tasks fairly to ensure everyone participates. (CDC, 2022)",
+        "Ask your teacher for guidance if group issues arise. (Mayo Clinic, 2022)"
+      ]
+    },
+    "relationship": {
+      "positive": [
+        "Healthy relationships provide support and joy. Keep nurturing your connections. (APA, 2021)",
+        "Express appreciation and listen actively to your partner. (Mayo Clinic, 2022)",
+        "Spend quality time together to strengthen your bond. (CDC, 2022)"
+      ],
+      "negative": [
+        "If you're having relationship issues, talk openly and listen to each other. (APA, 2021)",
+        "Seek support from trusted friends or a counselor if needed. (Mayo Clinic, 2022)",
+        "Practice empathy and patience during disagreements. (CDC, 2022)"
+      ]
+    },
+    "pet": {
+      "positive": [
+        "Spending time with pets can reduce stress and boost mood. (CDC, 2022)",
+        "Playing with your pet is a great way to relax. (APA, 2021)",
+        "Caring for a pet can teach responsibility and empathy. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If caring for a pet feels overwhelming, ask for help or take short breaks. (CDC, 2022)",
+        "Establish a routine for pet care to make it easier. (APA, 2021)",
+        "Join online pet owner communities for support and advice. (Mayo Clinic, 2022)"
+      ]
+    }
+  },
+  "Health": {
+    "jog": {
+      "positive": [
+        "Jogging is great for your physical and mental health. Keep it up! (CDC, 2022)",
+        "Running outdoors can boost your mood and energy. (APA, 2021)",
+        "Track your progress to stay motivated. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If jogging feels tough, try a lighter walk or stretch instead. (CDC, 2022)",
+        "Set realistic goals and increase your distance gradually. (APA, 2021)",
+        "Stay hydrated and wear comfortable shoes to prevent injury. (Mayo Clinic, 2022)"
+      ]
+    },
+    "walk": {
+      "positive": [
+        "Walking is a simple way to stay active and clear your mind. (CDC, 2022)",
+        "Invite a friend for a walk to make it more enjoyable. (APA, 2021)",
+        "Walking in nature can reduce stress and improve mood. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If walking feels boring, listen to music or podcasts. (CDC, 2022)",
+        "Try exploring new routes to keep walks interesting. (APA, 2021)",
+        "Set small goals to gradually increase your activity. (Mayo Clinic, 2022)"
+      ]
+    },
+    "exercise": {
+      "positive": [
+        "Regular exercise boosts mood and energy. Great job! (CDC, 2022)",
+        "Mixing different types of exercise can keep things fun. (APA, 2021)",
+        "Exercise with friends for extra motivation. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "Start with short, easy exercises and build up gradually. (CDC, 2022)",
+        "Find activities you enjoy to make exercise less of a chore. (APA, 2021)",
+        "Celebrate small achievements to stay motivated. (Mayo Clinic, 2022)"
+      ]
+    },
+    "meditate": {
+      "positive": [
+        "Meditation helps reduce stress and improve focus. Keep practicing! (APA, 2021)",
+        "Try different meditation techniques to find what works best for you. (Mayo Clinic, 2022)",
+        "Regular meditation can improve sleep and mood. (Sleep Foundation, 2022)"
+      ],
+      "negative": [
+        "Try guided meditation apps or short breathing exercises. (APA, 2021)",
+        "Start with just a few minutes a day and gradually increase. (Mayo Clinic, 2022)",
+        "Practice mindfulness during daily activities for added benefit. (CDC, 2022)"
+      ]
+    },
+    "sports": {
+      "positive": [
+        "Playing sports is a fun way to stay fit and make friends. (CDC, 2022)",
+        "Team sports can improve communication and leadership skills. (APA, 2021)",
+        "Enjoy the game and focus on having fun. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "If sports feel stressful, focus on learning and improving rather than winning. (CDC, 2022)",
+        "Talk to your coach or teammates if you're feeling pressure. (APA, 2021)",
+        "Remember to warm up and cool down to prevent injuries. (Mayo Clinic, 2022)"
+      ]
+    },
+    "eat-healthy": {
+      "positive": [
+        "Eating healthy supports your body and mind. Keep making good choices! (CDC, 2022)",
+        "Try new healthy recipes to keep meals interesting. (Mayo Clinic, 2022)",
+        "Plan meals ahead to maintain healthy eating habits. (APA, 2021)"
+      ],
+      "negative": [
+        "Try adding more fruits and veggies to your meals. Small changes help! (CDC, 2022)",
+        "Limit sugary drinks and snacks for better energy. (Mayo Clinic, 2022)",
+        "Prepare healthy snacks in advance to avoid unhealthy choices. (APA, 2021)"
+      ]
+    },
+    "no-physical": {
+      "positive": [
+        "Rest days are important for recovery. Listen to your body. (CDC, 2022)",
+        "Use rest days for gentle stretching or mindfulness. (APA, 2021)",
+        "Enjoy relaxing activities like reading or listening to music. (Mayo Clinic, 2022)"
+      ],
+      "negative": [
+        "Try gentle stretching or a short walk to boost your energy. (CDC, 2022)",
+        "Set a reminder to move every hour, even if just for a few minutes. (APA, 2021)",
+        "Start with light activities and gradually increase your movement. (Mayo Clinic, 2022)"
+      ]
+    },
+    "eat-unhealthy": {
+      "positive": [
+        "It's okay to enjoy treats sometimes. Balance is key! (CDC, 2022)",
+        "Pair treats with healthy foods for a balanced diet. (Mayo Clinic, 2022)",
+        "Practice mindful eating to enjoy your food more. (APA, 2021)"
+      ],
+      "negative": [
+        "Try to limit junk food and choose healthier snacks when possible. (CDC, 2022)",
+        "Replace sugary drinks with water or herbal tea. (Mayo Clinic, 2022)",
+        "Plan your meals to avoid last-minute unhealthy choices. (APA, 2021)"
+      ]
+    }
+  },
+  "Sleep": {
+    "less": [
+      "Try to get at least 7-8 hours of sleep for better mood and focus. (Sleep Foundation, 2022)",
+      "Establish a relaxing bedtime routine to improve your sleep quality. (Sleep Foundation, 2022)",
+      "Limit screen time before bed to help you fall asleep faster. (CDC, 2022)",
+      "Keep your sleep schedule consistent, even on weekends. (Sleep Foundation, 2022)"
+    ],
+    "enough": [
+      "Great job maintaining healthy sleep habits! (Sleep Foundation, 2022)",
+      "Consistent sleep supports your mood and learning. (CDC, 2022)",
+      "Keep up your good sleep routine for lasting benefits. (Sleep Foundation, 2022)"
+    ],
+    "more": [
+      "Too much sleep can affect your mood. Try to keep a regular sleep schedule. (Sleep Foundation, 2022)",
+      "Stay active during the day to help regulate your sleep. (CDC, 2022)",
+      "If you feel tired despite sleeping a lot, talk to a healthcare provider. (Sleep Foundation, 2022)"
+    ]
+  }
+}

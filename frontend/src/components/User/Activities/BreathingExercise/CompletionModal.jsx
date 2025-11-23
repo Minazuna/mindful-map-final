@@ -6,7 +6,7 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
-const CompletionModal = ({ open, onClose, technique, duration, streak, onRestartSession }) => {
+const CompletionModal = ({ open, onClose, technique, duration, streak, onRestartSession, onViewProgress }) => {
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {
@@ -135,7 +135,7 @@ const CompletionModal = ({ open, onClose, technique, duration, streak, onRestart
             </motion.button>
             
             <motion.button 
-              onClick={onClose}
+              onClick={onViewProgress}
               className="flex items-center justify-center py-3 bg-gray-600 text-white rounded-lg font-bold"
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}

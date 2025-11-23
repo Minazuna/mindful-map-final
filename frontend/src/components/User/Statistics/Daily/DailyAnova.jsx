@@ -10,6 +10,8 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PeopleIcon from '@mui/icons-material/People';
 import FavoriteIcon from '@mui/icons-material/Favorite';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -154,14 +156,119 @@ const addDays = (date, days) => {
   return d.toISOString().split('T')[0];
 };
 
+const getFScoreExplanation = (f, p) => {
+  if (p === null || p === undefined || f === null || f === undefined || p === 0 || f === 0) {
+    return "Not available at the moment. There's not enough data to compare your activities today.";
+  }
+  if (p < 0.05) {
+    return "Some activities affected your mood differently today. The F-score shows there's a real difference, not just random chance.";
+  } else {
+    return "Your activities had a similar effect on your mood today. The F-score shows there's no big difference between them.";
+  }
+};
+
+const FScoreAccordion = ({ f, p }) => {
+  const [open, setOpen] = useState(false);
+
+  let showValue = (v) =>
+    v === null || v === undefined || v === 0 ? 'Not available at the moment' : v;
+
+  return (
+    <div className="mb-4">
+      <button
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#55AD9B] bg-[#F7FBF9] hover:bg-[#E6F4EF] transition w-full text-left"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span className="font-bold text-[#55AD9B]">F-score & p-value</span>
+        {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      </button>
+      {open && (
+        <div className="mt-2 px-2">
+          <div className="flex flex-wrap gap-4 items-center mb-2">
+            <span className="font-semibold text-[#55AD9B]">
+              F-score: <span className="font-normal">{showValue(f)}</span>
+            </span>
+            <span className="font-semibold text-[#f7b801]">
+              p-value: <span className="font-normal">{showValue(p)}</span>
+            </span>
+          </div>
+          <div className="text-[#272829] text-sm">
+            {getFScoreExplanation(f, p)}
+          </div>
+          <div className="text-xs text-[#888] mt-2">
+            <b>What does this mean?</b> <br />
+            The F-score helps us see if your activities made a real difference in your mood today, or if things were about the same. If the F-score and p-value aren't available, it just means you need to log more activities for a proper comparison.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const TukeyHSDTable = ({ tukeyHSD }) => {
+  const [open, setOpen] = useState(false);
+
+  if (!tukeyHSD || tukeyHSD.length === 0) return null;
+
+  return (
+    <div className="mb-6">
+      <button
+        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[#55AD9B] bg-[#F7FBF9] hover:bg-[#E6F4EF] transition w-full text-left"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+      >
+        <span className="font-bold text-[#55AD9B]">Tukey HSD: Activity Pair Differences</span>
+        {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+      </button>
+      {open && (
+        <div className="overflow-x-auto mt-2">
+          <table className="min-w-full text-sm border border-[#D8EFD3] rounded-xl">
+            <thead>
+              <tr className="bg-[#F7FBF9]">
+                <th className="px-3 py-2 border">Activity 1</th>
+                <th className="px-3 py-2 border">Activity 2</th>
+                <th className="px-3 py-2 border">Difference</th>
+                <th className="px-3 py-2 border">p-adj</th>
+                <th className="px-3 py-2 border">Lower</th>
+                <th className="px-3 py-2 border">Upper</th>
+                <th className="px-3 py-2 border">Significant?</th>
+              </tr>
+            </thead>
+            <tbody>
+              {tukeyHSD.map((row, idx) => (
+                <tr key={idx} className="even:bg-[#F1F8E8]">
+                  <td className="px-3 py-2 border">{ACTIVITY_LABELS[row.group1] || formatText(row.group1)}</td>
+                  <td className="px-3 py-2 border">{ACTIVITY_LABELS[row.group2] || formatText(row.group2)}</td>
+                  <td className="px-3 py-2 border">{row.meandiff}</td>
+                  <td className="px-3 py-2 border">{row["p-adj"]}</td>
+                  <td className="px-3 py-2 border">{row.lower}</td>
+                  <td className="px-3 py-2 border">{row.upper}</td>
+                  <td className={`px-3 py-2 border font-bold ${row.reject ? "text-green-600" : "text-gray-500"}`}>
+                    {row.reject ? "Yes" : "No"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="text-xs text-[#888] mt-2">
+            <b>What does this mean?</b><br />
+            This table shows which pairs of activities had mood scores that were truly different from each other. If "Significant?" is "Yes", the difference is real and not just random.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const DailyAnova = () => {
   const [results, setResults] = useState({});
   const [sleepQuality, setSleepQuality] = useState(null);
   const [sleepHours, setSleepHours] = useState(null);
   const [sleepMoodScore, setSleepMoodScore] = useState(null);
+  const [sleepMoodScoreId, setSleepMoodScoreId] = useState(null);
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(true);
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -169,16 +276,27 @@ const DailyAnova = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       try {
-        const res = await axios.get(
-          `${import.meta.env.VITE_NODE_API}/api/statistics/daily-anova?date=${date}`,
+        const res = await axios.post(
+          `${import.meta.env.VITE_NODE_API}/api/anova/run`,
+          { date },
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setResults(res.data.results);
-        setSleepQuality(res.data.sleepQuality);
-        setSleepHours(res.data.sleepHours);
-        setSleepMoodScore(res.data.sleepMoodScore);
+
+        setResults(res.data.anovaResults || {});
+
+        if (res.data.sleep) {
+          setSleepQuality(res.data.sleep.quality);
+          setSleepHours(res.data.sleep.hours);
+          setSleepMoodScore(res.data.sleep.moodScore);
+          setSleepMoodScoreId(res.data.sleep._id);
+        } else {
+          setSleepQuality(null);
+          setSleepHours(null);
+          setSleepMoodScore(null);
+          setSleepMoodScoreId(null);
+        }
       } catch (error) {
-        console.error('Error fetching daily anova:', error);
+        console.error('Error fetching daily analysis:', error);
       }
       setLoading(false);
     };
@@ -202,109 +320,108 @@ const DailyAnova = () => {
   };
 
   const gridData = [
-  {
-    key: 'sleep',
-    title: 'Sleep',
-    icon: CATEGORY_ICONS.sleep,
-    header: 'How your sleep affected your mood',
-    content: (
-      <div className="flex flex-col justify-center items-center h-full w-full">
-        <div className="w-full max-w-xl mx-auto">
-          {sleepQuality && sleepHours ? (
-            <div className="flex flex-col items-center justify-center w-full">
-              {sleepMoodScore !== null && (
-                <div
-                  className="flex flex-col items-center bg-[#FFF7E6] border-2 rounded-xl px-5 py-6 w-full"
-                  style={{
-                    borderColor:
-                      sleepMoodScore > 0
-                        ? POSITIVE_COLOR
-                        : sleepMoodScore < 0
-                        ? NEGATIVE_COLOR
-                        : '#f7b801',
-                    minHeight: 100,
-                    maxWidth: 600,
-                    margin: '0 auto'
-                  }}
-                >
-                  {/* Badge centered at the top inside the container */}
-                  <span
-                    className="px-4 py-1 rounded-full font-bold text-base mb-4"
+    {
+      key: 'sleep',
+      title: 'Sleep',
+      icon: CATEGORY_ICONS.sleep,
+      header: 'How your sleep affected your mood',
+      content: (
+        <div className="flex flex-col justify-center items-center h-full w-full">
+          <div className="w-full max-w-xl mx-auto">
+            {sleepQuality && sleepHours ? (
+              <div className="flex flex-col items-center justify-center w-full">
+                {sleepMoodScore !== null && (
+                  <div
+                    className="flex flex-col items-center bg-[#FFF7E6] border-2 rounded-xl px-5 py-6 w-full"
                     style={{
-                      backgroundColor: sleepQualityColors[sleepQuality],
-                      color: '#fff'
+                      borderColor:
+                        sleepMoodScore > 0
+                          ? POSITIVE_COLOR
+                          : sleepMoodScore < 0
+                          ? NEGATIVE_COLOR
+                          : '#f7b801',
+                      minHeight: 100,
+                      maxWidth: 600,
+                      margin: '0 auto'
                     }}
                   >
-                    {formatText(sleepQuality)}
-                  </span>
-                  <div className="flex flex-col md:flex-row items-center gap-3 w-full">
-                    <span className="flex-shrink-0 mb-2 md:mb-0">{getMoodIcon(sleepMoodScore)}</span>
-                    <span className="text-base text-[#272829] flex-1 text-center">
-                      {getSleepMessage(sleepHours, sleepMoodScore)}
-                    </span>
                     <span
-                      className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                      className="px-4 py-1 rounded-full font-bold text-base mb-4"
                       style={{
-                        backgroundColor:
-                          sleepMoodScore > 0
-                            ? POSITIVE_COLOR
-                            : sleepMoodScore < 0
-                            ? NEGATIVE_COLOR
-                            : '#f7b801',
+                        backgroundColor: sleepQualityColors[sleepQuality],
                         color: '#fff'
                       }}
                     >
-                      {`${Math.abs(sleepMoodScore)}%`}
+                      {formatText(sleepQuality)}
                     </span>
+                    <div className="flex flex-col md:flex-row items-center gap-3 w-full">
+                      <span className="flex-shrink-0 mb-2 md:mb-0">{getMoodIcon(sleepMoodScore)}</span>
+                      <span className="text-base text-[#272829] flex-1 text-center">
+                        {getSleepMessage(sleepHours, sleepMoodScore)}
+                      </span>
+                      <span
+                        className="inline-flex items-center px-4 py-2 rounded-full text-sm font-bold"
+                        style={{
+                          backgroundColor:
+                            sleepMoodScore > 0
+                              ? POSITIVE_COLOR
+                              : sleepMoodScore < 0
+                              ? NEGATIVE_COLOR
+                              : '#f7b801',
+                          color: '#fff'
+                        }}
+                      >
+                        {`${Math.abs(sleepMoodScore)}%`}
+                      </span>
+                    </div>
+                    {sleepMoodScoreId && (
+                      <button
+                        className="mt-4 px-4 py-2 rounded-full bg-[#55AD9B] text-white font-semibold shadow hover:bg-[#3e8e7e] transition"
+                        onClick={() => navigate(`/recommendation/${sleepMoodScoreId}`)}
+                      >
+                        View Recommendation
+                      </button>
+                    )}
                   </div>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex justify-center items-center h-40 w-full">
-              <span className="text-gray-500 text-lg font-medium text-center">
-                No sleep data recorded
-              </span>
-            </div>
-          )}
+                )}
+              </div>
+            ) : (
+              <div className="flex justify-center items-center h-40 w-full">
+                <span className="text-gray-500 text-lg font-medium text-center">
+                  No sleep data recorded
+                </span>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-    ),
+      ),
     },
-    {
-      key: 'activity',
-      title: 'Overall Activities',
-      icon: CATEGORY_ICONS.activity,
-      header: 'How your activities affected your mood',
-      content: renderCategoryResults('activity', results.activity)
-    },
-    {
-      key: 'social',
-      title: 'Social',
-      icon: CATEGORY_ICONS.social,
-      header: 'How your social life affected your mood',
-      content: renderCategoryResults('social', results.social)
-    },
-    {
-      key: 'health',
-      title: 'Health',
-      icon: CATEGORY_ICONS.health,
-      header: 'How your health habits affected your mood',
-      content: renderCategoryResults('health', results.health)
-    }
+    ...['activity', 'social', 'health'].map(category => ({
+      key: category,
+      title: CATEGORY_LABELS[category],
+      icon: CATEGORY_ICONS[category],
+      header: `How your ${CATEGORY_LABELS[category].toLowerCase()} affected your mood`,
+      content: renderCategoryResults(category, results[category])
+    }))
   ];
 
   function renderCategoryResults(category, data) {
-    if (!data || (!data.positive?.length && !data.negative?.length)) {
-    return (
-      <div className="flex items-center justify-center h-full w-full">
-        <span className="text-gray-500 text-lg text-center">No data for this category</span>
-      </div>
-    );
+    if (!data || data.insufficient) {
+      return (
+        <div className="flex items-center justify-center h-full w-full">
+          <span className="text-gray-500 text-lg text-center">
+            {data && data.message
+              ? data.message
+              : 'No data for this category'}
+          </span>
+        </div>
+      );
     }
     return (
       <>
-        {data.positive && data.positive.length > 0 && (
+        <FScoreAccordion f={data.F_value} p={data.p_value} />
+        <TukeyHSDTable tukeyHSD={data.tukeyHSD} />
+        {data.topPositive && data.topPositive.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUpIcon style={{ color: POSITIVE_COLOR }} />
@@ -312,9 +429,9 @@ const DailyAnova = () => {
                 Habits that boosted your mood
               </span>
             </div>
-            {data.positive.map((item, idx) => (
+            {data.topPositive.map((item, idx) => (
               <div
-                key={item.activity}
+                key={item.activity || item._id || idx}
                 className="flex items-center gap-3 bg-[#F1F8E8] border-2 rounded-xl px-5 py-4 mb-3"
                 style={{
                   borderColor: POSITIVE_COLOR,
@@ -336,7 +453,7 @@ const DailyAnova = () => {
             ))}
           </div>
         )}
-        {data.negative && data.negative.length > 0 && (
+        {data.topNegative && data.topNegative.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
               <TrendingDownIcon style={{ color: NEGATIVE_COLOR }} />
@@ -344,9 +461,9 @@ const DailyAnova = () => {
                 Habits that lowered your mood
               </span>
             </div>
-            {data.negative.map((item, idx) => (
+            {data.topNegative.map((item, idx) => (
               <div
-                key={item.activity}
+                key={item.activity || item._id || idx}
                 className="flex items-center gap-3 bg-[#FFF7E6] border-2 rounded-xl px-5 py-4 mb-3"
                 style={{
                   borderColor: NEGATIVE_COLOR,

@@ -17,8 +17,35 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ProgressModal from './ProgressModal';
 import CompletionModal from './CompletionModal';
 
+// Local music options
+const MUSIC_OPTIONS = [
+  {
+    id: 'lofi',
+    name: 'Pixel Lofi Café',
+    src: '/music/lofi-chill.mp3',
+    color: '#a3c9a8'
+  },
+  {
+    id: 'ambience',
+    name: 'Dreamscape Ambience',
+    src: '/music/ambience.mp3',
+    color: '#b8d8d8'
+  },
+  {
+    id: 'nature',
+    name: 'Mystic Nature Walk',
+    src: '/music/nature.mp3',
+    color: '#d5e8d4'
+  },
+  {
+    id: 'rain',
+    name: 'Retro Rain Arcade',
+    src: '/music/rain.mp3',
+    color: '#b3cde0'
+  }
+];
+
 const BreathingExercise = () => {
-  // Breathing technique configurations
   const breathingTechniques = [
     {
       id: 'box',
@@ -30,7 +57,7 @@ const BreathingExercise = () => {
       color: '#64aa86',
       difficulty: 'Beginner',
       icon: '⬜',
-      cycleTime: 16 // seconds per complete cycle (4+4+4+4)
+      cycleTime: 16
     },
     {
       id: '478',
@@ -42,7 +69,7 @@ const BreathingExercise = () => {
       color: '#5a9edb',
       difficulty: 'Intermediate',
       icon: '🌙',
-      cycleTime: 19 // seconds per complete cycle (4+7+8)
+      cycleTime: 19
     },
     {
       id: 'diaphragmatic',
@@ -54,11 +81,10 @@ const BreathingExercise = () => {
       color: '#9c75d5',
       difficulty: 'Beginner',
       icon: '🫁',
-      cycleTime: 10 // seconds per complete cycle (4+6)
+      cycleTime: 10
     }
   ];
 
-  // Duration options in minutes
   const durationOptions = [
     { value: 1, label: '1 min', cycles: 4 },
     { value: 2, label: '2 min', cycles: 8 },
@@ -67,12 +93,12 @@ const BreathingExercise = () => {
     { value: 10, label: '10 min', cycles: 40 }
   ];
 
-  // State variables
   const [selectedTechnique, setSelectedTechnique] = useState(breathingTechniques[0]);
-  const [selectedDuration, setSelectedDuration] = useState(durationOptions[1]); // Default 2 minutes
+  const [selectedDuration, setSelectedDuration] = useState(durationOptions[1]);
   const [phase, setPhase] = useState('Breathe In');
   const [count, setCount] = useState(4);
   const [isMuted, setIsMuted] = useState(false);
+  const [isMusicPaused, setIsMusicPaused] = useState(false);
   const [showInfo, setShowInfo] = useState(false);
   const [currentPhaseIndex, setCurrentPhaseIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
@@ -88,87 +114,136 @@ const BreathingExercise = () => {
   const [volume, setVolume] = useState(0.3);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [totalSessionTime, setTotalSessionTime] = useState(0);
-  
-  // References
+  const [techniqueProgress, setTechniqueProgress] = useState({});
+  const [selectedMusic, setSelectedMusic] = useState(MUSIC_OPTIONS[0]);
   const audioRef = useRef(null);
   const intervalRef = useRef(null);
   const timerRef = useRef(null);
 
-  // Calculate completed cycles based on elapsed time and technique cycle time
-  const getCompletedCycles = () => {
-    return Math.floor(elapsedTime / selectedTechnique.cycleTime);
-  };
+  // For continue session feature
+  const [canContinue, setCanContinue] = useState(false);
+  const [showContinuePrompt, setShowContinuePrompt] = useState(false);
+  const [continueData, setContinueData] = useState(null);
 
-  // Calculate estimated total cycles for the session
-  const getEstimatedTotalCycles = () => {
-    const totalSeconds = selectedDuration.value * 60;
-    return Math.floor(totalSeconds / selectedTechnique.cycleTime);
-  };
-
-  // Load progress from localStorage
   useEffect(() => {
-    const savedProgress = localStorage.getItem('breathingProgress');
-    if (savedProgress) {
-      const progress = JSON.parse(savedProgress);
-      setStreak(progress.streak || 0);
-      setTotalSessions(progress.totalSessions || 0);
-    }
+    const fetchProgress = async () => {
+      const token = localStorage.getItem('token');
+      try {
+        const res = await fetch(`${import.meta.env.VITE_NODE_API}/api/activity/breathing/progress`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (data.success && data.progress) {
+          setStreak(data.progress.streak || 0);
+          setTotalSessions(data.progress.totalSessions || 0);
+          setTechniqueProgress(
+            (data.progress.techniques || []).reduce((acc, t) => {
+              acc[t.techniqueId] = t.sessions;
+              return acc;
+            }, {})
+          );
+          const technique = breathingTechniques.find(t => t.id === data.progress.lastSelectedTechnique) || breathingTechniques[0];
+          const duration = durationOptions.find(d => d.value === data.progress.lastSelectedDuration) || durationOptions[1];
+          setSelectedTechnique(technique);
+          setSelectedDuration(duration);
+          setElapsedTime(data.progress.lastSessionElapsedTime || 0);
+
+          // Check if there is unfinished progress
+          const phaseSum = technique.durations.reduce((sum, duration) => sum + duration, 0);
+          const totalTime = phaseSum * duration.cycles;
+          if (
+            data.progress.lastSessionElapsedTime > 0 &&
+            data.progress.lastSessionElapsedTime < totalTime
+          ) {
+            setCanContinue(true);
+            setShowContinuePrompt(true);
+            setContinueData({
+              technique,
+              duration,
+              elapsedTime: data.progress.lastSessionElapsedTime,
+              sessionStartTime: data.progress.lastSessionStartTime
+            });
+          }
+        }
+      } catch (err) {
+        // fallback: no progress
+      }
+    };
+    fetchProgress();
   }, []);
 
-  // Calculate total session time when technique or duration changes
   useEffect(() => {
     const phaseSum = selectedTechnique.durations.reduce((sum, duration) => sum + duration, 0);
     const totalTime = phaseSum * selectedDuration.cycles;
     setTotalSessionTime(totalTime);
-    // Update total cycles based on time-based calculation
     setTotalCycles(getEstimatedTotalCycles());
   }, [selectedTechnique, selectedDuration]);
 
-  // Timer effect for elapsed time
   useEffect(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+    if (timerRef.current) clearInterval(timerRef.current);
 
     if (isActive && !isPaused) {
       timerRef.current = setInterval(() => {
         setElapsedTime(prev => {
           const newTime = prev + 1;
-          
-          // Update completed cycles based on elapsed time
           const newCompletedCycles = Math.floor(newTime / selectedTechnique.cycleTime);
           setCompletedCycles(newCompletedCycles);
-          
-          // Check if session is complete based on time
           if (newTime >= totalSessionTime) {
             handleSessionComplete();
             return totalSessionTime;
           }
-          
           return newTime;
         });
       }, 1000);
     }
-
     return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
+      if (timerRef.current) clearInterval(timerRef.current);
     };
   }, [isActive, isPaused, selectedTechnique.cycleTime, totalSessionTime]);
 
-  // Effect for handling breathing exercise timing
   useEffect(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
+    const savePartialProgress = async () => {
+      const token = localStorage.getItem('token');
+      await fetch(`${import.meta.env.VITE_NODE_API}/api/activity/breathing/progress`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          streak,
+          totalSessions,
+          lastSession: new Date(),
+          techniques: Object.entries(techniqueProgress).map(([techniqueId, sessions]) => ({
+            techniqueId,
+            sessions
+          })),
+          lastSelectedTechnique: selectedTechnique.id,
+          lastSelectedDuration: selectedDuration.value,
+          lastSessionStartTime: sessionStartTime,
+          lastSessionElapsedTime: elapsedTime
+        })
+      });
+    };
+
+    // Save progress every time elapsedTime changes
+    if (isActive) {
+      savePartialProgress();
     }
+
+    // Save on unmount (user leaves page)
+    return () => {
+      if (isActive) {
+        savePartialProgress();
+      }
+    };
+  }, [elapsedTime, isActive]);
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
 
     if (!isPaused && isActive) {
       intervalRef.current = setInterval(() => {
         setCount((prevCount) => {
           if (prevCount === 1) {
             const nextIndex = (currentPhaseIndex + 1) % selectedTechnique.phases.length;
-            
             setCurrentPhaseIndex(nextIndex);
             setPhase(selectedTechnique.phases[nextIndex]);
             return selectedTechnique.durations[nextIndex];
@@ -177,74 +252,86 @@ const BreathingExercise = () => {
         });
       }, 1000);
     }
-
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [selectedTechnique, currentPhaseIndex, isPaused, isActive]);
 
-  // Initialize audio
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = isMuted ? 0 : volume;
+      if (isMusicPaused) {
+        audioRef.current.pause();
+      } else if (isActive && !isPaused && !isMuted) {
+        audioRef.current.play().catch(() => {});
+      }
     }
-  }, []);
+  }, [isMuted, volume, isActive, isPaused, isMusicPaused, selectedMusic]);
 
-  // Format time display
+  const getEstimatedTotalCycles = () => {
+    const totalSeconds = selectedDuration.value * 60;
+    return Math.floor(totalSeconds / selectedTechnique.cycleTime);
+  };
+
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Handle session completion
-  const handleSessionComplete = () => {
-    setIsActive(false);
-    setIsPaused(false);
-    
-    // Save progress
-    const savedProgress = JSON.parse(localStorage.getItem('breathingProgress') || '{}');
-    const today = new Date().toDateString();
-    const lastSession = savedProgress.lastSession;
-    
-    let newStreak = savedProgress.streak || 0;
-    if (lastSession !== today) {
-      // Check if it's consecutive days
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      if (lastSession === yesterday.toDateString()) {
-        newStreak += 1;
-      } else if (lastSession !== today) {
-        newStreak = 1; // Reset streak if not consecutive
-      }
-    }
-    
-    const newProgress = {
-      ...savedProgress,
-      totalSessions: (savedProgress.totalSessions || 0) + 1,
-      streak: newStreak,
-      lastSession: today,
-      techniques: {
-        ...savedProgress.techniques,
-        [selectedTechnique.id]: (savedProgress.techniques?.[selectedTechnique.id] || 0) + 1
-      }
-    };
-    
-    localStorage.setItem('breathingProgress', JSON.stringify(newProgress));
-    setStreak(newStreak);
-    setTotalSessions(newProgress.totalSessions);
-    
-    setShowCompletionModal(true);
-    
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+  const saveProgress = async (newStreak, newTotalSessions, newTechniqueProgress, elapsedTime = 0) => {
+    const token = localStorage.getItem('token');
+    await fetch(`${import.meta.env.VITE_NODE_API}/api/activity/breathing/progress`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body: JSON.stringify({
+        streak: newStreak,
+        totalSessions: newTotalSessions,
+        lastSession: new Date(),
+        techniques: Object.entries(newTechniqueProgress).map(([techniqueId, sessions]) => ({
+          techniqueId,
+          sessions
+        })),
+        lastSelectedTechnique: selectedTechnique.id,
+        lastSelectedDuration: selectedDuration.value,
+        lastSessionStartTime: sessionStartTime,
+        lastSessionElapsedTime: elapsedTime
+      })
+    });
   };
 
-  // Start session
+  const handleSessionComplete = async () => {
+    setIsActive(false);
+    setIsPaused(false);
+
+    let newStreak = streak;
+    const today = new Date().toDateString();
+    const lastSession = sessionStartTime ? new Date(sessionStartTime).toDateString() : null;
+    if (lastSession !== today) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      if (lastSession === yesterday.toDateString()) {
+        newStreak += 1;
+      } else {
+        newStreak = 1;
+      }
+    }
+
+    const newTechniqueProgress = { ...techniqueProgress };
+    newTechniqueProgress[selectedTechnique.id] = (newTechniqueProgress[selectedTechnique.id] || 0) + 1;
+
+    const newTotalSessions = totalSessions + 1;
+    setStreak(newStreak);
+    setTotalSessions(newTotalSessions);
+    setTechniqueProgress(newTechniqueProgress);
+
+    await saveProgress(newStreak, newTotalSessions, newTechniqueProgress, elapsedTime);
+
+    setShowCompletionModal(true);
+
+    if (audioRef.current) audioRef.current.pause();
+  };
+
   const startSession = () => {
     setIsActive(true);
     setIsPaused(false);
@@ -255,13 +342,30 @@ const BreathingExercise = () => {
     setPhase(selectedTechnique.phases[0]);
     setCount(selectedTechnique.durations[0]);
     setElapsedTime(0);
-    
+    setIsMusicPaused(false);
     if (audioRef.current && !isMuted) {
-      audioRef.current.play().catch(err => console.log("Audio play prevented:", err));
+      audioRef.current.play().catch(() => {});
     }
   };
 
-  // Reset session
+  const continueSession = () => {
+    if (continueData) {
+      setSelectedTechnique(continueData.technique);
+      setSelectedDuration(continueData.duration);
+      setElapsedTime(continueData.elapsedTime);
+      setIsActive(true);
+      setIsPaused(false);
+      setCompletedCycles(Math.floor(continueData.elapsedTime / continueData.technique.cycleTime));
+      setTotalCycles(Math.floor((continueData.duration.value * 60) / continueData.technique.cycleTime));
+      setSessionStartTime(new Date());
+      setCurrentPhaseIndex(0);
+      setPhase(continueData.technique.phases[0]);
+      setCount(continueData.technique.durations[0]);
+      setIsMusicPaused(false);
+      setShowContinuePrompt(false);
+    }
+  };
+
   const resetSession = () => {
     setIsActive(false);
     setIsPaused(false);
@@ -270,45 +374,45 @@ const BreathingExercise = () => {
     setPhase(selectedTechnique.phases[0]);
     setCount(selectedTechnique.durations[0]);
     setElapsedTime(0);
-    
-    if (audioRef.current) {
-      audioRef.current.pause();
-    }
+    setSessionStartTime(null);
+    setShowContinuePrompt(false);
+    if (audioRef.current) audioRef.current.pause();
   };
 
-  // Handle technique change
   const changeTechnique = (technique) => {
-    if (isActive) {
-      resetSession();
-    }
+    if (isActive) resetSession();
     setSelectedTechnique(technique);
     setCurrentPhaseIndex(0);
     setPhase(technique.phases[0]);
     setCount(technique.durations[0]);
   };
 
-  // Handle duration change
   const changeDuration = (duration) => {
-    if (isActive) {
-      resetSession();
-    }
+    if (isActive) resetSession();
     setSelectedDuration(duration);
   };
 
-  // Toggle mute
   const toggleMute = () => {
+    setIsMuted(!isMuted);
     if (audioRef.current) {
-      const newMuteState = !isMuted;
-      setIsMuted(newMuteState);
-      audioRef.current.volume = newMuteState ? 0 : volume;
-      
-      if (!newMuteState && isActive && !isPaused) {
-        audioRef.current.play().catch(err => console.log("Audio play prevented:", err));
+      audioRef.current.volume = !isMuted ? 0 : volume;
+      if (!isMuted && isActive && !isPaused && !isMusicPaused) {
+        audioRef.current.play().catch(() => {});
       }
     }
   };
 
-  // Handle volume change
+  const toggleMusicPause = () => {
+    setIsMusicPaused(!isMusicPaused);
+    if (audioRef.current) {
+      if (!isMusicPaused) {
+        audioRef.current.pause();
+      } else if (isActive && !isPaused && !isMuted) {
+        audioRef.current.play().catch(() => {});
+      }
+    }
+  };
+
   const handleVolumeChange = (newVolume) => {
     setVolume(newVolume);
     if (audioRef.current) {
@@ -321,37 +425,40 @@ const BreathingExercise = () => {
     }
   };
 
-  // Toggle pause
-  const togglePause = () => {
-    if (!isActive) return;
-    
-    if (isPaused) {
-      setIsPaused(false);
-      if (audioRef.current && !isMuted) {
-        audioRef.current.play().catch(err => console.log("Audio play prevented:", err));
-      }
-    } else {
-      setIsPaused(true);
-      if (audioRef.current) {
-        audioRef.current.pause();
+  const handleMusicChange = (music) => {
+    setSelectedMusic(music);
+    setIsMusicPaused(false);
+    if (audioRef.current) {
+      audioRef.current.load();
+      if (isActive && !isPaused && !isMuted) {
+        audioRef.current.play().catch(() => {});
       }
     }
   };
 
-  // Calculate progress percentage based on elapsed time
+  const togglePause = () => {
+    if (!isActive) return;
+    if (isPaused) {
+      setIsPaused(false);
+      if (audioRef.current && !isMuted && !isMusicPaused) {
+        audioRef.current.play().catch(() => {});
+      }
+    } else {
+      setIsPaused(true);
+      if (audioRef.current) audioRef.current.pause();
+    }
+  };
+
   const progressPercentage = totalSessionTime > 0 ? (elapsedTime / totalSessionTime) * 100 : 0;
   const cycleProgressPercentage = totalCycles > 0 ? (completedCycles / totalCycles) * 100 : 0;
 
-  // Update duration options to show estimated cycles based on current technique
   const updatedDurationOptions = durationOptions.map(duration => ({
     ...duration,
     estimatedCycles: Math.floor((duration.value * 60) / selectedTechnique.cycleTime)
   }));
 
-  // Render the breathing visualization
   const renderBreathingVisualization = () => {
     const techniqueColor = selectedTechnique.color;
-    
     if (selectedTechnique.id === 'box') {
       return (
         <motion.div 
@@ -362,8 +469,6 @@ const BreathingExercise = () => {
         >
           <div className="w-72 h-72 mx-auto border-4 rounded-2xl relative flex items-center justify-center shadow-lg"
                style={{ borderColor: techniqueColor, backgroundColor: `${techniqueColor}10` }}>
-            
-            {/* Phase indicators - moved further out */}
             <motion.p 
               className="absolute -top-16 text-xl font-bold"
               animate={{ 
@@ -374,7 +479,6 @@ const BreathingExercise = () => {
             >
               Hold
             </motion.p>
-            
             <motion.p 
               className="absolute -right-20 top-1/2 transform -translate-y-1/2 text-xl font-bold"
               animate={{ 
@@ -385,7 +489,6 @@ const BreathingExercise = () => {
             >
               Exhale
             </motion.p>
-            
             <motion.p 
               className="absolute -bottom-16 text-xl font-bold"
               animate={{ 
@@ -396,7 +499,6 @@ const BreathingExercise = () => {
             >
               Hold
             </motion.p>
-            
             <motion.p 
               className="absolute -left-20 top-1/2 transform -translate-y-1/2 text-xl font-bold"
               animate={{ 
@@ -407,8 +509,6 @@ const BreathingExercise = () => {
             >
               Inhale
             </motion.p>
-
-            {/* Animated indicator */}
             <motion.div 
               className="absolute w-6 h-6 rounded-full shadow-lg"
               style={{ backgroundColor: techniqueColor }}
@@ -423,8 +523,6 @@ const BreathingExercise = () => {
               transition={{ duration: 0.7, ease: "easeInOut" }}
             >
             </motion.div>
-              
-            {/* Counter */}
             <div className="bg-white bg-opacity-95 px-8 py-6 rounded-2xl shadow-xl">
               <motion.p 
                 className="text-6xl font-bold text-center"
@@ -444,8 +542,6 @@ const BreathingExercise = () => {
         </motion.div>
       );
     }
-    
-    // Enhanced visualization for 4-7-8 breathing
     if (selectedTechnique.id === '478') {
       return (
         <motion.div 
@@ -455,7 +551,6 @@ const BreathingExercise = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="w-72 h-72 mx-auto relative flex items-center justify-center">
-            {/* Breathing circle */}
             <motion.div 
               className="w-60 h-60 rounded-full border-4 flex items-center justify-center shadow-lg"
               style={{ 
@@ -468,7 +563,6 @@ const BreathingExercise = () => {
               }}
               transition={{ duration: 1, ease: "easeInOut" }}
             >
-              {/* Phase indicators */}
               <motion.p 
                 className="absolute -top-16 text-xl font-bold"
                 animate={{ 
@@ -479,7 +573,6 @@ const BreathingExercise = () => {
               >
                 Hold
               </motion.p>
-              
               <motion.p 
                 className="absolute -left-20 top-1/2 transform -translate-y-1/2 text-xl font-bold"
                 animate={{ 
@@ -490,7 +583,6 @@ const BreathingExercise = () => {
               >
                 Inhale
               </motion.p>
-              
               <motion.p 
                 className="absolute -right-20 top-1/2 transform -translate-y-1/2 text-xl font-bold"
                 animate={{ 
@@ -501,8 +593,6 @@ const BreathingExercise = () => {
               >
                 Exhale
               </motion.p>
-              
-              {/* Counter */}
               <div className="bg-white bg-opacity-95 px-8 py-6 rounded-2xl shadow-xl">
                 <motion.p 
                   className="text-6xl font-bold text-center"
@@ -523,8 +613,6 @@ const BreathingExercise = () => {
         </motion.div>
       );
     }
-    
-    // Enhanced visualization for diaphragmatic breathing
     return (
       <motion.div 
         className="w-full max-w-md h-80 relative"
@@ -533,7 +621,6 @@ const BreathingExercise = () => {
         transition={{ duration: 0.5 }}
       >
         <div className="w-72 h-72 mx-auto relative flex items-center justify-center">
-          {/* Breathing visualization */}
           <motion.div 
             className="w-60 h-40 rounded-full border-4 flex items-center justify-center shadow-lg"
             style={{ 
@@ -546,7 +633,6 @@ const BreathingExercise = () => {
             }}
             transition={{ duration: 1, ease: "easeInOut" }}
           >
-            {/* Phase indicators */}
             <motion.p 
               className="absolute -left-20 top-1/2 transform -translate-y-1/2 text-xl font-bold"
               animate={{ 
@@ -557,7 +643,6 @@ const BreathingExercise = () => {
             >
               Inhale
             </motion.p>
-            
             <motion.p 
               className="absolute -right-20 top-1/2 transform -translate-y-1/2 text-xl font-bold"
               animate={{ 
@@ -568,8 +653,6 @@ const BreathingExercise = () => {
             >
               Exhale
             </motion.p>
-            
-            {/* Counter */}
             <div className="bg-white bg-opacity-95 px-8 py-6 rounded-2xl shadow-xl">
               <motion.p 
                 className="text-6xl font-bold text-center"
@@ -593,14 +676,36 @@ const BreathingExercise = () => {
 
   return (
     <div className="bg-gradient-to-br from-[#2c3e50] via-[#3498db] to-[#9b59b6] min-h-screen flex flex-col items-center py-8 px-4 relative">
-      {/* Background Pattern */}
+      {/* Continue Session Modal */}
+      {showContinuePrompt && (
+        <Modal open={showContinuePrompt} onClose={() => setShowContinuePrompt(false)}>
+          <Box className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-2xl shadow-2xl w-96">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">Continue Session?</h2>
+            <p className="mb-6 text-gray-700">
+              You have an unfinished breathing session. Would you like to continue where you left off or start a new session?
+            </p>
+            <div className="flex justify-end gap-4">
+              <button
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700"
+                onClick={continueSession}
+              >
+                Continue
+              </button>
+              <button
+                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg font-bold hover:bg-gray-400"
+                onClick={resetSession}
+              >
+                Start Over
+              </button>
+            </div>
+          </Box>
+        </Modal>
+      )}
       <div className="absolute inset-0 opacity-10">
         <div className="absolute top-20 left-20 w-32 h-32 bg-white rounded-full"></div>
         <div className="absolute bottom-20 right-20 w-24 h-24 bg-white rounded-full"></div>
         <div className="absolute top-1/2 left-10 w-16 h-16 bg-white rounded-full"></div>
       </div>
-
-      {/* Header */}
       <motion.div 
         className="w-full max-w-6xl flex justify-between items-center mb-8 relative z-10"
         initial={{ opacity: 0, y: -20 }}
@@ -611,7 +716,6 @@ const BreathingExercise = () => {
           <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">Breathing Exercises</h1>
           <p className="text-white/80 text-lg">Reduce stress and improve focus with guided breathing</p>
         </div>
-        
         <div className="flex space-x-3">
           <motion.button 
             onClick={() => setShowProgressModal(true)}
@@ -621,7 +725,6 @@ const BreathingExercise = () => {
           >
             <TrendingUpIcon style={{ color: 'white', fontSize: 24 }} />
           </motion.button>
-          
           <motion.button 
             onClick={() => setShowModal(true)}
             className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center hover:bg-white/30 transition-all backdrop-blur-sm"
@@ -632,8 +735,6 @@ const BreathingExercise = () => {
           </motion.button>
         </div>
       </motion.div>
-      
-      {/* Duration Selector */}
       <motion.div 
         className="w-full max-w-6xl mb-8"
         initial={{ opacity: 0, y: 20 }}
@@ -666,8 +767,6 @@ const BreathingExercise = () => {
           </div>
         </div>
       </motion.div>
-      
-      {/* Exercise selector */}
       <motion.div 
         className="w-full max-w-6xl mb-8"
         initial={{ opacity: 0, y: 20 }}
@@ -722,15 +821,12 @@ const BreathingExercise = () => {
           </div>
         </div>
       </motion.div>
-      
-      {/* Main Exercise Container */}
       <motion.div 
         className="w-full max-w-6xl bg-white/95 backdrop-blur-sm rounded-2xl shadow-2xl p-8 mb-6 relative"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
       >
-        {/* Info button - moved to bottom right */}
         <motion.button
           onClick={() => setShowInfo(!showInfo)}
           className="absolute bottom-6 right-6 w-12 h-12 rounded-full flex items-center justify-center bg-gray-100 hover:bg-gray-200 transition-colors shadow-lg"
@@ -739,8 +835,6 @@ const BreathingExercise = () => {
         >
           <InfoOutlinedIcon style={{ color: selectedTechnique.color, fontSize: 24 }} />
         </motion.button>
-        
-        {/* Exercise Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start mb-6">
           <div>
             <p className="text-gray-500 text-sm">Current Exercise</p>
@@ -749,7 +843,6 @@ const BreathingExercise = () => {
               {selectedTechnique.name}
             </h2>
           </div>
-          
           <div className="flex space-x-3 mt-4 sm:mt-0">
             {!isActive ? (
               <motion.button 
@@ -774,7 +867,6 @@ const BreathingExercise = () => {
                   {isPaused ? <PlayArrowIcon className="mr-1" /> : <PauseIcon className="mr-1" />}
                   {isPaused ? "Resume" : "Pause"}
                 </motion.button>
-                
                 <motion.button 
                   onClick={resetSession}
                   className="px-4 py-2 rounded-full flex items-center font-medium bg-gray-500 text-white"
@@ -788,8 +880,6 @@ const BreathingExercise = () => {
             )}
           </div>
         </div>
-        
-        {/* Info panel */}
         <AnimatePresence>
           {showInfo && (
             <motion.div 
@@ -803,7 +893,6 @@ const BreathingExercise = () => {
                 About {selectedTechnique.name}
               </h3>
               <p className="text-gray-700 mb-4">{selectedTechnique.description}</p>
-              
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
                   <h4 className="font-bold mb-2 text-gray-800">Benefits:</h4>
@@ -813,7 +902,6 @@ const BreathingExercise = () => {
                     ))}
                   </ul>
                 </div>
-                
                 <div>
                   <h4 className="font-bold mb-2 text-gray-800">Instructions:</h4>
                   <div className="text-gray-700">
@@ -839,14 +927,10 @@ const BreathingExercise = () => {
             </motion.div>
           )}
         </AnimatePresence>
-        
-        {/* Main breathing visualization */}
         <div className="flex justify-center items-center py-12">
           {renderBreathingVisualization()}
         </div>
       </motion.div>
-
-      {/* Progress Indicators - moved closer to exercise container */}
       {(isActive || completedCycles > 0) && (
         <motion.div 
           className="w-full max-w-6xl mb-8"
@@ -855,9 +939,7 @@ const BreathingExercise = () => {
           transition={{ duration: 0.5 }}
         >
           <div className="bg-white/20 backdrop-blur-sm rounded-2xl p-6">
-            {/* Timer and Cycle Progress */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-4">
-              {/* Timer */}
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-1">
                   {formatTime(elapsedTime)}
@@ -866,16 +948,12 @@ const BreathingExercise = () => {
                   of {formatTime(totalSessionTime)}
                 </div>
               </div>
-              
-              {/* Cycle Progress */}
               <div className="text-center">
                 <div className="text-3xl font-bold text-white mb-1">
                   {completedCycles} / {totalCycles}
                 </div>
                 <div className="text-white/80 text-sm">Cycles Completed</div>
               </div>
-              
-              {/* Current Phase */}
               <div className="text-center">
                 <div className="text-2xl font-bold text-white mb-1">
                   {phase}
@@ -883,8 +961,6 @@ const BreathingExercise = () => {
                 <div className="text-white/80 text-sm">Current Phase</div>
               </div>
             </div>
-            
-            {/* Time Progress Bar */}
             <div className="mb-4">
               <div className="flex justify-between items-center mb-2">
                 <span className="text-white font-medium">Time Progress</span>
@@ -900,8 +976,6 @@ const BreathingExercise = () => {
                 />
               </div>
             </div>
-            
-            {/* Cycle Progress Bar */}
             <div>
               <div className="flex justify-between items-center mb-2">
                 <span className="text-white font-medium">Cycle Progress</span>
@@ -920,8 +994,6 @@ const BreathingExercise = () => {
           </div>
         </motion.div>
       )}
-      
-      {/* Enhanced Audio controls */}
       <motion.div 
         className="w-full max-w-6xl bg-gradient-to-r from-white/20 to-white/10 backdrop-blur-sm rounded-2xl border border-white/30 overflow-hidden"
         initial={{ opacity: 0, y: 20 }}
@@ -934,11 +1006,11 @@ const BreathingExercise = () => {
               <motion.div 
                 className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center mr-4"
                 animate={{ 
-                  scale: isActive && !isPaused && !isMuted ? [1, 1.1, 1] : 1
+                  scale: isActive && !isPaused && !isMuted && !isMusicPaused ? [1, 1.1, 1] : 1
                 }}
                 transition={{ 
                   duration: 2, 
-                  repeat: isActive && !isPaused && !isMuted ? Infinity : 0,
+                  repeat: isActive && !isPaused && !isMuted && !isMusicPaused ? Infinity : 0,
                   ease: "easeInOut"
                 }}
               >
@@ -949,14 +1021,10 @@ const BreathingExercise = () => {
                 <p className="text-white/70 text-sm">Relaxing sounds to enhance your practice</p>
               </div>
             </div>
-            
             <div className="flex items-center space-x-4">
-              {/* Volume percentage display */}
               <div className="text-white/80 text-sm font-medium min-w-[3rem] text-right">
                 {Math.round(volume * 100)}%
               </div>
-              
-              {/* Mute/Unmute button */}
               <motion.button 
                 onClick={toggleMute}
                 className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center"
@@ -968,10 +1036,36 @@ const BreathingExercise = () => {
                   <VolumeUpIcon style={{ color: 'white', fontSize: 24 }} />
                 }
               </motion.button>
+              <motion.button
+                onClick={toggleMusicPause}
+                className="w-12 h-12 rounded-full bg-white/20 hover:bg-white/30 transition-all flex items-center justify-center"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                {isMusicPaused ? 
+                  <PlayArrowIcon style={{ color: 'white', fontSize: 24 }} /> : 
+                  <PauseIcon style={{ color: 'white', fontSize: 24 }} />
+                }
+              </motion.button>
             </div>
           </div>
-          
-          {/* Enhanced Volume Slider */}
+          <div className="flex items-center gap-4 mb-4">
+            <span className="text-white/80 font-medium">Choose Music:</span>
+            {MUSIC_OPTIONS.map(music => (
+              <button
+                key={music.id}
+                onClick={() => handleMusicChange(music)}
+                className={`px-4 py-2 rounded-full font-semibold transition-colors ${
+                  selectedMusic.id === music.id
+                    ? 'bg-white text-gray-800 shadow'
+                    : 'bg-white/20 text-white hover:bg-white/30'
+                }`}
+                style={{ border: selectedMusic.id === music.id ? `2px solid ${music.color}` : 'none' }}
+              >
+                {music.name}
+              </button>
+            ))}
+          </div>
           <div className="relative">
             <div className="flex items-center space-x-4">
               <span className="text-white/60 text-sm">0%</span>
@@ -997,7 +1091,6 @@ const BreathingExercise = () => {
                   onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
-                {/* Custom slider thumb */}
                 <motion.div 
                   className="absolute top-1/2 w-6 h-6 bg-white rounded-full shadow-lg pointer-events-none transform -translate-y-1/2"
                   style={{ 
@@ -1009,34 +1102,30 @@ const BreathingExercise = () => {
               </div>
               <span className="text-white/60 text-sm">100%</span>
             </div>
-            
-            {/* Audio status indicator */}
             <div className="flex items-center justify-center mt-4">
               <div className="flex items-center space-x-2 bg-white/10 px-4 py-2 rounded-full">
                 <div 
                   className="w-2 h-2 rounded-full"
                   style={{ 
-                    backgroundColor: isActive && !isPaused && !isMuted ? '#4ade80' : '#6b7280'
+                    backgroundColor: isActive && !isPaused && !isMuted && !isMusicPaused ? '#4ade80' : '#6b7280'
                   }}
                 />
                 <span className="text-white/80 text-sm">
-                  {isActive && !isPaused && !isMuted ? 'Playing' : 
+                  {isActive && !isPaused && !isMuted && !isMusicPaused ? 'Playing' : 
                    isMuted ? 'Muted' : 
-                   isPaused ? 'Paused' : 'Ready'}
+                   isMusicPaused ? 'Paused' : 
+                   isPaused ? 'Session Paused' : 'Ready'}
                 </span>
               </div>
             </div>
           </div>
         </div>
       </motion.div>
-      
-      {/* Modals */}
       <Modal open={showModal} onClose={() => setShowModal(false)}>
         <Box className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-8 rounded-2xl shadow-2xl w-11/12 max-w-2xl max-h-[90vh] overflow-y-auto">
           <h2 className="text-3xl font-bold mb-6 text-gray-800">
             How to Use Breathing Exercises
           </h2>
-          
           <div className="space-y-6 text-gray-700">
             <div>
               <h3 className="text-xl font-bold mb-3 text-gray-800">Why Practice Breathing Exercises?</h3>
@@ -1045,7 +1134,6 @@ const BreathingExercise = () => {
                 lower blood pressure, and improve overall mental well-being.
               </p>
             </div>
-            
             <div>
               <h3 className="text-xl font-bold mb-3 text-gray-800">Technique Benefits:</h3>
               <div className="grid gap-4">
@@ -1061,7 +1149,6 @@ const BreathingExercise = () => {
                 ))}
               </div>
             </div>
-            
             <div>
               <h3 className="text-xl font-bold mb-3 text-gray-800">Getting Started:</h3>
               <ol className="list-decimal pl-5 space-y-2">
@@ -1073,7 +1160,6 @@ const BreathingExercise = () => {
               </ol>
             </div>
           </div>
-          
           <div className="mt-8 flex justify-end">
             <button 
               onClick={() => setShowModal(false)}
@@ -1084,16 +1170,14 @@ const BreathingExercise = () => {
           </div>
         </Box>
       </Modal>
-      
-      {/* Progress and Completion Modals */}
       <ProgressModal 
         open={showProgressModal}
         onClose={() => setShowProgressModal(false)}
         streak={streak}
         totalSessions={totalSessions}
         techniques={breathingTechniques}
+        techniqueProgress={techniqueProgress}
       />
-      
       <CompletionModal 
         open={showCompletionModal}
         onClose={() => setShowCompletionModal(false)}
@@ -1101,10 +1185,12 @@ const BreathingExercise = () => {
         duration={selectedDuration}
         streak={streak}
         onRestartSession={startSession}
+        onViewProgress={() => {
+          setShowCompletionModal(false);
+          setShowProgressModal(true);
+        }}
       />
-      
-      {/* Audio element */}
-      <audio ref={audioRef} src="/music/breathingexercise.mp3" loop />
+      <audio ref={audioRef} src={selectedMusic.src} loop />
     </div>
   );
 };

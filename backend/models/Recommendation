@@ -1,0 +1,50 @@
+const mongoose = require('mongoose');
+
+const RecommendationSchema = new mongoose.Schema({
+  moodScore: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MoodScore',
+    required: true
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  date: {
+    type: Date,
+    required: true
+  },
+  category: {
+    type: String,
+    required: true,
+    enum: ['activity', 'social', 'health', 'sleep']
+  },
+  activity: {
+    type: String
+  },
+  moodScoreValue: {
+    type: Number,
+    required: true,
+    min: -100,
+    max: 100
+  },
+  sleepHours: {
+    type: Number
+  },
+  recommendation: {
+    type: String,
+    required: true
+  },
+  type: {
+    type: String,
+    enum: ['positive', 'negative'],
+    required: true
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
+  }
+});
+
+module.exports = mongoose.model('Recommendation', RecommendationSchema);
