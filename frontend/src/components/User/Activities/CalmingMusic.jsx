@@ -38,8 +38,8 @@ const CalmingMusic = () => {
   const [duration, setDuration] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [prevVolume, setPrevVolume] = useState(0.7);
-  const [isRepeat, setIsRepeat] = useState(false);
-  const [isShuffle, setIsShuffle] = useState(false);
+  const [isRepeatActive, setIsRepeatActive] = useState(false);
+  const [currentPlaylist, setCurrentPlaylist] = useState([]); // Keep track of the playlist when song was selected
   
   // Refs
   const audioRef = useRef(null);
@@ -68,6 +68,13 @@ const CalmingMusic = () => {
     }
   }, [selectedCategory, showFavorites, isAuthenticated]);
 
+  // Initialize currentPlaylist when musicList loads
+  useEffect(() => {
+    if (musicList.length > 0 && currentPlaylist.length === 0) {
+      setCurrentPlaylist(musicList);
+    }
+  }, [musicList]);
+
   // Set up audio context for visualizer
   useEffect(() => {
     // Ensure audio element exists
@@ -77,37 +84,39 @@ const CalmingMusic = () => {
       audio.crossOrigin = 'anonymous';
       audio.preload = 'auto';
     }
-    
     const audio = audioRef.current;
     audio.volume = volume;
-    
-    audio.addEventListener('loadedmetadata', () => {
-      setDuration(audio.duration);
-    });
 
-    audio.addEventListener('timeupdate', () => {
+    // Define event handlers as named functions so we can remove them properly
+    const handleLoadedMetadata = () => {
+      setDuration(audio.duration);
+    };
+
+    const handleTimeUpdate = () => {
       setCurrentTime(audio.currentTime);
       setProgress((audio.currentTime / audio.duration) * 100 || 0);
-    });
-    
-    audio.addEventListener('ended', () => {
-      if (isRepeat) {
+    };
+
+    const handleEnded = () => {
+      if (isRepeatActive) {
         audio.currentTime = 0;
-        audio.play().catch(e => console.log(e));
-      } else if (isShuffle) {
-        const randomIndex = Math.floor(Math.random() * musicList.length);
-        handleSongChange(randomIndex);
+        audio.play().catch(err => console.error("Error replaying:", err));
       } else {
         handleNext();
       }
-    });
+    };
+
+    // Add new listeners
+    audio.addEventListener('loadedmetadata', handleLoadedMetadata);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('ended', handleEnded);
 
     return () => {
-      audio.removeEventListener('loadedmetadata', () => {});
-      audio.removeEventListener('timeupdate', () => {});
-      audio.removeEventListener('ended', () => {});
+      audio.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('ended', handleEnded);
     };
-  }, [currentPlaying, isRepeat, isShuffle, musicList]);
+  }, [currentPlaying, currentPlaylist, isRepeatActive]);
 
   // API Functions
   const initializeComponent = async () => {
@@ -473,11 +482,14 @@ const CalmingMusic = () => {
     }
   };
 
-  const playSound = (music) => {
+  const playSound = (music, playlistToUse = null) => {
     if (audioRef.current) {
       audioRef.current.pause();
     }
     
+    // When a new song is selected, save the current musicList as the playlist for navigation
+    const playlistForNavigation = playlistToUse || musicList;
+    setCurrentPlaylist(playlistForNavigation);
     setCurrentPlaying(music);
     setIsPlaying(false);
     
@@ -562,7 +574,8 @@ const CalmingMusic = () => {
   };
 
   const getCurrentIndex = () => {
-    return musicList.findIndex(m => m._id === currentPlaying?._id);
+    // Use currentPlaylist instead of musicList to handle category changes
+    return currentPlaylist.findIndex(m => m._id === currentPlaying?._id);
   };
 
   const handleProgressSeek = (event) => {
@@ -587,26 +600,15 @@ const CalmingMusic = () => {
   };
 
   const handleNext = () => {
-    if (!musicList.length || !currentPlaying) return;
-    
+    if (!currentPlaylist.length || !currentPlaying) return;
     const currentIndex = getCurrentIndex();
     if (currentIndex === -1) return;
-    
-    let nextIndex;
-    if (isShuffle) {
-      // Get random index that's not current
-      do {
-        nextIndex = Math.floor(Math.random() * musicList.length);
-      } while (nextIndex === currentIndex && musicList.length > 1);
-    } else {
-      nextIndex = (currentIndex + 1) % musicList.length;
-    }
-    
-    playSound(musicList[nextIndex]);
+    const nextIndex = (currentIndex + 1) % currentPlaylist.length;
+    playSound(currentPlaylist[nextIndex], currentPlaylist);
   };
 
   const handlePrevious = () => {
-    if (!musicList.length || !currentPlaying) return;
+    if (!currentPlaylist.length || !currentPlaying) return;
     
     // If more than 3 seconds played, restart current song
     if (audioRef.current && audioRef.current.currentTime > 3) {
@@ -617,8 +619,8 @@ const CalmingMusic = () => {
       const currentIndex = getCurrentIndex();
       if (currentIndex === -1) return;
       
-      const prevIndex = (currentIndex - 1 + musicList.length) % musicList.length;
-      playSound(musicList[prevIndex]);
+      const prevIndex = (currentIndex - 1 + currentPlaylist.length) % currentPlaylist.length;
+      playSound(currentPlaylist[prevIndex], currentPlaylist);
     }
   };
 
@@ -708,13 +710,6 @@ const CalmingMusic = () => {
     }, 2000);
   };
 
-  const toggleRepeat = () => {
-    setIsRepeat(!isRepeat);
-  };
-
-  const toggleShuffle = () => {
-    setIsShuffle(!isShuffle);
-  };
 
   if (loading) {
     return (
@@ -768,35 +763,37 @@ const CalmingMusic = () => {
       </div>
 
       {/* Categories */}
-      <div
-        className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-transparent px-1 bg-white/60 backdrop-blur-sm border-b border-emerald-100 mx-4 rounded-lg mt-4 mb-4 p-4 max-w-6xl mx-auto"
-        style={{ WebkitOverflowScrolling: 'touch' }}
-      >
-        {categories.map((category) => (
-          <motion.button
-            key={category._id}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={() => setSelectedCategory(category._id)}
-            className={`flex items-center gap-2 px-3 py-3 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-              selectedCategory === category._id
-                ? 'bg-emerald-500 text-white shadow-lg'
-                : 'bg-white/80 text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-            }`}
-            style={{ margin: '3px 0', flex: '0 0 auto' }}
-          >
-            <span className="text-sm">{getCategoryIcon(category._id)}</span>
-            <span className="capitalize">{category._id}</span>
-            <span className={`px-2 py-0.5 rounded-full text-xs ${
-              selectedCategory === category._id
-                ? 'bg-white/20 text-white'
-                : 'bg-emerald-100 text-emerald-600'
-            }`}>
-              {category.count}
-            </span>
-          </motion.button>
-        ))}
-      </div>
+      {!showFavorites && (
+        <div
+          className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-transparent px-1 bg-white/60 backdrop-blur-sm border-b border-emerald-100 mx-4 rounded-lg mt-4 mb-4 p-4 max-w-6xl mx-auto"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
+          {categories.map((category) => (
+            <motion.button
+              key={category._id}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setSelectedCategory(category._id)}
+              className={`flex items-center gap-2 px-3 py-3 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+                selectedCategory === category._id
+                  ? 'bg-emerald-500 text-white shadow-lg'
+                  : 'bg-white/80 text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+              }`}
+              style={{ margin: '3px 0', flex: '0 0 auto' }}
+            >
+              <span className="text-sm">{getCategoryIcon(category._id)}</span>
+              <span className="capitalize">{category._id}</span>
+              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                selectedCategory === category._id
+                  ? 'bg-white/20 text-white'
+                  : 'bg-emerald-100 text-emerald-600'
+              }`}>
+                {category.count}
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex flex-col lg:flex-row max-w-7xl mx-auto p-4 sm:p-6 gap-6 lg:gap-8 min-h-[400px]">
@@ -808,31 +805,22 @@ const CalmingMusic = () => {
               animate={{ opacity: 1, x: 0 }}
               className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-emerald-100 shadow-lg h-fit max-h-[calc(100vh-200px)] overflow-y-auto relative"
             >
-              {/* Heart and Download buttons - Upper Right */}
-              <div className="absolute top-3 right-3 flex gap-1 z-10">
+              {/* Heart button - Upper Right */}
+              <div className="absolute top-3 right-3 z-10">
                 {isAuthenticated && (
                   <motion.button 
                     whileHover={{ scale: 1.1 }}
                     whileTap={{ scale: 0.9 }}
                     onClick={() => toggleFavoriteAPI(currentPlaying)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${
-                      currentPlaying.isFavorite ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-400 hover:text-rose-500'
-                    }`}
+                    className="transition-colors"
                     title="Add to Favorites"
                   >
-                    {currentPlaying.isFavorite ? <FavoriteIcon sx={{ fontSize: 16 }} /> : <FavoriteBorderIcon sx={{ fontSize: 16 }} />}
+                    {currentPlaying.isFavorite ? 
+                      <FavoriteIcon sx={{ fontSize: 20, color: '#f43f5e' }} /> : 
+                      <FavoriteBorderIcon sx={{ fontSize: 20, color: '#10b981' }} />
+                    }
                   </motion.button>
                 )}
-                
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDownload(currentPlaying)}
-                  className="w-8 h-8 rounded-full bg-emerald-100 text-emerald-400 hover:text-emerald-600 flex items-center justify-center transition-colors"
-                  title="Download"
-                >
-                  <DownloadIcon sx={{ fontSize: 16 }} />
-                </motion.button>
               </div>
               
               {/* Album Art / Visualizer */}
@@ -876,13 +864,12 @@ const CalmingMusic = () => {
                 <motion.button 
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={toggleShuffle}
-                  className={`p-2 rounded-full transition-colors ${
-                    isShuffle ? 'text-emerald-600 bg-emerald-100' : 'text-emerald-400 hover:text-emerald-600'
-                  }`}
-                  title="Shuffle"
+                  onClick={() => handleDownload(currentPlaying)}
+                  disabled={musicList.length === 0}
+                  className="p-2 text-emerald-600 hover:text-emerald-700 disabled:text-emerald-300"
+                  title="Download"
                 >
-                  <ShuffleIcon fontSize="small" />
+                  <DownloadIcon fontSize="medium" />
                 </motion.button>
                 
                 <motion.button 
@@ -920,13 +907,16 @@ const CalmingMusic = () => {
                 <motion.button 
                   whileHover={{ scale: 1.1 }}
                   whileTap={{ scale: 0.9 }}
-                  onClick={toggleRepeat}
-                  className={`p-2 rounded-full transition-colors ${
-                    isRepeat ? 'text-emerald-600 bg-emerald-100' : 'text-emerald-400 hover:text-emerald-600'
-                  }`}
-                  title="Repeat"
+                  onClick={() => setIsRepeatActive(!isRepeatActive)}
+                  disabled={musicList.length === 0}
+                  className={`p-2 transition-colors ${
+                    isRepeatActive 
+                      ? 'text-amber-500 hover:text-amber-600' 
+                      : 'text-emerald-600 hover:text-emerald-700'
+                  } disabled:text-emerald-300`}
+                  title={isRepeatActive ? 'Repeat: ON' : 'Repeat: OFF'}
                 >
-                  <RepeatIcon fontSize="small" />
+                  <RepeatIcon fontSize="medium" />
                 </motion.button>
               </div>
               
@@ -1040,10 +1030,10 @@ const CalmingMusic = () => {
                             e.stopPropagation();
                             toggleFavoriteAPI(music);
                           }}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
+                          className={`p-1 flex items-center justify-center transition-colors ${
                             music.isFavorite
-                              ? 'bg-rose-100 text-rose-600 hover:bg-rose-200'
-                              : 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200'
+                              ? 'text-rose-600 hover:text-rose-700'
+                              : 'text-emerald-600 hover:text-rose-500'
                           }`}
                         >
                           {music.isFavorite ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
@@ -1057,7 +1047,7 @@ const CalmingMusic = () => {
                           e.stopPropagation();
                           handleDownload(music);
                         }}
-                        className="w-9 h-9 rounded-full bg-emerald-100 text-emerald-600 hover:bg-emerald-200 flex items-center justify-center transition-colors"
+                        className="p-1 text-emerald-600 hover:text-emerald-700 flex items-center justify-center transition-colors"
                       >
                         <DownloadIcon fontSize="small" />
                       </motion.button>
