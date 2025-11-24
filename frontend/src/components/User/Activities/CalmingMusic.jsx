@@ -293,11 +293,9 @@ const CalmingMusic = () => {
 
   const toggleFavoriteAPI = async (music) => {
     if (!isAuthenticated) return;
-    
     try {
       const token = localStorage.getItem('token');
       const method = music.isFavorite ? 'DELETE' : 'POST';
-      
       const response = await fetch(`${import.meta.env.VITE_NODE_API}/api/music/${music._id}/favorite`, {
         method,
         headers: {
@@ -305,7 +303,6 @@ const CalmingMusic = () => {
           'Content-Type': 'application/json'
         }
       });
-      
       if (response.ok) {
         // Update the music list
         setMusicList(prev => prev.map(item => 
@@ -313,7 +310,12 @@ const CalmingMusic = () => {
             ? { ...item, isFavorite: !item.isFavorite }
             : item
         ));
-        
+        // Update currentPlaying if it's the same song
+        setCurrentPlaying(prev =>
+          prev && prev._id === music._id
+            ? { ...prev, isFavorite: !prev.isFavorite }
+            : prev
+        );
         // If currently showing favorites and removing, remove from list
         if (showFavorites && music.isFavorite) {
           setMusicList(prev => prev.filter(item => item._id !== music._id));
@@ -766,41 +768,40 @@ const CalmingMusic = () => {
       </div>
 
       {/* Categories */}
-      <div className="bg-white/60 backdrop-blur-sm border-b border-emerald-100 mx-4 rounded-lg mt-4 mb-4">
-        <div className="p-6 max-w-6xl mx-auto">
-          <div className="flex gap-6 justify-center overflow-hidden">
-            {categories.map((category) => (
-              <motion.button
-                key={category._id}
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedCategory(category._id)}
-                className={`flex items-center gap-2 px-3 py-3 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                  selectedCategory === category._id
-                    ? 'bg-emerald-500 text-white shadow-lg'
-                    : 'bg-white/80 text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-                }`}
-                style={{ margin: '3px 0' }}
-              >
-                <span className="text-sm">{getCategoryIcon(category._id)}</span>
-                <span className="capitalize">{category._id}</span>
-                <span className={`px-2 py-0.5 rounded-full text-xs ${
-                  selectedCategory === category._id
-                    ? 'bg-white/20 text-white'
-                    : 'bg-emerald-100 text-emerald-600'
-                }`}>
-                  {category.count}
-                </span>
-              </motion.button>
-            ))}
-          </div>
-        </div>
+      <div
+        className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-transparent px-1 bg-white/60 backdrop-blur-sm border-b border-emerald-100 mx-4 rounded-lg mt-4 mb-4 p-4 max-w-6xl mx-auto"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
+        {categories.map((category) => (
+          <motion.button
+            key={category._id}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSelectedCategory(category._id)}
+            className={`flex items-center gap-2 px-3 py-3 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
+              selectedCategory === category._id
+                ? 'bg-emerald-500 text-white shadow-lg'
+                : 'bg-white/80 text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+            }`}
+            style={{ margin: '3px 0', flex: '0 0 auto' }}
+          >
+            <span className="text-sm">{getCategoryIcon(category._id)}</span>
+            <span className="capitalize">{category._id}</span>
+            <span className={`px-2 py-0.5 rounded-full text-xs ${
+              selectedCategory === category._id
+                ? 'bg-white/20 text-white'
+                : 'bg-emerald-100 text-emerald-600'
+            }`}>
+              {category.count}
+            </span>
+          </motion.button>
+        ))}
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-col lg:flex-row max-w-7xl mx-auto p-6 gap-8 h-[calc(100vh-220px)]">
-        {/* Music Player - Left Side */}
-        <div className="lg:w-1/3 lg:min-w-[400px]">
+      <div className="flex flex-col lg:flex-row max-w-7xl mx-auto p-4 sm:p-6 gap-6 lg:gap-8 min-h-[400px]">
+        {/* Music Player - Top on mobile, left on desktop */}
+        <div className="w-full lg:w-1/3 lg:min-w-[340px] mb-6 lg:mb-0">
           {currentPlaying ? (
             <motion.div 
               initial={{ opacity: 0, x: -20 }}
@@ -808,7 +809,7 @@ const CalmingMusic = () => {
               className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-emerald-100 shadow-lg h-fit max-h-[calc(100vh-200px)] overflow-y-auto relative"
             >
               {/* Heart and Download buttons - Upper Right */}
-              <div className="absolute top-3 right-3 flex gap-1">
+              <div className="absolute top-3 right-3 flex gap-1 z-10">
                 {isAuthenticated && (
                   <motion.button 
                     whileHover={{ scale: 1.1 }}
@@ -835,8 +836,8 @@ const CalmingMusic = () => {
               </div>
               
               {/* Album Art / Visualizer */}
-              <div className="relative mb-4">
-                <div className="w-40 h-40 mx-auto bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg overflow-hidden mb-4">
+              <div className="relative mt-6 mb-4">
+                <div className="w-32 h-32 mx-auto bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg overflow-hidden mb-4">
                   <canvas ref={canvasRef} className="w-full h-full"></canvas>
                 </div>
               </div>
@@ -971,8 +972,8 @@ const CalmingMusic = () => {
           )}
         </div>
 
-        {/* Music List - Right Side */}
-        <div className="flex-1 lg:w-2/3 overflow-hidden">
+        {/* Music List - Below on mobile, right on desktop */}
+        <div className="w-full flex-1 overflow-visible lg:overflow-hidden">
           {refreshing ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-2"></div>
@@ -991,7 +992,7 @@ const CalmingMusic = () => {
               </p>
             </div>
           ) : (
-            <div className="space-y-3 overflow-y-auto max-h-full pr-2 pl-4 py-4">
+            <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-2 pl-0 sm:pl-1 py-1">
               {musicList.map((music, index) => (
                 <motion.div
                   key={music._id}
