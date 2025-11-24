@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import axios from 'axios';
+import TutorialModal from './TutorialModal';
 
 const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [hasExistingSleepLog, setHasExistingSleepLog] = useState(false);
+  const [showTutorial, setShowTutorial] = useState(false);
 
   // Function to check for existing sleep logs
   const checkExistingSleepLog = async (dateToCheck) => {
@@ -236,6 +238,16 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
 
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-8">
+        {/* Help Icon */}
+        <button
+          onClick={() => setShowTutorial(true)}
+          className="absolute top-8 right-8 w-12 h-12 rounded-full flex items-center justify-center transition-all duration-300 hover:scale-110 shadow-lg"
+          style={{ backgroundColor: '#55AD9B', color: '#F1F8E8' }}
+          title="View Tutorial"
+        >
+          <span className="text-xl font-bold">?</span>
+        </button>
+
         <h1 
           className="text-5xl font-bold mb-16 text-center"
           style={{ color: '#272829' }}
@@ -293,6 +305,9 @@ const ChooseCategory = ({ categoryFormData, setCategoryFormData }) => {
           ></div>
         </div>
       </div>
+
+      {/* Tutorial Modal */}
+      <TutorialModal isOpen={showTutorial} onClose={() => setShowTutorial(false)} />
     </div>
   );
 };
