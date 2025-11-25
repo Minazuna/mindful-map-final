@@ -379,32 +379,70 @@ exports.getProfileStats = async (req, res) => {
       ]
     });
 
-    // Count weekly emotions
+    // Count weekly emotions with timestamps and source (before/after)
     const weeklyEmotionCounts = {};
+    const weeklyEmotionDates = {};
+    const weeklyEmotionSources = {}; // Track if it's from beforeEmotion or afterEmotion
     let weeklyTotalEmotions = 0;
 
     weeklyMoodLogs.forEach(log => {
       if (log.beforeEmotion) {
         weeklyEmotionCounts[log.beforeEmotion] = (weeklyEmotionCounts[log.beforeEmotion] || 0) + 1;
+        if (!weeklyEmotionDates[log.beforeEmotion] || new Date(log.date) > new Date(weeklyEmotionDates[log.beforeEmotion])) {
+          weeklyEmotionDates[log.beforeEmotion] = log.date;
+          weeklyEmotionSources[log.beforeEmotion] = 'before';
+        }
         weeklyTotalEmotions++;
       }
       if (log.afterEmotion) {
         weeklyEmotionCounts[log.afterEmotion] = (weeklyEmotionCounts[log.afterEmotion] || 0) + 1;
+        // For afterEmotion, update if it's a newer date, or same date but we prefer after over before
+        if (!weeklyEmotionDates[log.afterEmotion]) {
+          weeklyEmotionDates[log.afterEmotion] = log.date;
+          weeklyEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date) > new Date(weeklyEmotionDates[log.afterEmotion])) {
+          weeklyEmotionDates[log.afterEmotion] = log.date;
+          weeklyEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date).getTime() === new Date(weeklyEmotionDates[log.afterEmotion]).getTime() && weeklyEmotionSources[log.afterEmotion] === 'before') {
+          // Same date, prefer after over before
+          weeklyEmotionSources[log.afterEmotion] = 'after';
+        }
         weeklyTotalEmotions++;
       }
     });
 
-    // Find most frequent weekly mood
+    // Find most frequent weekly mood (at least 2 occurrences, latest on tie, prefer afterEmotion)
     let weeklyMostFrequentMood = null;
     if (Object.keys(weeklyEmotionCounts).length > 0) {
-      const topWeeklyEmotion = Object.keys(weeklyEmotionCounts).reduce((a, b) =>
-        weeklyEmotionCounts[a] > weeklyEmotionCounts[b] ? a : b
+      // Filter emotions with at least 2 occurrences
+      const validEmotions = Object.keys(weeklyEmotionCounts).filter(
+        emotion => weeklyEmotionCounts[emotion] >= 2
       );
-      weeklyMostFrequentMood = {
-        emotion: topWeeklyEmotion,
-        count: weeklyEmotionCounts[topWeeklyEmotion],
-        percentage: (weeklyEmotionCounts[topWeeklyEmotion] / weeklyTotalEmotions) * 100
-      };
+      
+      if (validEmotions.length > 0) {
+        // Find max count
+        const maxCount = Math.max(...validEmotions.map(e => weeklyEmotionCounts[e]));
+        
+        // Get all emotions with max count
+        const topEmotions = validEmotions.filter(e => weeklyEmotionCounts[e] === maxCount);
+        
+        // On tie, pick the latest one, preferring afterEmotion if dates match
+        const topWeeklyEmotion = topEmotions.reduce((a, b) => {
+          const dateA = new Date(weeklyEmotionDates[a]);
+          const dateB = new Date(weeklyEmotionDates[b]);
+          if (dateA.getTime() === dateB.getTime()) {
+            // Same date, prefer 'after' source
+            return weeklyEmotionSources[a] === 'after' ? a : b;
+          }
+          return dateA > dateB ? a : b;
+        });
+        
+        weeklyMostFrequentMood = {
+          emotion: topWeeklyEmotion,
+          count: weeklyEmotionCounts[topWeeklyEmotion],
+          percentage: (weeklyEmotionCounts[topWeeklyEmotion] / weeklyTotalEmotions) * 100
+        };
+      }
     }
 
     // Get overall most frequent mood (all time)
@@ -416,32 +454,70 @@ exports.getProfileStats = async (req, res) => {
       ]
     });
 
-    // Count overall emotions
+    // Count overall emotions with timestamps and source (before/after)
     const overallEmotionCounts = {};
+    const overallEmotionDates = {};
+    const overallEmotionSources = {}; // Track if it's from beforeEmotion or afterEmotion
     let overallTotalEmotions = 0;
 
     allMoodLogs.forEach(log => {
       if (log.beforeEmotion) {
         overallEmotionCounts[log.beforeEmotion] = (overallEmotionCounts[log.beforeEmotion] || 0) + 1;
+        if (!overallEmotionDates[log.beforeEmotion] || new Date(log.date) > new Date(overallEmotionDates[log.beforeEmotion])) {
+          overallEmotionDates[log.beforeEmotion] = log.date;
+          overallEmotionSources[log.beforeEmotion] = 'before';
+        }
         overallTotalEmotions++;
       }
       if (log.afterEmotion) {
         overallEmotionCounts[log.afterEmotion] = (overallEmotionCounts[log.afterEmotion] || 0) + 1;
+        // For afterEmotion, update if it's a newer date, or same date but we prefer after over before
+        if (!overallEmotionDates[log.afterEmotion]) {
+          overallEmotionDates[log.afterEmotion] = log.date;
+          overallEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date) > new Date(overallEmotionDates[log.afterEmotion])) {
+          overallEmotionDates[log.afterEmotion] = log.date;
+          overallEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date).getTime() === new Date(overallEmotionDates[log.afterEmotion]).getTime() && overallEmotionSources[log.afterEmotion] === 'before') {
+          // Same date, prefer after over before
+          overallEmotionSources[log.afterEmotion] = 'after';
+        }
         overallTotalEmotions++;
       }
     });
 
-    // Find most frequent overall mood
+    // Find most frequent overall mood (at least 2 occurrences, latest on tie, prefer afterEmotion)
     let overallMostFrequentMood = null;
     if (Object.keys(overallEmotionCounts).length > 0) {
-      const topOverallEmotion = Object.keys(overallEmotionCounts).reduce((a, b) =>
-        overallEmotionCounts[a] > overallEmotionCounts[b] ? a : b
+      // Filter emotions with at least 2 occurrences
+      const validEmotions = Object.keys(overallEmotionCounts).filter(
+        emotion => overallEmotionCounts[emotion] >= 2
       );
-      overallMostFrequentMood = {
-        emotion: topOverallEmotion,
-        count: overallEmotionCounts[topOverallEmotion],
-        percentage: (overallEmotionCounts[topOverallEmotion] / overallTotalEmotions) * 100
-      };
+      
+      if (validEmotions.length > 0) {
+        // Find max count
+        const maxCount = Math.max(...validEmotions.map(e => overallEmotionCounts[e]));
+        
+        // Get all emotions with max count
+        const topEmotions = validEmotions.filter(e => overallEmotionCounts[e] === maxCount);
+        
+        // On tie, pick the latest one, preferring afterEmotion if dates match
+        const topOverallEmotion = topEmotions.reduce((a, b) => {
+          const dateA = new Date(overallEmotionDates[a]);
+          const dateB = new Date(overallEmotionDates[b]);
+          if (dateA.getTime() === dateB.getTime()) {
+            // Same date, prefer 'after' source
+            return overallEmotionSources[a] === 'after' ? a : b;
+          }
+          return dateA > dateB ? a : b;
+        });
+        
+        overallMostFrequentMood = {
+          emotion: topOverallEmotion,
+          count: overallEmotionCounts[topOverallEmotion],
+          percentage: (overallEmotionCounts[topOverallEmotion] / overallTotalEmotions) * 100
+        };
+      }
     }
 
     res.json({
