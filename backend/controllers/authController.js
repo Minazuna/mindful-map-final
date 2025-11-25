@@ -12,7 +12,7 @@ const { accountDisabledTemplate } = require("../utils/emailTemplates");
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'avatars',
+    folder: 'mindful-map/avatars',
     allowedFormats: ['jpg', 'png'],
   },
 });
@@ -42,9 +42,11 @@ exports.signup = async (req, res) => {
     }
 
     let avatarPath = '';
+    let avatarPublicId = '';
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path);
       avatarPath = result.secure_url;
+      avatarPublicId = result.public_id;
     }
 
     // Create new user in Firebase
@@ -63,10 +65,12 @@ exports.signup = async (req, res) => {
       gender: gender || 'Rather not say',
       section: section || undefined,
       avatar: avatarPath,
+      avatarPublicId: avatarPublicId || null,
       firebaseUid: userRecord.uid,
       password, // Password will be hashed in the pre-save hook
       role: role || 'user',
       verified: true, // Auto-verify all users
+      provider: 'email'
     });
 
     await user.save();
@@ -104,6 +108,7 @@ exports.googleAuth = async (req, res) => {
         role: 'user',
         verified: true,
         section: 'N/A', // Set section as N/A for Google users - they can update later
+        provider: 'Google'
       });
       
       await user.save();
@@ -275,7 +280,10 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    res.json({
+      ...user.toObject(),
+      provider: user.provider || 'email'
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
@@ -455,26 +463,32 @@ exports.getProfileStats = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { email, password, avatar } = req.body;
+    // Use req.user which is already populated by authMiddleware
+    const user = req.user;
+    const { email, password, avatar, avatarPublicId } = req.body;
 
-    // Find the user
-    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Check if user is a Google account
+    if (user.provider === 'Google') {
+      return res.status(403).json({ success: false, message: 'Google accounts cannot be edited' });
+    }
+
     // Prepare update object
     const updateData = {};
+    const firebaseUpdates = {};
 
     // Update email if provided and different
     if (email && email !== user.email) {
       // Check if email already exists
-      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+      const existingUser = await User.findOne({ email, _id: { $ne: user._id } });
       if (existingUser) {
         return res.status(400).json({ success: false, message: 'Email already exists' });
       }
       updateData.email = email;
+      firebaseUpdates.email = email;
     }
 
     // Update password if provided
@@ -483,22 +497,52 @@ exports.updateProfile = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
       }
       updateData.password = password; // Will be hashed by the pre-save hook
+      firebaseUpdates.password = password;
     }
 
     // Update avatar if provided
     if (avatar) {
+      // Delete old avatar from Cloudinary if it exists
+      if (user.avatarPublicId) {
+        try {
+          await cloudinary.uploader.destroy(user.avatarPublicId);
+          console.log('🗑️ Deleted old avatar from Cloudinary:', user.avatarPublicId);
+        } catch (deleteError) {
+          console.log('⚠️ Failed to delete old avatar from Cloudinary:', deleteError.message);
+          // Continue even if delete fails
+        }
+      }
       updateData.avatar = avatar;
+      // Update avatarPublicId if provided
+      if (avatarPublicId) {
+        updateData.avatarPublicId = avatarPublicId;
+      }
     }
 
-    // Update user
+    // Update Firebase if there are any Firebase updates (email or password)
+    if (Object.keys(firebaseUpdates).length > 0) {
+      try {
+        await admin.auth().updateUser(user.firebaseUid, firebaseUpdates);
+        console.log('✅ Firebase user updated for:', user.email);
+      } catch (firebaseError) {
+        console.error('❌ Firebase update error:', firebaseError);
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Failed to update credentials in Firebase: ' + firebaseError.message 
+        });
+      }
+    }
+
+    // Update MongoDB user with all changes
     Object.keys(updateData).forEach(key => {
       user[key] = updateData[key];
     });
 
     await user.save();
+    console.log('✅ MongoDB user updated for:', user.email);
 
-    // Return updated user (without password)
-    const updatedUser = await User.findById(userId).select('-password');
+    // Return updated user (without password and sensitive fields)
+    const updatedUser = await User.findById(user._id).select('-password');
     
     res.json({
       success: true,
@@ -527,7 +571,8 @@ exports.uploadAvatar = [
       res.json({
         success: true,
         message: 'Avatar uploaded successfully',
-        avatarUrl: req.file.path
+        avatarUrl: req.file.path,
+        publicId: req.file.filename
       });
 
     } catch (error) {

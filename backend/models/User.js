@@ -56,6 +56,11 @@ const UserSchema = new mongoose.Schema({
     required: false,
     default: 'https://res.cloudinary.com/your-cloud/image/upload/v1/default-avatar.png'
   },
+  avatarPublicId: {
+    type: String,
+    required: false,
+    default: null
+  },
   firebaseUid: {
     type: String,
     required: true,
@@ -94,6 +99,11 @@ const UserSchema = new mongoose.Schema({
   hasRequestedReactivation: {
     type: Boolean,
     default: false
+  },
+  provider: {
+    type: String,
+    enum: ['email', 'Google'],
+    default: 'email'
   }
 });
 

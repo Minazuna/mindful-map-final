@@ -52,7 +52,8 @@ const Profile = () => {
     email: '',
     section: '',
     avatar: '',
-    password: ''
+    password: '',
+    provider: 'email'
   });
 
   // Statistics state
@@ -64,6 +65,7 @@ const Profile = () => {
     loading: true
   });
 
+
   // Form state
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -73,9 +75,17 @@ const Profile = () => {
     confirmPassword: ''
   });
 
+  // Validation state
+  const [formErrors, setFormErrors] = useState({
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
+
   // Avatar upload
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState('');
+  const [avatarPublicId, setAvatarPublicId] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Dialog states
@@ -102,9 +112,11 @@ const Profile = () => {
         email: user.email || '',
         section: user.section || '',
         avatar: user.avatar || '',
-        password: ''
+        password: '',
+        provider: user.provider || 'email'
       });
       setAvatarPreview(user.avatar || '');
+      setAvatarPublicId(user.avatarPublicId || '');
       setFormData({
         email: user.email || '',
         password: '',
@@ -136,12 +148,51 @@ const Profile = () => {
     }
   };
 
+
+  // Email validation helper
+  const validateEmail = (email) => {
+    if (!email) return 'Email is required';
+    // Simple email regex
+    const re = /^\S+@\S+\.\S+$/;
+    if (!re.test(email)) return 'Invalid email address';
+    return '';
+  };
+
+  // Password validation helper
+  const validatePassword = (password) => {
+    if (password && password.length > 0 && password.length < 6) return 'Password must be at least 6 characters';
+    return '';
+  };
+
+  // Confirm password validation helper
+  const validateConfirmPassword = (password, confirmPassword) => {
+    if (password && confirmPassword !== password) return 'Passwords do not match';
+    return '';
+  };
+
+  // Real-time validation on input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    let newFormData = {
+      ...formData,
+      [name]: value,
+      ...(name === 'password' && value === '' && { confirmPassword: '' })
+    };
+    setFormData(newFormData);
+
+    // Validate fields
+    let errors = { ...formErrors };
+    if (name === 'email') {
+      errors.email = validateEmail(value);
+    }
+    if (name === 'password') {
+      errors.password = validatePassword(value);
+      errors.confirmPassword = validateConfirmPassword(value, newFormData.confirmPassword);
+    }
+    if (name === 'confirmPassword') {
+      errors.confirmPassword = validateConfirmPassword(newFormData.password, value);
+    }
+    setFormErrors(errors);
   };
 
   const handleAvatarChange = (e) => {
@@ -164,7 +215,7 @@ const Profile = () => {
   };
 
   const uploadAvatar = async () => {
-    if (!avatarFile) return profileData.avatar;
+    if (!avatarFile) return { url: profileData.avatar, publicId: avatarPublicId };
 
     setUploadingAvatar(true);
     try {
@@ -179,41 +230,64 @@ const Profile = () => {
         }
       });
 
-      return response.data.avatarUrl;
+      return { 
+        url: response.data.avatarUrl,
+        publicId: response.data.publicId || ''
+      };
     } catch (error) {
       console.error('Error uploading avatar:', error);
       toast.error('Failed to upload avatar');
-      return profileData.avatar;
+      return { url: profileData.avatar, publicId: avatarPublicId };
     } finally {
       setUploadingAvatar(false);
     }
   };
 
   const handleUpdateProfile = async () => {
+    // Validate all fields before saving
+    const emailError = validateEmail(formData.email);
+    const passwordError = validatePassword(formData.password);
+    const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
+    setFormErrors({
+      email: emailError,
+      password: passwordError,
+      confirmPassword: confirmPasswordError
+    });
+
+    // If any errors exist, prevent save
+    if (emailError || passwordError || confirmPasswordError) {
+      toast.error('Please fix the errors in the form before saving.');
+      return;
+    }
+
     setLoading(true);
-    
     try {
+      // Prevent Google users from updating
+      if (profileData.provider === 'Google') {
+        toast.error('Google accounts cannot be edited');
+        setLoading(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
-      
       // Upload avatar first if there's a new one
       let avatarUrl = profileData.avatar;
+      let newAvatarPublicId = avatarPublicId;
       if (avatarFile) {
-        avatarUrl = await uploadAvatar();
+        const uploadResult = await uploadAvatar();
+        avatarUrl = uploadResult.url;
+        newAvatarPublicId = uploadResult.publicId;
       }
 
       // Prepare update data
       const updateData = {
         email: formData.email,
-        avatar: avatarUrl
+        avatar: avatarUrl,
+        avatarPublicId: newAvatarPublicId
       };
 
       // Only include password if it's being changed
       if (formData.password && formData.password.trim() !== '') {
-        if (formData.password !== formData.confirmPassword) {
-          toast.error('Passwords do not match');
-          setLoading(false);
-          return;
-        }
         updateData.password = formData.password;
       }
 
@@ -227,10 +301,9 @@ const Profile = () => {
       setIsEditing(false);
       fetchProfileData(); // Refresh data
       setAvatarFile(null);
-      
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error(error.response?.data?.message || 'Failed to update profile');
+      toast.error(error.response?.data?.message || error.response?.data?.error || 'Failed to update profile');
     } finally {
       setLoading(false);
     }
@@ -240,6 +313,7 @@ const Profile = () => {
     setIsEditing(false);
     setAvatarFile(null);
     setAvatarPreview(profileData.avatar);
+    setAvatarPublicId(profileData.avatarPublicId || '');
     setFormData({
       email: profileData.email,
       password: '',
@@ -301,15 +375,17 @@ const Profile = () => {
                     </Typography>
                     <IconButton 
                       onClick={() => setIsEditing(!isEditing)}
-                      disabled={loading}
+                      disabled={loading || profileData.provider === 'Google'}
+                      title={profileData.provider === 'Google' ? 'Google accounts cannot be edited' : ''}
                       sx={{
-                        color: '#6fba94',
-                        backgroundColor: 'rgba(111, 186, 148, 0.1)',
+                        color: profileData.provider === 'Google' ? '#9ca3af' : '#6fba94',
+                        backgroundColor: profileData.provider === 'Google' ? 'rgba(156, 163, 175, 0.1)' : 'rgba(111, 186, 148, 0.1)',
                         '&:hover': {
-                          backgroundColor: 'rgba(111, 186, 148, 0.2)',
+                          backgroundColor: profileData.provider === 'Google' ? 'rgba(156, 163, 175, 0.1)' : 'rgba(111, 186, 148, 0.2)',
                         },
                         borderRadius: '12px',
-                        padding: '8px'
+                        padding: '8px',
+                        cursor: profileData.provider === 'Google' ? 'not-allowed' : 'pointer'
                       }}
                     >
                       {isEditing ? <CancelIcon /> : <EditIcon />}
@@ -318,38 +394,17 @@ const Profile = () => {
 
                   <div className="flex flex-col items-center mb-6">
                     {/* Avatar Section */}
-                    <div className="relative mb-4">
-                      <Avatar
-                        src={avatarPreview}
-                        sx={{ 
-                          width: 100, 
-                          height: 100,
-                          border: '3px solid #6fba94'
-                        }}
-                      >
-                        {profileData.firstName?.[0]}{profileData.lastName?.[0]}
-                      </Avatar>
-                      {isEditing && (
-                        <IconButton
-                          component="label"
-                          className="absolute -bottom-2 -right-2 bg-[#6fba94] text-white hover:bg-[#5aa88f]"
-                          size="small"
-                          disabled={uploadingAvatar}
-                        >
-                          {uploadingAvatar ? (
-                            <CircularProgress size={16} color="inherit" />
-                          ) : (
-                            <PhotoCameraIcon fontSize="small" />
-                          )}
-                          <input
-                            type="file"
-                            accept="image/*"
-                            onChange={handleAvatarChange}
-                            style={{ display: 'none' }}
-                          />
-                        </IconButton>
-                      )}
-                    </div>
+                    <Avatar
+                      src={profileData.avatar}
+                      sx={{ 
+                        width: 100, 
+                        height: 100,
+                        border: '3px solid #6fba94',
+                        mb: 2
+                      }}
+                    >
+                      {profileData.firstName?.[0]}{profileData.lastName?.[0]}
+                    </Avatar>
 
                     <Typography 
                       variant="h5" 
@@ -404,82 +459,15 @@ const Profile = () => {
                   </div>
 
                   <div className="space-y-4 mt-6">
-                    {/* Email Field (only show when editing) */}
-                    {isEditing && (
-                      <div className="flex items-center space-x-3">
-                        <EmailIcon className="text-[#6fba94]" />
-                        <TextField
-                          fullWidth
-                          name="email"
-                          type="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          variant="outlined"
-                          size="small"
-                          placeholder="Enter email"
-                        />
+                    {/* Google Account Warning */}
+                    {profileData.provider === 'Google' && (
+                      <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                        <Typography variant="body2" className="text-amber-800">
+                          <strong>Note:</strong> Your account is linked to Google. Email and password cannot be modified. To change your avatar, please contact support.
+                        </Typography>
                       </div>
                     )}
-
-                    {/* Password Fields (only show when editing) */}
-                    {isEditing && (
-                      <>
-                        <div className="flex items-center space-x-3">
-                          <LockIcon className="text-[#6fba94]" />
-                          <TextField
-                            fullWidth
-                            name="password"
-                            type="password"
-                            value={formData.password}
-                            onChange={handleInputChange}
-                            variant="outlined"
-                            size="small"
-                            placeholder="New password (leave blank to keep current)"
-                          />
-                        </div>
-                        
-                        <div className="flex items-center space-x-3">
-                          <LockIcon className="text-[#6fba94]" />
-                          <TextField
-                            fullWidth
-                            name="confirmPassword"
-                            type="password"
-                            value={formData.confirmPassword}
-                            onChange={handleInputChange}
-                            variant="outlined"
-                            size="small"
-                            placeholder="Confirm new password"
-                          />
-                        </div>
-                      </>
-                    )}
                   </div>
-
-                  {/* Action Buttons */}
-                  {isEditing && (
-                    <div className="flex space-x-2 mt-6">
-                      <Button
-                        variant="contained"
-                        onClick={handleUpdateProfile}
-                        disabled={loading}
-                        startIcon={loading ? <CircularProgress size={16} /> : <SaveIcon />}
-                        className="bg-[#6fba94] hover:bg-[#5aa88f]"
-                        fullWidth
-                      >
-                        {loading ? 'Updating...' : 'Save Changes'}
-                      </Button>
-                      <Button
-                        variant="outlined"
-                        onClick={handleCancel}
-                        disabled={loading}
-                        startIcon={<CancelIcon />}
-                        className="border-[#6fba94] text-[#6fba94]"
-                        fullWidth
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </motion.div>
@@ -597,6 +585,281 @@ const Profile = () => {
 
         </Grid>
       </Container>
+
+      {/* Edit Profile Modal Dialog */}
+      <Dialog 
+        open={isEditing} 
+        onClose={handleCancel}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '16px',
+            backgroundColor: '#fff'
+          }
+        }}
+      >
+        <DialogTitle 
+          sx={{
+            fontFamily: '"Inter", "Roboto", "Arial", sans-serif',
+            fontWeight: 700,
+            fontSize: '1.25rem',
+            color: '#1f2937',
+            borderBottom: '1px solid #e5e7eb',
+            pb: 2
+          }}
+        >
+          Edit Profile
+        </DialogTitle>
+        
+        <DialogContent sx={{ pt: 3 }}>
+          <div className="space-y-6">
+            {/* Avatar Preview Section */}
+            <div className="flex flex-col items-center">
+              <Typography 
+                variant="subtitle2" 
+                sx={{
+                  fontWeight: 600,
+                  color: '#4a8063',
+                  mb: 2
+                }}
+              >
+                Profile Photo
+              </Typography>
+              
+              <Avatar
+                src={avatarPreview}
+                sx={{ 
+                  width: 120, 
+                  height: 120,
+                  border: '3px solid #6fba94',
+                  boxShadow: '0 4px 12px rgba(111, 186, 148, 0.2)',
+                  mb: 3
+                }}
+              >
+                {profileData.firstName?.[0]}{profileData.lastName?.[0]}
+              </Avatar>
+
+              {profileData.provider !== 'Google' && (
+                <Box
+                  component="label"
+                  sx={{
+                    width: '100%',
+                    p: 2.5,
+                    border: '2px dashed #6fba94',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(111, 186, 148, 0.05)',
+                    cursor: uploadingAvatar ? 'not-allowed' : 'pointer',
+                    transition: 'all 0.2s',
+                    textAlign: 'center',
+                    '&:hover': {
+                      backgroundColor: 'rgba(111, 186, 148, 0.1)',
+                      borderColor: '#5aa88f'
+                    },
+                    '&:active': {
+                      backgroundColor: 'rgba(111, 186, 148, 0.15)'
+                    }
+                  }}
+                >
+                  {uploadingAvatar ? (
+                    <div className="flex items-center justify-center">
+                      <CircularProgress size={24} sx={{ color: '#6fba94' }} />
+                    </div>
+                  ) : (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        color: '#6fba94',
+                        fontWeight: 500,
+                        pointerEvents: 'none'
+                      }}
+                    >
+                      Click to select new photo
+                    </Typography>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    style={{ display: 'none' }}
+                    disabled={uploadingAvatar}
+                  />
+                </Box>
+              )}
+            </div>
+
+            <Divider />
+
+            {profileData.provider !== 'Google' ? (
+              <div className="space-y-4">
+                {/* Email Field */}
+                <div>
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{
+                      fontWeight: 600,
+                      color: '#4a8063',
+                      mb: 1
+                    }}
+                  >
+                    Email Address
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    name="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    variant="outlined"
+                    size="small"
+                    placeholder="Enter email"
+                    error={!!formErrors.email}
+                    helperText={formErrors.email}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '8px',
+                        '&:hover fieldset': {
+                          borderColor: '#6fba94'
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#6fba94'
+                        }
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Password Field */}
+                <div>
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{
+                      fontWeight: 600,
+                      color: '#4a8063',
+                      mb: 1
+                    }}
+                  >
+                    New Password
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    name="password"
+                    type="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    variant="outlined"
+                    size="small"
+                    placeholder="Leave blank to keep current"
+                    error={!!formErrors.password}
+                    helperText={formErrors.password}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '8px',
+                        '&:hover fieldset': {
+                          borderColor: '#6fba94'
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#6fba94'
+                        }
+                      }
+                    }}
+                  />
+                </div>
+
+                {/* Confirm Password Field */}
+                <div>
+                  <Typography 
+                    variant="subtitle2" 
+                    sx={{
+                      fontWeight: 600,
+                      color: '#4a8063',
+                      mb: 1
+                    }}
+                  >
+                    Confirm Password
+                  </Typography>
+                  <TextField
+                    fullWidth
+                    name="confirmPassword"
+                    type="password"
+                    value={formData.confirmPassword}
+                    onChange={handleInputChange}
+                    disabled={!formData.password || formData.password.trim() === ''}
+                    variant="outlined"
+                    size="small"
+                    placeholder="Confirm new password"
+                    error={!!formErrors.confirmPassword}
+                    helperText={formErrors.confirmPassword || (!formData.password )}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: '8px',
+                        '&:hover fieldset': {
+                          borderColor: '#6fba94'
+                        },
+                        '&.Mui-focused fieldset': {
+                          borderColor: '#6fba94'
+                        }
+                      }
+                    }}
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                <Typography variant="body2" className="text-amber-800">
+                  <strong>Google Account</strong> - Email and password cannot be modified. Avatar changes require contacting support.
+                </Typography>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+
+        <DialogActions
+          sx={{
+            borderTop: '1px solid #e5e7eb',
+            pt: 2,
+            pb: 2,
+            px: 2,
+            gap: 1
+          }}
+        >
+          <Button
+            onClick={handleCancel}
+            disabled={loading}
+            sx={{
+              color: '#6fba94',
+              textTransform: 'none',
+              fontSize: '0.95rem',
+              fontWeight: 500
+            }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleUpdateProfile}
+            disabled={loading || profileData.provider === 'Google'}
+            variant="contained"
+            startIcon={loading ? <CircularProgress size={16} color="inherit" /> : <SaveIcon />}
+            sx={{
+              backgroundColor: '#6fba94',
+              color: 'white',
+              textTransform: 'none',
+              fontSize: '0.95rem',
+              fontWeight: 500,
+              borderRadius: '8px',
+              '&:hover': {
+                backgroundColor: '#5aa88f'
+              },
+              '&:disabled': {
+                backgroundColor: '#d1d5db',
+                color: '#9ca3af'
+              }
+            }}
+          >
+            {loading ? 'Updating...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Bottom Navigation */}
       <BottomNav value={value} setValue={setValue} />
