@@ -62,20 +62,6 @@ const Dashboard = () => {
       }
     };
   
-    const fetchInactiveUsers = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/inactive-users`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setInactiveUsersCount(response.data.length);
-      } catch (error) {
-        console.error('Error fetching inactive users:', error);
-      }
-    };
-  
     const fetchDailyEngagement = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -176,7 +162,6 @@ const Dashboard = () => {
   
     fetchMonthlyUsers();
     fetchActiveUsers();
-    fetchInactiveUsers();
     fetchDailyEngagement();
     fetchWeeklyEngagement();
     fetchDailyMoodLogs();

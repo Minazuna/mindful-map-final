@@ -15,7 +15,6 @@ const Navbar = () => {
     { icon: MessageSquare, label: 'Forum', path: '/admin/prompts' },
     { icon: BarChart3, label: 'Statistics', path: '/admin/statistics' },
     { icon: TrendingUp, label: 'Mood Predictions', path: '/admin/mood-predictions' },
-    { icon: UserX, label: 'Inactive Users', path: '/admin/inactive' },
   ];
 
   const handleLogout = () => {

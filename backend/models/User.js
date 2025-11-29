@@ -80,26 +80,6 @@ const UserSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
-  pendingDeactivation: {
-    type: Boolean,
-    default: false
-  },
-  deactivateAt: {
-    type: Date,
-    default: null
-  },
-  isDeactivated: { 
-    type: Boolean, 
-    default: false 
-  },
-  deactivatedAt: {
-    type: Date,
-    default: null,
-  },
-  hasRequestedReactivation: {
-    type: Boolean,
-    default: false
-  },
   provider: {
     type: String,
     enum: ['email', 'Google'],

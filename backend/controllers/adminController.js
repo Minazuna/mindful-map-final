@@ -8,12 +8,6 @@ const PredictedMood = require('../models/PredictedMood');
 const jwt = require("jsonwebtoken");
 const mongoose = require('mongoose');
 const moment = require('moment');
-const { 
-  initiateUserDeactivation,
-  initiateUserBulkDeactivation,
-  processExpiredGracePeriods, 
-  reactivateUser 
-} = require("../utils/accountService");
 const admin = require('../config/firebaseConfig');
 
 exports.dashboard = (req, res) => {
@@ -138,32 +132,20 @@ exports.getInactiveUsers = async (req, res) => {
 
     const activeUserIds = activeUsers.map(user => user._id.toString());
 
-    // Find users who are either inactive or deactivated
+    // Find users who haven't logged in the past 2 weeks
     const inactiveUsers = await User.find({
       $and: [
         { role: 'user' },
-        {
-          $or: [
-            { _id: { $nin: activeUserIds } },
-            { isDeactivated: true },
-            { pendingDeactivation: true },
-            { lastLogin: { $lt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } }
-          ]
-        }
+        { _id: { $nin: activeUserIds } }
       ]
-    }).select('name email avatar isDeactivated createdAt deactivatedAt pendingDeactivation hasRequestedReactivation deactivateAt');
+    }).select('name email avatar createdAt');
 
     const formattedUsers = inactiveUsers.map(user => ({
       id: user._id,
       name: user.name || "User",
       email: user.email,
       avatar: user.avatar || "",
-      isDeactivated: user.isDeactivated,
-      deactivatedAt: user.deactivatedAt ? user.deactivatedAt.toISOString() : null,
-      createdAt: user.createdAt ? user.createdAt.toISOString() : null,
-      deactivateAt: user.deactivatedAt ? user.deactivatedAt.toISOString() : null,
-      pendingDeactivation: user.pendingDeactivation || false,
-      hasRequestedReactivation: user.hasRequestedReactivation || false
+      createdAt: user.createdAt ? user.createdAt.toISOString() : null
     }));
 
     res.status(200).json(formattedUsers);
@@ -193,7 +175,7 @@ exports.getUsers = async (req, res) => {
 
     const activeUserIds = activeUsers.map(user => user._id.toString());
 
-    const users = await User.find({ role: 'user' }).select('firstName lastName email avatar section isDeactivated pendingDeactivation createdAt deactivatedAt deactivateAt');
+    const users = await User.find({ role: 'user' }).select('firstName lastName email avatar section createdAt');
 
     const usersWithStatus = users.map(user => ({
       id: user._id,
@@ -201,11 +183,7 @@ exports.getUsers = async (req, res) => {
       email: user.email,
       avatar: user.avatar,
       section: user.section || 'Not Assigned',
-      isDeactivated: user.isDeactivated,
-      pendingDeactivation: user.pendingDeactivation || false,
       createdAt: user.createdAt.toISOString(),
-      deactivatedAt: user.deactivatedAt ? user.deactivatedAt.toISOString() : null,
-      deactivateAt: user.deactivateAt ? user.deactivateAt.toISOString() : null,
       status: activeUserIds.includes(user._id.toString()) ? 'Active' : 'Inactive',
     }));
 
@@ -233,68 +211,6 @@ exports.getUserMoodLogs = async (req, res) => {
   } catch (error) {
     console.error("Error fetching user mood logs:", error);
     res.status(500).json({ message: "Error fetching mood logs", error: error.message });
-  }
-};
-
-exports.softDelete = async (req, res) => {
-  try {
-    const { userId } = req.body;
-    const result = await initiateUserDeactivation(userId);
-    
-    if (!result) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    res.json(result);
-  } catch (error) {
-    console.error("Error deactivating user:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-exports.checkExpiredGracePeriods = async (req, res) => {
-  try {
-    const result = await processExpiredGracePeriods();
-    res.json(result);
-  } catch (error) {
-    console.error("Error checking expired grace periods:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-exports.reactivate = async (req, res) => {
-  try {
-    const { userId } = req.body;
-    const result = await reactivateUser(userId);
-    
-    if (!result) {
-      return res.status(404).json({ message: "User not found" });
-    }
-    
-    res.json(result);
-  } catch (error) {
-    console.error("Error reactivating user:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-};
-
-exports.bulkDelete = async (req, res) => {
-  try {
-    const { ids } = req.body;
-    
-    const result = await initiateUserBulkDeactivation(ids);
-    
-    if (result.error) {
-      return res.status(400).json({ message: result.error });
-    }
-    
-    res.json({ 
-      message: `${result.modifiedCount} users have been marked for deactivation with a 24-hour grace period`,
-      deactivateAt: result.deactivateAt
-    });
-  } catch (error) {
-    console.error("Error in bulk soft delete:", error);
-    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -770,7 +686,7 @@ exports.getTeacherStats = async (req, res) => {
 
 exports.calculateWeeklyPredictions = async (req, res) => {
   try {
-    const users = await User.find({ role: 'user', isDeactivated: { $ne: true } });
+    const users = await User.find({ role: 'user' });
     const results = [];
 
     for (const user of users) {

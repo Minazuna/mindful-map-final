@@ -7,7 +7,6 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const { accountDisabledTemplate } = require("../utils/emailTemplates");
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -165,43 +164,6 @@ exports.login = async (req, res) => {
     let user = await User.findOne({ email });
     console.log('User found:', user);
 
-    // Check if the user has pending deactivation and grace period has expired
-    if (user && user.pendingDeactivation && user.deactivateAt && new Date() > user.deactivateAt) {
-      console.log(`User ${user.email} grace period has expired, deactivating...`);
-      
-      // Deactivate this specific user instead of processing all users
-      user.isDeactivated = true;
-      user.pendingDeactivation = false;
-      user.deactivatedAt = new Date();
-      user.deactivateAt = null;
-      await user.save();
-      
-      // Send email notification explicitly for this user
-      try {
-        const API_URL = process.env.VITE_NODE_API;
-        await sendMail(
-          user.email, 
-          "Your account has been disabled", 
-          accountDisabledTemplate(`${API_URL}/api/auth/request-reactivation?userId=${user._id}`)
-        );
-        console.log(`Deactivation email sent to ${user.email}`);
-      } catch (emailError) {
-        console.error('Error sending deactivation email:', emailError);
-      }
-      
-      return res.status(403).json({ 
-        success: false, 
-        message: "Your account has been deactivated due to inactivity." 
-      });
-    }
-
-    // If user has pending deactivation but hasn't expired yet, remove the pending status
-    if (user && user.pendingDeactivation) {
-      user.pendingDeactivation = false;
-      user.deactivateAt = null;
-      await user.save();
-    }
-    
     // If no user exists and the email is the admin email, create an admin user
     if (!user && email === 'admin@gmail.com') {
       // Create new admin user in Firebase
@@ -222,15 +184,9 @@ exports.login = async (req, res) => {
       console.log('Admin user created:', user);
     }
 
-
-
     if (!user) {
       console.error('User not found in MongoDB.');
       return res.status(404).json({ success: false, message: 'Invalid email or password.' });
-    }
-
-    if (user.isDeactivated) {
-      return res.status(403).json({ success: false, message: "Your account is deactivated." });
     }
 
     // Check if the password is correct
@@ -287,35 +243,6 @@ exports.getMe = async (req, res) => {
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
-  }
-};
-
-exports.requestReactivation = async (req, res) => {
-  try {
-    const { userId } = req.query;
-    const user = await User.findById(userId);
-    
-    if (!user) return res.status(404).json({ message: "User not found" });
-    
-    if (!user.isDeactivated) {
-      return res.status(400).json({ message: "Account is not deactivated" });
-    }
-    
-    user.hasRequestedReactivation = true;
-    await user.save();
-    
-    res.send(`
-      <html>
-        <body>
-          <h1>Reactivation Request Sent</h1>
-          <p>Your request to reactivate your account has been sent to the administrators.</p>
-          <p>You will receive an email once your account has been reactivated.</p>
-        </body>
-      </html>
-    `);
-  } catch (error) {
-    console.error("Error requesting reactivation:", error);
-    res.status(500).json({ message: "Internal server error" });
   }
 };
 

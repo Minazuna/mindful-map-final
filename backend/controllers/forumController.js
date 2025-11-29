@@ -105,7 +105,7 @@ exports.getCurrentUser = async (req, res) => {
       }
   
       const user = await User.findById(userId)
-        .select('name email avatar isDeactivated deactivatedAt'); 
+        .select('name email avatar'); 
   
       if (!user) {
         return res.status(404).json({

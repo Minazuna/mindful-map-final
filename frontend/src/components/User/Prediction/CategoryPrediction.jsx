@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -34,10 +34,23 @@ const CategoryPrediction = () => {
   const [dateRange, setDateRange] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const todayRef = useRef(null);
 
   useEffect(() => {
     fetchCategoryPredictions();
   }, [category]);
+
+  useEffect(() => {
+    // Auto-scroll to today's prediction after a short delay
+    if (todayRef.current && !loading) {
+      setTimeout(() => {
+        todayRef.current?.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'center' 
+        });
+      }, 500);
+    }
+  }, [loading, predictions]);
 
   const fetchCategoryPredictions = async () => {
     try {
@@ -193,6 +206,46 @@ const CategoryPrediction = () => {
     };
     
     return activityMap[activityId] || activityId || 'Unknown Activity';
+  };
+
+  // Helper function to check if a day is today
+  const isToday = (day) => {
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+    return day === dayName;
+  };
+
+  // Helper function to get formatted date for a day
+  const getDateForDay = (day) => {
+    const today = new Date();
+    const dayName = today.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    if (day === dayName) {
+      return today.toLocaleDateString('en-US', { 
+        month: 'short', 
+        day: 'numeric',
+        year: 'numeric'
+      });
+    }
+    
+    // Calculate the date for other days
+    let targetDate = new Date();
+    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const currentDayIndex = today.getDay();
+    const targetDayIndex = daysOfWeek.indexOf(day);
+    
+    let daysAhead = targetDayIndex - currentDayIndex;
+    if (daysAhead <= 0) {
+      daysAhead += 7;
+    }
+    
+    targetDate.setDate(today.getDate() + daysAhead);
+    
+    return targetDate.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
   };
 
   // Define proper weekday order
@@ -382,34 +435,52 @@ const CategoryPrediction = () => {
                            prediction.predicted_mood !== 'No valid data' 
                            ? getEmotionValence(prediction.predicted_mood) 
                            : null;
+            const isTodayPrediction = isToday(day);
+            const dateStr = getDateForDay(day);
 
             return (
-              <Grid item xs={12} md={6} lg={4} key={day}>
+              <Grid item xs={12} md={6} lg={4} key={day} ref={isTodayPrediction ? todayRef : null}>
                 <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1, duration: 0.6 }}
+                  initial={{ opacity: 0, y: 20, scale: isTodayPrediction ? 0.95 : 1 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ delay: index * 0.1, duration: isTodayPrediction ? 0.8 : 0.6 }}
                 >
                   <Card 
-                    elevation={0}
+                    elevation={isTodayPrediction ? 3 : 0}
                     sx={{ 
                       borderRadius: '20px', 
                       overflow: 'hidden', 
-                      boxShadow: '0 8px 25px rgba(0,0,0,0.1)',
+                      boxShadow: isTodayPrediction ? '0 0 30px rgba(111, 186, 148, 0.4)' : '0 8px 25px rgba(0,0,0,0.1)',
                       background: 'rgba(255,255,255,0.95)',
                       backdropFilter: 'blur(10px)',
-                      border: `2px solid ${valence ? getValenceColor(valence) + '20' : 'rgba(255,255,255,0.5)'}`,
+                      border: isTodayPrediction ? `4px solid ${getCategoryColor(category)}` : `2px solid ${valence ? getValenceColor(valence) + '20' : 'rgba(255,255,255,0.5)'}`,
                       height: '100%',
                       transition: 'transform 0.3s ease',
+                      position: 'relative',
                       '&:hover': {
                         transform: 'translateY(-4px)',
-                        boxShadow: '0 12px 35px rgba(0,0,0,0.15)'
-                      }
+                        boxShadow: isTodayPrediction ? '0 0 40px rgba(111, 186, 148, 0.5)' : '0 12px 35px rgba(0,0,0,0.15)'
+                      },
+                      ...(isTodayPrediction && {
+                        '&::before': {
+                          content: '"TODAY"',
+                          position: 'absolute',
+                          top: 0,
+                          right: 0,
+                          backgroundColor: getCategoryColor(category),
+                          color: 'white',
+                          padding: '4px 12px',
+                          borderRadius: '0 10px 0 10px',
+                          fontSize: '0.75rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.5px'
+                        }
+                      })
                     }}
                   >
                     <CardContent sx={{ p: 3 }}>
                       {/* Day Header with Confidence */}
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                         <Box>
                           <Typography 
                             variant="h5" 
@@ -421,17 +492,16 @@ const CategoryPrediction = () => {
                           >
                             {day}
                           </Typography>
-                          {prediction.date && (
-                            <Typography 
-                              variant="caption" 
-                              sx={{ 
-                                color: '#888',
-                                fontFamily: 'Nunito, sans-serif'
-                              }}
-                            >
-                              {prediction.date}
-                            </Typography>
-                          )}
+                          <Typography 
+                            variant="caption" 
+                            sx={{ 
+                              color: '#888',
+                              fontFamily: 'Nunito, sans-serif',
+                              fontWeight: 400
+                            }}
+                          >
+                            {dateStr}
+                          </Typography>
                         </Box>
                         {prediction.predicted_mood !== 'No data available' && 
                          prediction.predicted_mood !== 'No valid data' && (
