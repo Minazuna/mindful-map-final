@@ -7,12 +7,11 @@ const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
-const { accountDisabledTemplate } = require("../utils/emailTemplates");
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
   params: {
-    folder: 'avatars',
+    folder: 'mindful-map/avatars',
     allowedFormats: ['jpg', 'png'],
   },
 });
@@ -42,9 +41,11 @@ exports.signup = async (req, res) => {
     }
 
     let avatarPath = '';
+    let avatarPublicId = '';
     if (req.file) {
       const result = await cloudinary.uploader.upload(req.file.path);
       avatarPath = result.secure_url;
+      avatarPublicId = result.public_id;
     }
 
     // Create new user in Firebase
@@ -63,10 +64,12 @@ exports.signup = async (req, res) => {
       gender: gender || 'Rather not say',
       section: section || undefined,
       avatar: avatarPath,
+      avatarPublicId: avatarPublicId || null,
       firebaseUid: userRecord.uid,
       password, // Password will be hashed in the pre-save hook
       role: role || 'user',
       verified: true, // Auto-verify all users
+      provider: 'email'
     });
 
     await user.save();
@@ -104,6 +107,7 @@ exports.googleAuth = async (req, res) => {
         role: 'user',
         verified: true,
         section: 'N/A', // Set section as N/A for Google users - they can update later
+        provider: 'Google'
       });
       
       await user.save();
@@ -160,43 +164,6 @@ exports.login = async (req, res) => {
     let user = await User.findOne({ email });
     console.log('User found:', user);
 
-    // Check if the user has pending deactivation and grace period has expired
-    if (user && user.pendingDeactivation && user.deactivateAt && new Date() > user.deactivateAt) {
-      console.log(`User ${user.email} grace period has expired, deactivating...`);
-      
-      // Deactivate this specific user instead of processing all users
-      user.isDeactivated = true;
-      user.pendingDeactivation = false;
-      user.deactivatedAt = new Date();
-      user.deactivateAt = null;
-      await user.save();
-      
-      // Send email notification explicitly for this user
-      try {
-        const API_URL = process.env.VITE_NODE_API;
-        await sendMail(
-          user.email, 
-          "Your account has been disabled", 
-          accountDisabledTemplate(`${API_URL}/api/auth/request-reactivation?userId=${user._id}`)
-        );
-        console.log(`Deactivation email sent to ${user.email}`);
-      } catch (emailError) {
-        console.error('Error sending deactivation email:', emailError);
-      }
-      
-      return res.status(403).json({ 
-        success: false, 
-        message: "Your account has been deactivated due to inactivity." 
-      });
-    }
-
-    // If user has pending deactivation but hasn't expired yet, remove the pending status
-    if (user && user.pendingDeactivation) {
-      user.pendingDeactivation = false;
-      user.deactivateAt = null;
-      await user.save();
-    }
-    
     // If no user exists and the email is the admin email, create an admin user
     if (!user && email === 'admin@gmail.com') {
       // Create new admin user in Firebase
@@ -217,15 +184,9 @@ exports.login = async (req, res) => {
       console.log('Admin user created:', user);
     }
 
-
-
     if (!user) {
       console.error('User not found in MongoDB.');
       return res.status(404).json({ success: false, message: 'Invalid email or password.' });
-    }
-
-    if (user.isDeactivated) {
-      return res.status(403).json({ success: false, message: "Your account is deactivated." });
     }
 
     // Check if the password is correct
@@ -275,39 +236,13 @@ exports.login = async (req, res) => {
 exports.getMe = async (req, res) => {
   try {
     const user = await User.findById(req.user.id).select('-password');
-    res.json(user);
+    res.json({
+      ...user.toObject(),
+      provider: user.provider || 'email'
+    });
   } catch (err) {
     console.error(err.message);
     res.status(500).send('Server Error');
-  }
-};
-
-exports.requestReactivation = async (req, res) => {
-  try {
-    const { userId } = req.query;
-    const user = await User.findById(userId);
-    
-    if (!user) return res.status(404).json({ message: "User not found" });
-    
-    if (!user.isDeactivated) {
-      return res.status(400).json({ message: "Account is not deactivated" });
-    }
-    
-    user.hasRequestedReactivation = true;
-    await user.save();
-    
-    res.send(`
-      <html>
-        <body>
-          <h1>Reactivation Request Sent</h1>
-          <p>Your request to reactivate your account has been sent to the administrators.</p>
-          <p>You will receive an email once your account has been reactivated.</p>
-        </body>
-      </html>
-    `);
-  } catch (error) {
-    console.error("Error requesting reactivation:", error);
-    res.status(500).json({ message: "Internal server error" });
   }
 };
 
@@ -371,32 +306,70 @@ exports.getProfileStats = async (req, res) => {
       ]
     });
 
-    // Count weekly emotions
+    // Count weekly emotions with timestamps and source (before/after)
     const weeklyEmotionCounts = {};
+    const weeklyEmotionDates = {};
+    const weeklyEmotionSources = {}; // Track if it's from beforeEmotion or afterEmotion
     let weeklyTotalEmotions = 0;
 
     weeklyMoodLogs.forEach(log => {
       if (log.beforeEmotion) {
         weeklyEmotionCounts[log.beforeEmotion] = (weeklyEmotionCounts[log.beforeEmotion] || 0) + 1;
+        if (!weeklyEmotionDates[log.beforeEmotion] || new Date(log.date) > new Date(weeklyEmotionDates[log.beforeEmotion])) {
+          weeklyEmotionDates[log.beforeEmotion] = log.date;
+          weeklyEmotionSources[log.beforeEmotion] = 'before';
+        }
         weeklyTotalEmotions++;
       }
       if (log.afterEmotion) {
         weeklyEmotionCounts[log.afterEmotion] = (weeklyEmotionCounts[log.afterEmotion] || 0) + 1;
+        // For afterEmotion, update if it's a newer date, or same date but we prefer after over before
+        if (!weeklyEmotionDates[log.afterEmotion]) {
+          weeklyEmotionDates[log.afterEmotion] = log.date;
+          weeklyEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date) > new Date(weeklyEmotionDates[log.afterEmotion])) {
+          weeklyEmotionDates[log.afterEmotion] = log.date;
+          weeklyEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date).getTime() === new Date(weeklyEmotionDates[log.afterEmotion]).getTime() && weeklyEmotionSources[log.afterEmotion] === 'before') {
+          // Same date, prefer after over before
+          weeklyEmotionSources[log.afterEmotion] = 'after';
+        }
         weeklyTotalEmotions++;
       }
     });
 
-    // Find most frequent weekly mood
+    // Find most frequent weekly mood (at least 2 occurrences, latest on tie, prefer afterEmotion)
     let weeklyMostFrequentMood = null;
     if (Object.keys(weeklyEmotionCounts).length > 0) {
-      const topWeeklyEmotion = Object.keys(weeklyEmotionCounts).reduce((a, b) =>
-        weeklyEmotionCounts[a] > weeklyEmotionCounts[b] ? a : b
+      // Filter emotions with at least 2 occurrences
+      const validEmotions = Object.keys(weeklyEmotionCounts).filter(
+        emotion => weeklyEmotionCounts[emotion] >= 2
       );
-      weeklyMostFrequentMood = {
-        emotion: topWeeklyEmotion,
-        count: weeklyEmotionCounts[topWeeklyEmotion],
-        percentage: (weeklyEmotionCounts[topWeeklyEmotion] / weeklyTotalEmotions) * 100
-      };
+      
+      if (validEmotions.length > 0) {
+        // Find max count
+        const maxCount = Math.max(...validEmotions.map(e => weeklyEmotionCounts[e]));
+        
+        // Get all emotions with max count
+        const topEmotions = validEmotions.filter(e => weeklyEmotionCounts[e] === maxCount);
+        
+        // On tie, pick the latest one, preferring afterEmotion if dates match
+        const topWeeklyEmotion = topEmotions.reduce((a, b) => {
+          const dateA = new Date(weeklyEmotionDates[a]);
+          const dateB = new Date(weeklyEmotionDates[b]);
+          if (dateA.getTime() === dateB.getTime()) {
+            // Same date, prefer 'after' source
+            return weeklyEmotionSources[a] === 'after' ? a : b;
+          }
+          return dateA > dateB ? a : b;
+        });
+        
+        weeklyMostFrequentMood = {
+          emotion: topWeeklyEmotion,
+          count: weeklyEmotionCounts[topWeeklyEmotion],
+          percentage: (weeklyEmotionCounts[topWeeklyEmotion] / weeklyTotalEmotions) * 100
+        };
+      }
     }
 
     // Get overall most frequent mood (all time)
@@ -408,32 +381,70 @@ exports.getProfileStats = async (req, res) => {
       ]
     });
 
-    // Count overall emotions
+    // Count overall emotions with timestamps and source (before/after)
     const overallEmotionCounts = {};
+    const overallEmotionDates = {};
+    const overallEmotionSources = {}; // Track if it's from beforeEmotion or afterEmotion
     let overallTotalEmotions = 0;
 
     allMoodLogs.forEach(log => {
       if (log.beforeEmotion) {
         overallEmotionCounts[log.beforeEmotion] = (overallEmotionCounts[log.beforeEmotion] || 0) + 1;
+        if (!overallEmotionDates[log.beforeEmotion] || new Date(log.date) > new Date(overallEmotionDates[log.beforeEmotion])) {
+          overallEmotionDates[log.beforeEmotion] = log.date;
+          overallEmotionSources[log.beforeEmotion] = 'before';
+        }
         overallTotalEmotions++;
       }
       if (log.afterEmotion) {
         overallEmotionCounts[log.afterEmotion] = (overallEmotionCounts[log.afterEmotion] || 0) + 1;
+        // For afterEmotion, update if it's a newer date, or same date but we prefer after over before
+        if (!overallEmotionDates[log.afterEmotion]) {
+          overallEmotionDates[log.afterEmotion] = log.date;
+          overallEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date) > new Date(overallEmotionDates[log.afterEmotion])) {
+          overallEmotionDates[log.afterEmotion] = log.date;
+          overallEmotionSources[log.afterEmotion] = 'after';
+        } else if (new Date(log.date).getTime() === new Date(overallEmotionDates[log.afterEmotion]).getTime() && overallEmotionSources[log.afterEmotion] === 'before') {
+          // Same date, prefer after over before
+          overallEmotionSources[log.afterEmotion] = 'after';
+        }
         overallTotalEmotions++;
       }
     });
 
-    // Find most frequent overall mood
+    // Find most frequent overall mood (at least 2 occurrences, latest on tie, prefer afterEmotion)
     let overallMostFrequentMood = null;
     if (Object.keys(overallEmotionCounts).length > 0) {
-      const topOverallEmotion = Object.keys(overallEmotionCounts).reduce((a, b) =>
-        overallEmotionCounts[a] > overallEmotionCounts[b] ? a : b
+      // Filter emotions with at least 2 occurrences
+      const validEmotions = Object.keys(overallEmotionCounts).filter(
+        emotion => overallEmotionCounts[emotion] >= 2
       );
-      overallMostFrequentMood = {
-        emotion: topOverallEmotion,
-        count: overallEmotionCounts[topOverallEmotion],
-        percentage: (overallEmotionCounts[topOverallEmotion] / overallTotalEmotions) * 100
-      };
+      
+      if (validEmotions.length > 0) {
+        // Find max count
+        const maxCount = Math.max(...validEmotions.map(e => overallEmotionCounts[e]));
+        
+        // Get all emotions with max count
+        const topEmotions = validEmotions.filter(e => overallEmotionCounts[e] === maxCount);
+        
+        // On tie, pick the latest one, preferring afterEmotion if dates match
+        const topOverallEmotion = topEmotions.reduce((a, b) => {
+          const dateA = new Date(overallEmotionDates[a]);
+          const dateB = new Date(overallEmotionDates[b]);
+          if (dateA.getTime() === dateB.getTime()) {
+            // Same date, prefer 'after' source
+            return overallEmotionSources[a] === 'after' ? a : b;
+          }
+          return dateA > dateB ? a : b;
+        });
+        
+        overallMostFrequentMood = {
+          emotion: topOverallEmotion,
+          count: overallEmotionCounts[topOverallEmotion],
+          percentage: (overallEmotionCounts[topOverallEmotion] / overallTotalEmotions) * 100
+        };
+      }
     }
 
     res.json({
@@ -455,26 +466,32 @@ exports.getProfileStats = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { email, password, avatar } = req.body;
+    // Use req.user which is already populated by authMiddleware
+    const user = req.user;
+    const { email, password, avatar, avatarPublicId } = req.body;
 
-    // Find the user
-    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ success: false, message: 'User not found' });
     }
 
+    // Check if user is a Google account
+    if (user.provider === 'Google') {
+      return res.status(403).json({ success: false, message: 'Google accounts cannot be edited' });
+    }
+
     // Prepare update object
     const updateData = {};
+    const firebaseUpdates = {};
 
     // Update email if provided and different
     if (email && email !== user.email) {
       // Check if email already exists
-      const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+      const existingUser = await User.findOne({ email, _id: { $ne: user._id } });
       if (existingUser) {
         return res.status(400).json({ success: false, message: 'Email already exists' });
       }
       updateData.email = email;
+      firebaseUpdates.email = email;
     }
 
     // Update password if provided
@@ -483,22 +500,52 @@ exports.updateProfile = async (req, res) => {
         return res.status(400).json({ success: false, message: 'Password must be at least 6 characters' });
       }
       updateData.password = password; // Will be hashed by the pre-save hook
+      firebaseUpdates.password = password;
     }
 
     // Update avatar if provided
     if (avatar) {
+      // Delete old avatar from Cloudinary if it exists
+      if (user.avatarPublicId) {
+        try {
+          await cloudinary.uploader.destroy(user.avatarPublicId);
+          console.log('🗑️ Deleted old avatar from Cloudinary:', user.avatarPublicId);
+        } catch (deleteError) {
+          console.log('⚠️ Failed to delete old avatar from Cloudinary:', deleteError.message);
+          // Continue even if delete fails
+        }
+      }
       updateData.avatar = avatar;
+      // Update avatarPublicId if provided
+      if (avatarPublicId) {
+        updateData.avatarPublicId = avatarPublicId;
+      }
     }
 
-    // Update user
+    // Update Firebase if there are any Firebase updates (email or password)
+    if (Object.keys(firebaseUpdates).length > 0) {
+      try {
+        await admin.auth().updateUser(user.firebaseUid, firebaseUpdates);
+        console.log('✅ Firebase user updated for:', user.email);
+      } catch (firebaseError) {
+        console.error('❌ Firebase update error:', firebaseError);
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Failed to update credentials in Firebase: ' + firebaseError.message 
+        });
+      }
+    }
+
+    // Update MongoDB user with all changes
     Object.keys(updateData).forEach(key => {
       user[key] = updateData[key];
     });
 
     await user.save();
+    console.log('✅ MongoDB user updated for:', user.email);
 
-    // Return updated user (without password)
-    const updatedUser = await User.findById(userId).select('-password');
+    // Return updated user (without password and sensitive fields)
+    const updatedUser = await User.findById(user._id).select('-password');
     
     res.json({
       success: true,
@@ -527,7 +574,8 @@ exports.uploadAvatar = [
       res.json({
         success: true,
         message: 'Avatar uploaded successfully',
-        avatarUrl: req.file.path
+        avatarUrl: req.file.path,
+        publicId: req.file.filename
       });
 
     } catch (error) {

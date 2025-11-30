@@ -41,7 +41,6 @@ import SleepAnalysis from './components/User/Statistics/StatisticsComponents/Sle
 
 import Dashboard from './components/Admin/Dashboard';
 import UsersTable from './components/Admin/UsersTable';
-import InactiveUsers from './components/Admin/InactiveUsers';
 import PromptsTable from './components/Admin/PromptsTable';
 import StatisticsTable from './components/Admin/StatisticsTable';
 import TeachersTable from './components/Admin/TeachersTable';
@@ -636,14 +635,6 @@ const App = () => {
           element={
             <AdminPrivateRoute>
               <UsersTable />
-            </AdminPrivateRoute>
-          }
-        />
-        <Route
-          path="/admin/inactive"
-          element={
-            <AdminPrivateRoute>
-              <InactiveUsers />
             </AdminPrivateRoute>
           }
         />

@@ -77,9 +77,7 @@ const Signin = () => {
         const errorMessage = error.response.data.message;
   
         if (error.response.status === 403) {
-          if (errorMessage === "Your account is deactivated.") {
-            toast.error("Your account has been deactivated. Please contact support.");
-          } else if (errorMessage === "Please verify your email to log in.") {
+          if (errorMessage === "Please verify your email to log in.") {
             toast.error("Please verify your email before logging in.");
           } else {
             toast.error(errorMessage);

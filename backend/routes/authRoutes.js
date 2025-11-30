@@ -1,5 +1,5 @@
 const express = require('express');
-const { signup, login, getMe, requestReactivation, googleAuth, getProfileStats, updateProfile, uploadAvatar } = require('../controllers/authController');
+const { signup, login, getMe, googleAuth, getProfileStats, updateProfile, uploadAvatar } = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/authMiddleware'); // Destructure the import
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -20,7 +20,6 @@ const router = express.Router();
 router.post('/signup', upload.single('avatar'), signup);
 router.post('/login', login);
 router.get('/me', authMiddleware, getMe); // Protect the /me route with authMiddleware
-router.get('/request-reactivation', requestReactivation);
 router.post('/google-auth', googleAuth);
 
 // Profile routes

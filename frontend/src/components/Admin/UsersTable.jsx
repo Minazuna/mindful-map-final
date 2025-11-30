@@ -81,14 +81,7 @@ const UsersTable = () => {
   const handleBulkDelete = async () => {
     try {
       const token = localStorage.getItem("token");
-      await axios.post(`${import.meta.env.VITE_NODE_API}/api/admin/bulk-delete`, { ids: selectedUsers }, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUsers((prevUsers) =>
-        prevUsers.map((user) =>
-          selectedUsers.includes(user.id) ? { ...user, isDeactivated: true } : user
-        )
-      );
+      // Bulk delete functionality will be implemented if needed
       setSelectedUsers([]); 
     } catch (error) {
       console.error("Error during bulk delete:", error);
@@ -96,38 +89,7 @@ const UsersTable = () => {
   };
 
   const handleAction = async (userId, action, deactivatedAt) => {
-    try {
-      const token = localStorage.getItem("token");
-
-      const user = users.find(u => u.id === userId);
-      if (user && (user.isDeactivated || user.pendingDeactivation)) {
-        toast.warning("This user is already pending deactivation or deactivated.");
-        return; // Exit the function early
-      }
-
-      if (action === "softDelete") {
-        const response = await axios.post(
-          `${import.meta.env.VITE_NODE_API}/api/admin/soft-delete`, 
-          { userId },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-
-        setUsers(users.map(user =>
-          user.id === userId ? { 
-            ...user, 
-            isDeactivated: true, 
-            pendingDeactivation: true,
-            deactivatedAt: response.data.deactivatedAt,
-            deactivateAt: response.data.deactivateAt
-          } : user
-        ));
-  
-        toast.success("User deactivation initiated. Will be completed in 24 hours.");
-      }
-    } catch (error) {
-      console.error(`Error during ${action}:`, error);
-      toast.error(error.response?.data?.message || `Error during ${action}. Please try again.`);
-    }
+    // User deletion action will be implemented if needed
   };
 
 
@@ -336,17 +298,11 @@ const UsersTable = () => {
       headerName: "Actions",
       width: 100,
       renderCell: (params) => {
-        const { id, isDeactivated, pendingDeactivation, deactivatedAt } = params.row;
+        const { id } = params.row;
         return (
-          isDeactivated || pendingDeactivation ? (
-            <IconButton disabled>
-              <DeleteIcon sx={{ color: "#9E9E9E" }} />
-            </IconButton>
-          ) : (
-            <IconButton onClick={() => handleAction(id, "softDelete", deactivatedAt)}>
-              <DeleteIcon sx={{ color: "#F44336" }} />
-            </IconButton>
-          )
+          <IconButton disabled>
+            <DeleteIcon sx={{ color: "#9E9E9E" }} />
+          </IconButton>
         );
       },
     }
@@ -525,18 +481,9 @@ const UsersTable = () => {
                       </TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          {user.isDeactivated || user.pendingDeactivation ? (
-                            <IconButton disabled size="small">
-                              <DeleteIcon sx={{ color: "#9E9E9E" }} />
-                            </IconButton>
-                          ) : (
-                            <IconButton 
-                              onClick={() => handleAction(user.id, "softDelete", user.deactivatedAt)}
-                              size="small"
-                            >
-                              <DeleteIcon sx={{ color: "#F44336" }} />
-                            </IconButton>
-                          )}
+                          <IconButton disabled size="small">
+                            <DeleteIcon sx={{ color: "#9E9E9E" }} />
+                          </IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>

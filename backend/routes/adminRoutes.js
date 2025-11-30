@@ -17,11 +17,7 @@ router.get('/daily-journal-logs', authMiddleware, adminMiddleware, adminControll
 router.get('/daily-forum-engagement', adminController.getDailyForumEngagement);
 router.get('/weekly-forum-engagement', adminController.getWeeklyForumEngagement);
 
-router.post("/soft-delete", authMiddleware, adminMiddleware, adminController.softDelete);
-router.get("/reactivate", authMiddleware, adminMiddleware, adminController.reactivate);
-router.post("/reactivate", authMiddleware, adminMiddleware, adminController.reactivate);
-router.post("/bulk-delete", authMiddleware, adminMiddleware, adminController.bulkDelete);
-router.post('/check-expired-grace-periods', adminController.checkExpiredGracePeriods);
+
 
 router.get("/prompts",  authMiddleware, adminMiddleware, adminController.getAllPrompts);
 router.post("/add-prompt",  authMiddleware, adminMiddleware, adminController.addPrompt);
