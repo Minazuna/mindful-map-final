@@ -12,6 +12,8 @@ import PeopleIcon from '@mui/icons-material/People';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import CloseIcon from '@mui/icons-material/Close';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -126,14 +128,22 @@ const getSleepMessage = (hours, moodScore) => {
   return `Your sleep had a neutral effect today.`;
 };
 
-const getDateString = (date) => {
-  const d = new Date(date);
-  return d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric', weekday: 'long' });
+const toLocalISODate = (d = new Date()) => {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`; 
 };
-const addDays = (date, days) => {
-  const d = new Date(date);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
+const addDaysLocal = (dateStr, days) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  dt.setDate(dt.getDate() + days);
+  return toLocalISODate(dt);
+};
+const formatMonthDayYear = (dateStr) => {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const local = new Date(y, m - 1, d);
+  return local.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: '2-digit' }); // e.g., December 01, 2025
 };
 
 const getFScoreExplanation = (f, p) => {
@@ -161,7 +171,7 @@ const FScoreAccordion = ({ f, p }) => {
             <span className="font-semibold text-[#55AD9B]">F-score:</span> {showValue(f)} &nbsp;
             <span className="font-semibold text-[#f7b801]">p-value:</span> {showValue(p)}
           </div>
-            <div className="text-[#272829]">{getFScoreExplanation(f, p)}</div>
+          <div className="text-[#272829]">{getFScoreExplanation(f, p)}</div>
           <div className="text-xs text-[#777]">More logs = clearer differences. Keep tracking.</div>
         </div>
       )}
@@ -181,7 +191,6 @@ const ActivityComparisons = ({ tukeyHSD, groupMeans, groupCounts }) => {
   const nonSignificantPairs = filteredPairs.filter(r => !r.reject);
   const fmt = v => (typeof v === 'number' && !isNaN(v) ? v.toFixed(2) : 'n/a');
 
-  // Build chain of adjacent significant differences (up to 3)
   const ranked = [...validGroups]
     .filter(g => typeof groupMeans[g] === 'number' && !isNaN(groupMeans[g]))
     .sort((a, b) => groupMeans[b] - groupMeans[a]);
@@ -240,7 +249,7 @@ const ActivityComparisons = ({ tukeyHSD, groupMeans, groupCounts }) => {
       if (bothNeg) return `${a2} lowered mood less than ${a1}.`;
       if (bothPos) return `${a2} lifted mood more than ${a1}.`;
       if (m2 > 0 && m1 < 0) return `${a2} lifted mood while ${a1} lowered it.`;
-      if (m2 < 0 && m1 > 0) return `${a1} lifted mood while ${a2} lowered it.`;
+      if (m2 < 0 && m1 > 0) return `${a1} lifted mood while ${m2} lowered it.`;
       return `${a2} had a higher average mood than ${a1}.`;
     }
   };
@@ -334,14 +343,93 @@ const ActivityComparisons = ({ tukeyHSD, groupMeans, groupCounts }) => {
   );
 };
 
+const InfoModal = ({ open, onClose }) => {
+  if (!open) return null;
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Moods & Habits Analysis Info"
+    >
+      <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-[92%] p-6">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-xl font-bold text-[#272829]">How Moods & Habits Analysis Works</h3>
+          <button
+            className="p-2 rounded-full hover:bg-[#F7FBF9]"
+            onClick={onClose}
+            aria-label="Close"
+          >
+            <CloseIcon style={{ color: '#272829' }} />
+          </button>
+        </div>
+
+        <div className="space-y-4 text-sm text-[#272829]">
+          <div>
+            <span className="font-semibold text-[#55AD9B]">Mood score per log</span>
+            <div className="mt-1 text-[#555]">
+              Each time you log a habit, we look at how your mood changed before and after.
+              If your mood went up, the score is positive. If it went down, the score is negative.
+            </div>
+          </div>
+
+          <div>
+            <span className="font-semibold text-[#55AD9B]">Activity averages</span>
+            <div className="mt-1 text-[#555]">
+              For each activity (like “Reading” or “Gaming”), we average your mood scores for the day.
+              Activities with at least two logs are compared to keep things fair and steady.
+            </div>
+          </div>
+
+          <div>
+            <span className="font-semibold text-[#55AD9B]">ANOVA (Are activities different?)</span>
+            <div className="mt-1 text-[#555]">
+              ANOVA is a check to see whether some activities affect mood differently than others.
+              The F-score tells us how strong the differences look. The p-value tells us how confident we
+              are about those differences (small p-value, like below 0.05, means we’re more confident).
+            </div>
+          </div>
+
+          <div>
+            <span className="font-semibold text-[#55AD9B]">Tukey HSD (Which pairs are different?)</span>
+            <div className="mt-1 text-[#555]">
+              If ANOVA says “yes, there are differences,” Tukey HSD looks at pairs of activities to see
+              exactly which ones are different. We show the average mood score for each activity and a p-value
+              to indicate how confident we are about the difference for that pair.
+            </div>
+          </div>
+
+          <div>
+            <span className="font-semibold text-[#55AD9B]">Best results tip</span>
+            <div className="mt-1 text-[#555]">
+              This works best when you log mood and habits consistently throughout the day and repeat the same
+              activities. More logs per activity = clearer and more helpful results.
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <button
+            className="px-4 py-2 rounded-full bg-[#55AD9B] text-white font-semibold hover:bg-[#3e8e7e] transition"
+            onClick={onClose}
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const DailyAnova = () => {
   const [results, setResults] = useState({});
   const [sleepQuality, setSleepQuality] = useState(null);
   const [sleepHours, setSleepHours] = useState(null);
   const [sleepMoodScore, setSleepMoodScore] = useState(null);
   const [sleepMoodScoreId, setSleepMoodScoreId] = useState(null);
-  const [date, setDate] = useState(() => new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(() => toLocalISODate()); // YYYY-MM-DD for backend
   const [loading, setLoading] = useState(true);
+  const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -351,7 +439,7 @@ const DailyAnova = () => {
       try {
         const res = await axios.post(
           `${import.meta.env.VITE_NODE_API}/api/anova/run`,
-          { date },
+          { date }, // backend expects YYYY-MM-DD
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setResults(res.data.anovaResults || {});
@@ -374,97 +462,20 @@ const DailyAnova = () => {
     fetchAnova();
   }, [date]);
 
-  const handlePrev = () => setDate(addDays(date, -1));
-  const handleNext = () => setDate(addDays(date, 1));
+  const handlePrev = () => setDate(addDaysLocal(date, -1));
+  const handleNext = () => setDate(addDaysLocal(date, 1));
   const getDayLabel = () => {
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalISODate();
     if (date === today) return 'Today';
-    return getDateString(date);
+    return formatMonthDayYear(date);
   };
 
   const headerBg = {
-    sleep: 'from-[#95D2B3] to-[#55AD9B]',
-    activity: 'from-[#95D2B3] to-[#55AD9B]',
-    social: 'from-[#95D2B3] to-[#55AD9B]',
-    health: 'from-[#95D2B3] to-[#55AD9B]'
+    sleep: 'from-[#A7D7C5] to-[#55AD9B]',
+    activity: 'from-[#A7D7C5] to-[#55AD9B]',
+    social: 'from-[#A7D7C5] to-[#55AD9B]',
+    health: 'from-[#A7D7C5] to-[#55AD9B]'
   };
-
-  const getMoodIcon = (score) => {
-    if (score > 0) return <TrendingUpIcon style={{ color: POSITIVE_COLOR, fontSize: 20 }} />;
-    if (score < 0) return <TrendingDownIcon style={{ color: NEGATIVE_COLOR, fontSize: 20 }} />;
-    return <TrendingFlatIcon style={{ color: '#f7b801', fontSize: 20 }} />;
-  };
-
-  const gridData = [
-    {
-      key: 'sleep',
-      title: 'Sleep',
-      icon: CATEGORY_ICONS.sleep,
-      header: 'How your sleep affected your mood',
-      content: (
-        <div className="flex flex-col justify-center items-center h-full w-full">
-          <div className="w-full max-w-xl mx-auto">
-            {sleepQuality && sleepHours ? (
-              <div className="flex flex-col items-center justify-center w-full">
-                {sleepMoodScore !== null && (
-                  <div
-                    className="flex flex-col items-center bg-[#FFF7E6] border-2 rounded-xl px-5 py-6 w-full"
-                    style={{
-                      borderColor:
-                        sleepMoodScore > 0
-                          ? POSITIVE_COLOR
-                          : sleepMoodScore < 0
-                          ? NEGATIVE_COLOR
-                          : '#f7b801',
-                      minHeight: 100,
-                      maxWidth: 600
-                    }}
-                  >
-                    <span
-                      className="px-4 py-1 rounded-full font-bold text-base mb-4"
-                      style={{
-                        backgroundColor: sleepQualityColors[sleepQuality],
-                        color: '#fff'
-                      }}
-                    >
-                      {formatText(sleepQuality)}
-                    </span>
-                    <div className="flex flex-col md:flex-row items-center gap-3 w-full">
-                      <span className="flex-shrink-0 mb-2 md:mb-0">{getMoodIcon(sleepMoodScore)}</span>
-                      <span className="text-base text-[#272829] flex-1 text-center">
-                        {getSleepMessage(sleepHours, sleepMoodScore)}
-                      </span>
-                    </div>
-                    {sleepMoodScoreId && (
-                      <button
-                        className="mt-4 px-4 py-2 rounded-full bg-[#55AD9B] text-white font-semibold shadow hover:bg-[#3e8e7e] transition"
-                        onClick={() => navigate(`/recommendation/${sleepMoodScoreId}`)}
-                      >
-                        View Recommendation
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div className="flex justify-center items-center h-40 w-full">
-                <span className="text-gray-500 text-lg font-medium text-center">
-                  No sleep data recorded
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      ),
-    },
-    ...['activity', 'social', 'health'].map(category => ({
-      key: category,
-      title: CATEGORY_LABELS[category],
-      icon: CATEGORY_ICONS[category],
-      header: `How your ${CATEGORY_LABELS[category].toLowerCase()} affected your mood`,
-      content: renderCategoryResults(category, results[category])
-    }))
-  ];
 
   function renderCategoryResults(category, data) {
     if (!data || data.insufficient) {
@@ -483,9 +494,15 @@ const DailyAnova = () => {
     const entries = Object.entries(groupMeans).filter(([g, mean]) =>
       typeof mean === 'number' && !isNaN(mean) && (groupCounts[g] ?? 0) >= 2
     );
+    const positivesComputed = entries.filter(([, m]) => m > 0).sort((a, b) => b[1] - a[1]);
+    const negativesComputed = entries.filter(([, m]) => m < 0).sort((a, b) => a[1] - b[1]);
 
-    const positives = entries.filter(([, m]) => m > 0).sort((a, b) => b[1] - a[1]);
-    const negatives = entries.filter(([, m]) => m < 0).sort((a, b) => a[1] - b[1]);
+    const topPositive = Array.isArray(data.topPositive) && data.topPositive.length > 0
+      ? data.topPositive
+      : positivesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
+    const topNegative = Array.isArray(data.topNegative) && data.topNegative.length > 0
+      ? data.topNegative
+      : negativesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
 
     return (
       <>
@@ -504,7 +521,7 @@ const DailyAnova = () => {
           Lists show average mood change per activity (only if ≥2 logs).
         </div>
 
-        {positives.length > 0 && (
+        {topPositive.length > 0 && (
           <div className="mb-4">
             <div className="flex items-center gap-2 mb-2">
               <TrendingUpIcon style={{ color: POSITIVE_COLOR }} />
@@ -512,25 +529,25 @@ const DailyAnova = () => {
                 Habits that boosted your mood
               </span>
             </div>
-            {positives.map(([activity, mean], idx) => (
+            {topPositive.map((row, idx) => (
               <div
-                key={activity}
-                className="flex items-center gap-3 bg-[#F1F8E8] border-2 rounded-xl px-5 py-4 mb-3"
+                key={row.activity}
+                className="flex items-center gap-3 bg-white/70 backdrop-blur border-2 rounded-xl px-5 py-4 mb-3 shadow-sm hover:shadow-md transition"
                 style={{ borderColor: POSITIVE_COLOR, minHeight: 60 }}
               >
-                <span className="flex-shrink-0">{getMoodIcon(mean)}</span>
+                <span className="flex-shrink-0">{getMoodIcon(row.moodScore)}</span>
                 <span className="text-base text-[#272829] flex-1">
-                  {getMoodMessage(activity, mean, idx)}
+                  {getMoodMessage(row.activity, row.moodScore, idx)}
                 </span>
                 <span className="text-xs font-semibold text-[#55AD9B]">
-                  avg {mean.toFixed(2)}
+                  avg {typeof row.moodScore === 'number' ? row.moodScore.toFixed(2) : row.moodScore}
                 </span>
               </div>
             ))}
           </div>
         )}
 
-        {negatives.length > 0 && (
+        {topNegative.length > 0 && (
           <div>
             <div className="flex items-center gap-2 mb-2">
               <TrendingDownIcon style={{ color: NEGATIVE_COLOR }} />
@@ -538,18 +555,18 @@ const DailyAnova = () => {
                 Habits that lowered your mood
               </span>
             </div>
-            {negatives.map(([activity, mean], idx) => (
+            {topNegative.map((row, idx) => (
               <div
-                key={activity}
-                className="flex items-center gap-3 bg-[#FFF7E6] border-2 rounded-xl px-5 py-4 mb-3"
+                key={row.activity}
+                className="flex items-center gap-3 bg-white/70 backdrop-blur border-2 rounded-xl px-5 py-4 mb-3 shadow-sm hover:shadow-md transition"
                 style={{ borderColor: NEGATIVE_COLOR, minHeight: 60 }}
               >
-                <span className="flex-shrink-0">{getMoodIcon(mean)}</span>
+                <span className="flex-shrink-0">{getMoodIcon(row.moodScore)}</span>
                 <span className="text-base text-[#272829] flex-1">
-                  {getMoodMessage(activity, mean, idx)}
+                  {getMoodMessage(row.activity, row.moodScore, idx)}
                 </span>
                 <span className="text-xs font-semibold text-[#FF9800]">
-                  avg {mean.toFixed(2)}
+                  avg {typeof row.moodScore === 'number' ? row.moodScore.toFixed(2) : row.moodScore}
                 </span>
               </div>
             ))}
@@ -560,33 +577,38 @@ const DailyAnova = () => {
   }
 
   return (
-    <div className="min-h-screen" style={{ backgroundColor: '#F1F8E8' }}>
-      <div className="bg-[#F7FBF9] py-8 border-b border-[#5EB5A6] mb-8">
-        <div className="max-w-4xl mx-auto flex items-center justify-between px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#F7FBF9] to-[#EAF7F3]">
+      {/* Header */}
+      <div className="py-10 border-b border-[#CBE7DC]">
+        <div className="max-w-4xl mx-auto flex items-center justify-between px-6">
           <button
             onClick={() => navigate(-1)}
-            className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
+            className="p-2 rounded-full hover:bg-white/60 shadow-sm transition"
             aria-label="Back"
           >
             <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
           </button>
           <div className="flex-1 text-center">
-            <div className="text-gray-500">{getDayLabel()}</div>
-            <div className="flex justify-center items-center gap-2 mt-2">
+            <div className="text-[#5A6A66] text-lg tracking-wide">
+              {date === toLocalISODate() ? 'Today' : formatMonthDayYear(date)}
+            </div>
+            <div className="flex justify-center items-center gap-3 mt-3">
               <button
                 onClick={handlePrev}
-                className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
+                className="p-2 rounded-full hover:bg-white/60 shadow-sm transition"
                 aria-label="Previous Day"
               >
                 <ArrowBackIosNewIcon style={{ color: '#55AD9B' }} />
               </button>
-              <span className="text-base text-[#5EB5A6] font-semibold">{getDateString(date)}</span>
+              <span className="px-4 py-1 rounded-full bg-white/70 shadow text-[#55AD9B] font-semibold">
+                {formatMonthDayYear(date)}
+              </span>
               <button
                 onClick={handleNext}
-                className="p-2 rounded-full hover:bg-[#D8EFD3] transition"
+                className="p-2 rounded-full hover:bg-white/60 shadow-sm transition"
                 aria-label="Next Day"
-                disabled={date >= new Date().toISOString().split('T')[0]}
-                style={{ opacity: date >= new Date().toISOString().split('T')[0] ? 0.5 : 1 }}
+                disabled={date >= toLocalISODate()}
+                style={{ opacity: date >= toLocalISODate() ? 0.5 : 1 }}
               >
                 <ArrowForwardIosIcon style={{ color: '#55AD9B' }} />
               </button>
@@ -596,7 +618,25 @@ const DailyAnova = () => {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4">
+      {/* Info button outside header, centered below it */}
+      <div className="max-w-7xl mx-auto px-6 mt-6 flex justify-center">
+        <button
+          className="flex items-center gap-2 px-4 py-2 rounded-full border border-[#55AD9B] bg-white/70 backdrop-blur hover:bg-white shadow-sm hover:shadow-md transition"
+          onClick={() => setShowInfo(true)}
+          aria-label="How analysis works"
+        >
+          <InfoOutlinedIcon style={{ color: '#55AD9B' }} />
+          <span className="text-sm text-[#55AD9B] font-semibold">How this analysis works</span>
+        </button>
+      </div>
+
+      {/* Decorative divider */}
+      <div className="max-w-5xl mx-auto mt-4 mb-2 px-6">
+        <div className="h-px bg-gradient-to-r from-transparent via-[#CBE7DC] to-transparent" />
+      </div>
+
+      {/* Content */}
+      <div className="max-w-7xl mx-auto px-6">
         {loading ? (
           <div className="flex justify-center items-center h-64">
             <div className="text-center">
@@ -605,15 +645,84 @@ const DailyAnova = () => {
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-            {gridData.map((cat, idx) => (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {[
+              {
+                key: 'sleep',
+                title: 'Sleep',
+                icon: CATEGORY_ICONS.sleep,
+                header: 'How your sleep affected your mood',
+                content: (
+                  <div className="flex flex-col justify-center items-center h-full w-full">
+                    <div className="w-full max-w-xl mx-auto">
+                      {sleepQuality && sleepHours ? (
+                        <div className="flex flex-col items-center justify-center w-full">
+                          {sleepMoodScore !== null && (
+                            <div
+                              className="flex flex-col items-center bg-white/70 backdrop-blur border-2 rounded-2xl px-6 py-6 w-full shadow-sm hover:shadow-md transition"
+                              style={{
+                                borderColor:
+                                  sleepMoodScore > 0
+                                    ? POSITIVE_COLOR
+                                    : sleepMoodScore < 0
+                                    ? NEGATIVE_COLOR
+                                    : '#f7b801',
+                                minHeight: 120,
+                                maxWidth: 640
+                              }}
+                            >
+                              <span
+                                className="px-4 py-1 rounded-full font-bold text-base mb-4 shadow-sm"
+                                style={{
+                                  backgroundColor: sleepQualityColors[sleepQuality],
+                                  color: '#fff'
+                                }}
+                              >
+                                {formatText(sleepQuality)}
+                              </span>
+                              <div className="flex flex-col md:flex-row items-center gap-3 w-full">
+                                <span className="flex-shrink-0 mb-2 md:mb-0">{getMoodIcon(sleepMoodScore)}</span>
+                                <span className="text-base text-[#272829] flex-1 text-center">
+                                  {getSleepMessage(sleepHours, sleepMoodScore)}
+                                </span>
+                              </div>
+                              {sleepMoodScoreId && (
+                                <button
+                                  className="mt-4 px-4 py-2 rounded-full bg-[#55AD9B] text-white font-semibold shadow hover:bg-[#3e8e7e] transition"
+                                  onClick={() => navigate(`/recommendation/${sleepMoodScoreId}`)}
+                                >
+                                  View Recommendation
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="flex justify-center items-center h-40 w-full">
+                          <span className="text-gray-500 text-lg font-medium text-center">
+                            No sleep data recorded
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ),
+              },
+              ...['activity', 'social', 'health'].map(category => ({
+                key: category,
+                title: CATEGORY_LABELS[category],
+                icon: CATEGORY_ICONS[category],
+                header: `How your ${CATEGORY_LABELS[category].toLowerCase()} affected your mood`,
+                content: renderCategoryResults(category, results[category])
+              }))
+            ].map((cat, idx) => (
               <motion.div
                 key={cat.key}
-                initial={{ opacity: 0, y: 20 }}
+                initial={{ opacity: 0, y: 24 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.1 }}
-                className="rounded-2xl shadow-lg border-2 flex flex-col"
-                style={{ borderColor: '#D8EFD3', minHeight: 400, background: '#fff' }}
+                transition={{ delay: idx * 0.08 }}
+                className="rounded-2xl shadow-lg border bg-white/70 backdrop-blur"
+                style={{ borderColor: '#D8EFD3' }}
               >
                 <div className={`rounded-t-2xl p-6 bg-gradient-to-r ${headerBg[cat.key]}`}>
                   <div className="flex items-center gap-3">
@@ -622,7 +731,7 @@ const DailyAnova = () => {
                   </div>
                   <div className="text-white/90 mt-1">{cat.header}</div>
                 </div>
-                <div className="flex-1 p-6 flex flex-col justify-center">{cat.content}</div>
+                <div className="p-6">{cat.content}</div>
               </motion.div>
             ))}
           </div>
@@ -631,13 +740,16 @@ const DailyAnova = () => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
-          className="text-center bg-gradient-to-r from-[#D8EFD3] to-[#95D2B3] rounded-2xl p-6 mt-10"
+          className="text-center bg-gradient-to-r from-[#D8EFD3] to-[#95D2B3] rounded-2xl p-6 mt-10 shadow-sm"
         >
           <p className="text-[#272829] text-lg font-medium">
             🌟 Each log teaches what lifts you. Keep going! 🌟
           </p>
         </motion.div>
       </div>
+
+      {/* Info modal */}
+      <InfoModal open={showInfo} onClose={() => setShowInfo(false)} />
     </div>
   );
 };

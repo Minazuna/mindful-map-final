@@ -12,10 +12,6 @@ const Anova = () => {
     navigate('/daily-anova');
   };
 
-  const handleWeeklyAnovaClick = () => {
-    navigate('/weekly-anova');
-  };
-
   return (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
@@ -29,37 +25,29 @@ const Anova = () => {
             <AssessmentIcon style={{ color: '#55AD9B', fontSize: 28 }} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>ANOVA Mood Analysis</h2>
-            <p className="text-gray-600">Advanced statistical insights into activity impact</p>
+            <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>Mood & Habits Analysis</h2>
+            <p className="text-gray-600">Statistical insights into how your habits affect mood</p>
           </div>
         </div>
+
         <p className="text-gray-700 mb-8 leading-relaxed">
-          The ANOVA (Analysis of Variance) tool helps you understand which activities have the most significant impact on your mood. 
-          It uses statistical analysis to compare mood changes across different activities, showing you where the biggest differences occur.
+          This dashboard combines several methods: per‑activity average mood change from your logs
+          (before vs. after), one‑way ANOVA to test for differences across activities, and Tukey’s
+          HSD for pairwise comparisons (only activities with at least 2 logs are included). Sleep
+          impact is derived from hours/quality to a mood score.
         </p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+        <div className="flex justify-center">
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleDailyAnovaClick}
-            className="flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-6 rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl"
+            className="w-full sm:w-auto flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-6 rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl"
           >
             <CalendarViewDayIcon className="mr-3" style={{ fontSize: 24 }} />
             <div className="text-left">
-              <div className="font-semibold">Daily ANOVA</div>
-              <div className="text-sm opacity-90">Today's activity impact analysis</div>
-            </div>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleWeeklyAnovaClick}
-            className="flex items-center justify-center bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white py-4 px-6 rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl"
-          >
-            <TimelineIcon className="mr-3" style={{ fontSize: 24 }} />
-            <div className="text-left">
-              <div className="font-semibold">Weekly ANOVA</div>
-              <div className="text-sm opacity-90">Weekly patterns & trends analysis</div>
+              <div className="font-semibold">Daily Insights</div>
+              <div className="text-sm opacity-90">Today’s activity impact analysis</div>
             </div>
           </motion.button>
         </div>
