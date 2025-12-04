@@ -33,6 +33,11 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
     setIntensity(level);
   };
 
+  const handleReasonChange = (e) => {
+    setReason(e.target.value);
+    setReasonError('');
+  };
+
   const handleContinueTracking = () => {
     setShowContinueModal(false);
     
