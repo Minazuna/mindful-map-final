@@ -36,7 +36,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/teacher', teacherRoutes);
 app.use('/api', statisticsRoutes);
 app.use('/api/anova', anovaRoutes);
-app.use('/api/recommendations', recommendationRoutes);
+app.use('/api/recommendation', recommendationRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/music', musicRoutes);
 

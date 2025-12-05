@@ -14,6 +14,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
+import ListAltIcon from '@mui/icons-material/ListAlt';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -132,7 +133,7 @@ const toLocalISODate = (d = new Date()) => {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`; 
+  return `${y}-${m}-${day}`;
 };
 const addDaysLocal = (dateStr, days) => {
   const [y, m, d] = dateStr.split('-').map(Number);
@@ -143,7 +144,7 @@ const addDaysLocal = (dateStr, days) => {
 const formatMonthDayYear = (dateStr) => {
   const [y, m, d] = dateStr.split('-').map(Number);
   const local = new Date(y, m - 1, d);
-  return local.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: '2-digit' }); // e.g., December 01, 2025
+  return local.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: '2-digit' });
 };
 
 const getFScoreExplanation = (f, p) => {
@@ -179,11 +180,11 @@ const FScoreAccordion = ({ f, p }) => {
   );
 };
 
-const ActivityComparisons = ({ tukeyHSD, groupMeans, groupCounts }) => {
+const ActivityComparisons = ({ tukeyHSD, groupMeans, groupCounts, includedSet }) => {
   const [open, setOpen] = useState(false);
   if (!tukeyHSD || tukeyHSD.length === 0 || !groupMeans) return null;
 
-  const validGroups = Object.keys(groupCounts || {}).filter(g => groupCounts[g] >= 2);
+  const validGroups = Array.from(includedSet || []);
   const filteredPairs = tukeyHSD.filter(r => validGroups.includes(r.group1) && validGroups.includes(r.group2));
   if (filteredPairs.length === 0) return null;
 
@@ -439,8 +440,14 @@ const DailyAnova = () => {
       try {
         const res = await axios.post(
           `${import.meta.env.VITE_NODE_API}/api/anova/run`,
-          { date }, // backend expects YYYY-MM-DD
-          { headers: { Authorization: `Bearer ${token}` } }
+          { date },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Cache-Control': 'no-cache'
+            },
+            params: { t: Date.now() } // cache-buster
+          }
         );
         setResults(res.data.anovaResults || {});
         if (res.data.sleep) {
@@ -464,11 +471,6 @@ const DailyAnova = () => {
 
   const handlePrev = () => setDate(addDaysLocal(date, -1));
   const handleNext = () => setDate(addDaysLocal(date, 1));
-  const getDayLabel = () => {
-    const today = toLocalISODate();
-    if (date === today) return 'Today';
-    return formatMonthDayYear(date);
-  };
 
   const headerBg = {
     sleep: 'from-[#A7D7C5] to-[#55AD9B]',
@@ -490,32 +492,62 @@ const DailyAnova = () => {
 
     const groupMeans = data.groupMeans || {};
     const groupCounts = data.groupCounts || {};
+    const hasMinTwo = (a) => (groupCounts[a] ?? 0) >= 2;
 
-    const entries = Object.entries(groupMeans).filter(([g, mean]) =>
-      typeof mean === 'number' && !isNaN(mean) && (groupCounts[g] ?? 0) >= 2
+    // Build includedSet = backend includedGroups ∩ (count ≥2). Fallback: all with count ≥2.
+    const rawIncluded = Array.isArray(data.includedGroups) ? data.includedGroups : [];
+    const includedSet = new Set(rawIncluded.filter(hasMinTwo));
+    if (includedSet.size === 0) {
+      Object.keys(groupCounts).forEach(g => { if (hasMinTwo(g)) includedSet.add(g); });
+    }
+
+    // Compute lists only from includedSet
+    const entries = Object.entries(groupMeans).filter(
+      ([g, mean]) => includedSet.has(g) && typeof mean === 'number' && !isNaN(mean)
     );
     const positivesComputed = entries.filter(([, m]) => m > 0).sort((a, b) => b[1] - a[1]);
     const negativesComputed = entries.filter(([, m]) => m < 0).sort((a, b) => a[1] - b[1]);
 
-    const topPositive = Array.isArray(data.topPositive) && data.topPositive.length > 0
+    const topPositiveRaw = Array.isArray(data.topPositive) && data.topPositive.length > 0
       ? data.topPositive
       : positivesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
-    const topNegative = Array.isArray(data.topNegative) && data.topNegative.length > 0
+    const topNegativeRaw = Array.isArray(data.topNegative) && data.topNegative.length > 0
       ? data.topNegative
       : negativesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
+
+    // Enforce intersection again on lists
+    const topPositive = topPositiveRaw.filter(r => includedSet.has(r.activity));
+    const topNegative = topNegativeRaw.filter(r => includedSet.has(r.activity));
+
+    const includedGroups = Array.from(includedSet);
+    const notEnoughGroups = Array.isArray(data.ignoredGroups) && data.ignoredGroups.length > 0
+      ? data.ignoredGroups
+      : Object.keys(groupCounts).filter(g => !includedSet.has(g));
 
     return (
       <>
         <FScoreAccordion f={data.F_value} p={data.p_value} />
-        {data.includedGroups && data.includedGroups.length > 0 && (
+        {(includedGroups.length > 0 || notEnoughGroups.length > 0) && (
           <div className="mb-3 text-xs text-[#555]">
-            <b>Activities considered:</b> {data.includedGroups.map(g => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}
-            {data.ignoredGroups && data.ignoredGroups.length > 0 && (
-              <> | <b>Not enough logs:</b> {data.ignoredGroups.map(g => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}</>
+            {includedGroups.length > 0 && (
+              <>
+                <b>Activities considered:</b> {includedGroups.map(g => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}
+              </>
+            )}
+            {notEnoughGroups.length > 0 && (
+              <>
+                {includedGroups.length > 0 && ' | '}
+                <b>Not enough logs:</b> {notEnoughGroups.map(g => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}
+              </>
             )}
           </div>
         )}
-        <ActivityComparisons tukeyHSD={data.tukeyHSD} groupMeans={groupMeans} groupCounts={groupCounts} />
+        <ActivityComparisons
+          tukeyHSD={data.tukeyHSD}
+          groupMeans={groupMeans}
+          groupCounts={groupCounts}
+          includedSet={includedSet}
+        />
 
         <div className="text-xs text-[#777] mb-4">
           Lists show average mood change per activity (only if ≥2 logs).
@@ -542,6 +574,15 @@ const DailyAnova = () => {
                 <span className="text-xs font-semibold text-[#55AD9B]">
                   avg {typeof row.moodScore === 'number' ? row.moodScore.toFixed(2) : row.moodScore}
                 </span>
+                {data?.groupLastIds?.[row.activity] && (
+                  <button
+                    className="ml-3 px-3 py-1 rounded-full bg-[#55AD9B] text-white text-xs font-semibold hover:bg-[#3e8e7e] transition"
+                    onClick={() => navigate(`/recommendation/${data.groupLastIds[row.activity]}`)}
+                    aria-label={`View recommendation for ${row.activity}`}
+                  >
+                    View Recommendation
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -568,6 +609,15 @@ const DailyAnova = () => {
                 <span className="text-xs font-semibold text-[#FF9800]">
                   avg {typeof row.moodScore === 'number' ? row.moodScore.toFixed(2) : row.moodScore}
                 </span>
+                {data?.groupLastIds?.[row.activity] && (
+                  <button
+                    className="ml-3 px-3 py-1 rounded-full bg-[#FF9800] text-white text-xs font-semibold hover:bg-[#e07f00] transition"
+                    onClick={() => navigate(`/recommendation/${data.groupLastIds[row.activity]}`)}
+                    aria-label={`View recommendation for ${row.activity}`}
+                  >
+                    View Recommendation
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -614,7 +664,6 @@ const DailyAnova = () => {
               </button>
             </div>
           </div>
-          <div style={{ width: 40 }} />
         </div>
       </div>
 

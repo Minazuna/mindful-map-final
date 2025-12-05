@@ -2,374 +2,555 @@
   "Activity": {
     "commute": {
       "positive": [
-        "Listening to music or podcasts during your commute can help reduce stress and improve your mood. (APA, 2021)",
-        "Using commute time for mindfulness or reflection can make the journey more enjoyable. (Mayo Clinic, 2022)",
-        "Walking or biking part of your commute can boost your physical and mental health. (CDC, 2022)"
+        "Use commute time for mindful breathing to maintain a calmer baseline. (APA, 2021; NHS Mindfulness Guidance)",
+        "Listen to uplifting music or educational podcasts to enhance mood and engagement. (Mayo Clinic, 2022; APA, 2021)",
+        "Incorporate short walks for part of your route when possible to improve mood and cardiovascular health. (CDC Physical Activity Guidelines, 2022)",
+        "Practice gratitude journaling during the commute (voice notes) to positively prime your day. (APA, 2021; Greater Good Science Center)",
+        "Plan your route and schedule buffers to reduce stress from delays. (DOT Travel Behavior Research; APA, 2021)",
+        "Use noise-reducing headphones to lower sensory stress on crowded routes. (NIOSH, 2021; WHO Environmental Noise Guidelines)"
       ],
       "negative": [
-        "Try deep breathing exercises during your commute to manage stress. (APA, 2021)",
-        "If possible, adjust your route or timing to avoid traffic and reduce frustration. (CDC, 2022)",
-        "Bring a book or listen to calming music to make your commute more pleasant. (Mayo Clinic, 2022)"
+        "Try box breathing (inhale 4, hold 4, exhale 4, hold 4) to reduce commute stress. (APA, 2021; Navy SEAL breathing protocol references)",
+        "Leave 10–15 minutes earlier to reduce rush and perceived time pressure. (DOT Travel Behavior; APA, 2021)",
+        "Use re-routing apps and check transit alerts to minimize disruptions. (DOT; Transport for London Data)",
+        "If driving, practice safe defensive driving and take a short stretch break if stressed. (NHTSA; CDC Workplace Health)",
+        "Try calm playlists and limit negative news exposure during commute. (APA Media Psychology; WHO Mental Health)",
+        "Consider carpooling or cycling portions to add social or activity benefits. (CDC, 2022; WHO Physical Activity Guidelines)"
       ]
     },
     "exam": {
       "positive": [
-        "Reviewing material regularly and not cramming helps reduce exam anxiety. (APA, 2021)",
-        "Taking practice tests can boost your confidence and performance. (APA, 2021)",
-        "Staying organized with a study schedule can help you feel prepared. (APA, 2021)"
+        "Space your study (spaced repetition) to consolidate memory and reduce anxiety. (APA, 2021; Ebbinghaus; Dunlosky et al., 2013)",
+        "Practice retrieval (quizzing) to improve test performance and confidence. (APA Learning; Roediger & Karpicke, 2006)",
+        "Use sleep hygiene the night before the exam for memory consolidation. (Sleep Foundation, 2022; NIH)",
+        "Do a 3–5 min breathing or grounding exercise pre-exam to steady arousal. (APA Anxiety Management; NHS)",
+        "Prepare a simple checklist (ID, pens, water) to reduce cognitive load. (APA, 2021; Human Factors research)",
+        "Limit last-minute cramming; do a brief concept review and positive self-talk. (APA Cognitive Behavioral approaches)"
       ],
       "negative": [
-        "Take regular short breaks while studying to improve concentration. (APA, 2021)",
-        "Practice deep breathing or mindfulness before and during exams to manage anxiety. (APA, 2021)",
-        "Get enough sleep before your exam—rest improves memory and focus. (Sleep Foundation, 2022)",
-        "Talk to a teacher or counselor if you're feeling overwhelmed. Support can make a difference. (CDC, 2022)"
+        "Switch to active methods: summarize aloud, teach a peer, do practice items. (APA, 2021; Dunlosky et al., 2013)",
+        "Use Pomodoro (25/5) blocks to avoid burnout while studying. (Productivity research; APA)",
+        "Write out a quick coping plan for test anxiety (breathing, pacing, reframing). (APA CBT; NHS)",
+        "Get 7–9 hours of sleep and avoid heavy late-night studying. (Sleep Foundation, 2022; NIH)",
+        "Eat a balanced meal and hydrate to stabilize energy and focus. (CDC Nutrition; WHO)",
+        "Ask for clarification from teachers/counselors when stuck; social support helps outcomes. (CDC, 2022; APA)"
       ]
     },
     "homework": {
       "positive": [
-        "Completing homework on time helps reduce stress and supports learning. (APA, 2021)",
-        "Setting specific goals for each homework session can boost productivity. (APA, 2021)",
-        "Reward yourself after finishing homework to stay motivated. (Mayo Clinic, 2022)"
+        "Set specific, small goals per session to maintain momentum. (APA Goal Setting; Locke & Latham)",
+        "Use a dedicated, tidy workspace to reduce distractions. (APA Environmental Psychology)",
+        "Reward completion with brief enjoyable breaks to reinforce habit. (Behavioral Psychology; APA)",
+        "Schedule homework in consistent time slots to build routine. (APA Habit formation; BJ Fogg)",
+        "Batch similar tasks to reduce context switching and fatigue. (Human Factors; APA)",
+        "Track progress visibly (checklist) to build self-efficacy. (Bandura; APA)"
       ],
       "negative": [
-        "Break homework into smaller tasks and take short breaks to stay focused. (CDC, 2022)",
-        "Create a quiet, organized workspace to help you concentrate. (APA, 2021)",
-        "Ask for help if you're stuck—teachers and classmates can be great resources. (CDC, 2022)"
+        "Break large tasks into actionable steps and sequence them. (APA Goal Setting; Project Planning)",
+        "Try timeboxing (15–25 minutes) to initiate tough tasks. (Productivity Research; APA)",
+        "Remove distractors (phone Do Not Disturb, noise control) during sessions. (APA; NIOSH)",
+        "Ask for help early—peers, tutors, teachers—to unblock. (CDC Education; APA)",
+        "Alternate hard/easy tasks to balance cognitive load. (Cognitive Load Theory; APA)",
+        "Use self-compassion and realistic expectations when behind. (APA Self-Compassion; Neff)"
       ]
     },
     "project": {
       "positive": [
-        "Working on projects builds valuable skills and teamwork. (APA, 2021)",
-        "Celebrate milestones as you complete parts of your project. (Mayo Clinic, 2022)",
-        "Collaborating with others can make projects more enjoyable. (APA, 2021)"
+        "Create a simple project plan with milestones and check-ins. (PMI Basics; APA Goal Setting)",
+        "Celebrate small wins to reinforce progress and motivation. (Behavioral Psychology; APA)",
+        "Use collaboration tools and clarify roles for smoother teamwork. (Organizational Psych; APA)",
+        "Timebox deep work sessions and protect them from interruptions. (APA; Cal Newport references)",
+        "Track risks and blockers weekly to stay proactive. (PMI; APA)",
+        "Reflect briefly after each milestone to improve the next. (Deliberate practice; APA)"
       ],
       "negative": [
-        "If projects feel overwhelming, create a timeline and break tasks into steps. (APA, 2021)",
-        "Don’t hesitate to ask for help or delegate tasks when possible. (CDC, 2022)",
-        "Stay organized with checklists to track your progress. (Mayo Clinic, 2022)"
+        "Break the project into tasks with owners and deadlines. (PMI; APA)",
+        "Do a 15-minute starter task to reduce overwhelm. (Behavioral Activation; APA)",
+        "Ask for support or delegate parts if feasible. (Organizational Psych; APA)",
+        "Use checklists/Kanban to visualize work-in-progress. (Lean/Agile; APA)",
+        "Schedule buffer time to handle surprises. (PMI; Human Factors)",
+        "Keep scope clear and avoid overcommitment. (PMI Scope Management)"
       ]
     },
     "study": {
       "positive": [
-        "Consistent study habits support learning and reduce last-minute stress. (APA, 2021)",
-        "Teaching someone else what you've learned can reinforce your knowledge. (APA, 2021)",
-        "Using flashcards and practice questions can improve retention. (APA, 2021)"
+        "Use spaced repetition and retrieval practice for durable learning. (Dunlosky et al., 2013; APA)",
+        "Interleave topics to enhance transfer and reduce monotony. (APA Learning; Rohrer, 2012)",
+        "Teach concepts to someone else to identify gaps and cement memory. (APA; Protégé effect)",
+        "Take brief movement breaks to reset attention. (NIH; CDC Physical Activity)",
+        "Sleep 7–9 hours; sleep consolidates memory. (Sleep Foundation; NIH)",
+        "Use dual coding (words + visuals) for complex concepts. (Paivio; APA)"
       ],
       "negative": [
-        "Try active study methods like summarizing or teaching someone else. (APA, 2021)",
-        "Take breaks every 30-45 minutes to keep your mind fresh. (CDC, 2022)",
-        "Switch up your study environment to stay engaged. (Mayo Clinic, 2022)"
+        "Swap passive rereading for practice problems or summarizing. (Dunlosky; APA)",
+        "Study in shorter, focused blocks to reduce burnout. (APA; Pomodoro technique)",
+        "Change study locations to reduce context dependency. (Environmental context; APA)",
+        "Make a quick plan: objectives, methods, and time windows. (APA Goal Setting)",
+        "Use positive self-talk and normalize struggle in hard topics. (CBT; APA)",
+        "Ask for clarification and examples from instructors. (APA; CDC Education)"
       ]
     },
     "read": {
       "positive": [
-        "Reading for pleasure or learning is a great way to relax and expand your mind. (Sleep Foundation, 2022)",
-        "Reading before bed can help you wind down and improve sleep quality. (Sleep Foundation, 2022)",
-        "Joining a book club can make reading more social and fun. (APA, 2021)"
+        "Read in a quiet, comfortable space to deepen absorption. (APA Environmental Psych)",
+        "Use annotations or summaries to improve retention. (APA Learning Strategies)",
+        "Reading before bed can help you wind down. (Sleep Foundation, 2022)",
+        "Join a book club to add social engagement and accountability. (APA Social Support)",
+        "Alternate genres to keep interest high and broaden perspective. (APA; Literary studies)",
+        "Use short reading sprints for focus, then reflect. (APA; Metacognition)"
       ],
       "negative": [
-        "If reading feels tiring, try a different genre or read in a comfortable, quiet space. (Sleep Foundation, 2022)",
-        "Set small reading goals to avoid feeling overwhelmed. (APA, 2021)",
-        "Take breaks to rest your eyes and mind. (CDC, 2022)"
+        "Switch genres or formats (audiobook vs. print) to match energy levels. (APA; Accessibility research)",
+        "Set small reading goals (10–15 minutes) to avoid overwhelm. (APA Goal Setting)",
+        "Choose uplifting or interest-matched materials to improve mood. (APA Media Psychology)",
+        "Use eye breaks (20-20-20 rule) to reduce strain. (Optometry recommendations)",
+        "Read earlier in the evening to avoid late-night fatigue. (Sleep Foundation)",
+        "Pair reading with a comfortable routine (tea, calm music). (APA; Behavioral activation)"
       ]
     },
     "extracurricular": {
       "positive": [
-        "Participating in extracurriculars helps you build new skills and friendships. (CDC, 2022)",
-        "Balancing activities with schoolwork supports overall well-being. (APA, 2021)",
-        "Trying new activities can boost your confidence. (Mayo Clinic, 2022)"
+        "Select activities aligned with your interests and strengths. (APA Strengths; VIA)",
+        "Keep a balanced schedule to avoid overload. (APA Stress Management)",
+        "Set goals and reflect on growth periodically. (APA Goal Setting)",
+        "Engage socially; extracurriculars foster belonging. (CDC Social Health)",
+        "Rotate activities seasonally to maintain novelty. (APA Motivation)",
+        "Track time spent to avoid crowding academics. (Time Management; APA)"
       ],
       "negative": [
-        "If you're feeling overwhelmed, consider limiting activities to what you enjoy most. (CDC, 2022)",
-        "Prioritize your time and don't be afraid to say no to extra commitments. (APA, 2021)",
-        "Schedule downtime to recharge between activities. (Mayo Clinic, 2022)"
+        "Prioritize the activities that energize you most. (APA Self-Determination Theory)",
+        "Cut back temporarily if feeling overwhelmed. (APA Stress Reduction)",
+        "Schedule decompression windows between events. (NIOSH; APA)",
+        "Communicate boundaries with organizers. (APA Assertiveness)",
+        "Seek mentorship to navigate challenges. (APA; CDC Youth Development)",
+        "Shift to low-effort, high-meaning activities while recovering. (Behavioral Activation; APA)"
       ]
     },
     "household-chores": {
       "positive": [
-        "Completing chores can give a sense of accomplishment and keep your space organized. (APA, 2021)",
-        "Doing chores together with family can make them more enjoyable. (CDC, 2022)",
-        "Listening to music while cleaning can make chores feel less tedious. (Mayo Clinic, 2022)"
+        "Play energizing music and set a timer to boost flow. (APA; Behavioral activation)",
+        "Batch chores (cleaning, laundry) to reduce switching cost. (Human Factors; APA)",
+        "Use a simple checklist to visualize completion. (APA Goal Setting)",
+        "Pair chores with light movement for extra health benefits. (CDC, 2022)",
+        "Do chores together to add social support and fun. (CDC Social; APA)",
+        "Reward completion with a relaxing break. (Behavioral Psychology; APA)"
       ],
       "negative": [
-        "Try setting a timer and playing music to make chores more enjoyable. (APA, 2021)",
-        "Break chores into smaller tasks and tackle them one at a time. (CDC, 2022)",
-        "Reward yourself after finishing chores to stay motivated. (Mayo Clinic, 2022)"
+        "Break chores into tiny tasks and start with the easiest. (Behavioral Activation; APA)",
+        "Use timeboxing (10–15 minutes) to reduce avoidance. (APA; Productivity research)",
+        "Declutter one small area to gain momentum. (APA; Environmental Psych)",
+        "Reduce distractions (phone away, TV off) for short bursts. (APA Attention)",
+        "Create a weekly chore schedule to distribute load. (APA Habit Formation)",
+        "Practice self-compassion—progress over perfection. (APA Self-Compassion)"
       ]
     },
     "relax": {
       "positive": [
-        "Taking time to relax is important for your mental health. Keep it up! (APA, 2021)",
-        "Practicing relaxation techniques like deep breathing can reduce stress. (APA, 2021)",
-        "Enjoying hobbies is a great way to relax and recharge. (Mayo Clinic, 2022)"
+        "Use guided breathing or body scans to deepen relaxation. (APA; NHS Mindfulness)",
+        "Schedule regular micro-breaks to prevent fatigue. (NIOSH; APA)",
+        "Pair relaxing activities with gentle movement (stretching). (CDC; NIH)",
+        "Journal briefly to externalize stress and process emotions. (APA Expressive Writing)",
+        "Use progressive muscle relaxation to reduce tension. (APA; Edmund Jacobson)",
+        "Protect relaxation time with boundaries in your calendar. (APA Stress Management)"
       ],
       "negative": [
-        "If relaxing is hard, try mindfulness or guided meditation apps. (APA, 2021)",
-        "Schedule regular breaks to unwind during your day. (CDC, 2022)",
-        "Engage in creative activities like drawing or music to relax. (Mayo Clinic, 2022)"
+        "Try a short beginner meditation or guided app session. (APA; NHS)",
+        "Use a 5-minute breath focus to pivot mood. (APA Anxiety tools)",
+        "Practice self-compassion and allow rest without guilt. (Neff; APA)",
+        "Switch to a relaxing hobby (drawing, music) that feels engaging. (APA Behavioral Activation)",
+        "Lower screen time before relaxation to reduce stimulation. (Sleep Foundation; WHO)",
+        "Set a consistent wind-down routine in the evening. (Sleep Hygiene; NIH)"
       ]
     },
     "watch-movie": {
       "positive": [
-        "Watching movies can be a fun way to unwind. Enjoy your downtime! (APA, 2021)",
-        "Sharing movies with friends or family can strengthen bonds. (CDC, 2022)",
-        "Watching uplifting or funny movies can boost your mood. (APA, 2021)"
+        "Choose uplifting or humorous content to reinforce positive affect. (APA Media Psychology)",
+        "Share the experience with friends/family to add social benefit. (CDC Social Health)",
+        "Schedule movies earlier to avoid late-night stimulation. (Sleep Foundation)",
+        "Pair viewing with light stretching breaks. (NIH; CDC)",
+        "Reflect briefly after about what resonated and why. (APA Metacognition)",
+        "Curate a watchlist aligned with values/interests. (APA Positive Psych)"
       ],
       "negative": [
-        "If you feel down after watching, choose uplifting or funny movies. (APA, 2021)",
-        "Limit screen time before bed to improve sleep quality. (Sleep Foundation, 2022)",
-        "Take breaks between movies to move around and rest your eyes. (CDC, 2022)"
+        "Switch to lighter or uplifting content if mood dips. (APA Media Psychology)",
+        "Limit screen time before bed to protect sleep quality. (Sleep Foundation; WHO)",
+        "Take short breaks to move and rest eyes. (CDC; Optometry)",
+        "Avoid doom-scrolling or heavy news right before/after. (APA; WHO)",
+        "Watch with someone supportive to reframe and discuss. (APA Social Support)",
+        "Use blue-light filters in evening viewing. (Sleep Hygiene; NIH)"
       ]
     },
     "listen-music": {
       "positive": [
-        "Listening to music can boost your mood and help you relax. (APA, 2021)",
-        "Creating playlists of your favorite songs can be uplifting. (Mayo Clinic, 2022)",
-        "Music can help you focus during study or chores. (APA, 2021)"
+        "Curate mood-boost playlists; use them proactively. (APA Music Therapy references)",
+        "Use calming tracks for study or wind-down. (APA; Sleep Foundation)",
+        "Explore new genres to renew enjoyment and novelty. (APA Motivation)",
+        "Combine music with light activity (walks) to amplify mood lift. (CDC; APA)",
+        "Use lyrics-free tracks to aid focus when needed. (APA Attention; Productivity research)",
+        "Share music with friends to add social benefit. (CDC Social; APA)"
       ],
       "negative": [
-        "Try listening to your favorite upbeat songs or calming playlists. (APA, 2021)",
-        "Explore new genres to find music that lifts your spirits. (Mayo Clinic, 2022)",
-        "Use music as a background for relaxation or meditation. (APA, 2021)"
+        "Switch to calming playlists and slow tempos to reduce arousal. (Music Therapy; APA)",
+        "Limit intense or negative lyrical content when down. (APA Media Psychology)",
+        "Try guided soundscapes or instrumental for relaxation. (APA; NHS)",
+        "Use short listening sessions with intention (goal: calm). (APA Mindfulness)",
+        "Pair music with diaphragmatic breathing. (APA Anxiety tools)",
+        "Journal mood before/after to tailor future choices. (APA Self-Monitoring)"
       ]
     },
     "gaming": {
       "positive": [
-        "Gaming can be a fun way to connect with friends and relax. (APA, 2021)",
-        "Playing games in moderation can improve problem-solving skills. (CDC, 2022)",
-        "Cooperative games can strengthen teamwork and communication. (APA, 2021)"
+        "Prefer cooperative/creative modes to support relatedness and competence. (Self-Determination Theory; APA)",
+        "Set clear session limits to avoid fatigue. (NIH; APA)",
+        "Play with supportive friends to add social benefits. (CDC Social Health)",
+        "Choose games that match your current energy and focus. (APA Motivation; Flow)",
+        "Take movement/eye breaks every 45–60 minutes. (NIH; CDC)",
+        "Reflect on skill growth and achievements to reinforce positive impact. (APA Positive Psych)"
       ],
       "negative": [
-        "If gaming feels frustrating, take breaks and try cooperative games. (APA, 2021)",
-        "Set time limits to balance gaming with other activities. (CDC, 2022)",
-        "Choose games that are fun and not overly competitive. (APA, 2021)"
+        "Switch to cooperative or low-stress games when feeling down. (APA Media Psychology)",
+        "Limit competitive or high-arousal modes temporarily. (APA; WHO Gaming balance)",
+        "Use timers and stick to shorter sessions. (APA; Productivity research)",
+        "Alternate with offline relaxing activities. (APA Behavioral Activation)",
+        "Mute toxicity; curate your online spaces. (APA Cyberpsychology)",
+        "If persistent mood drop, reduce playtime and monitor mood changes. (APA Self-Monitoring)"
       ]
     },
     "browse-internet": {
       "positive": [
-        "Browsing the internet can be informative and entertaining. (APA, 2021)",
-        "Use the internet to learn new skills or explore hobbies. (Mayo Clinic, 2022)",
-        "Connecting with friends online can support social well-being. (CDC, 2022)"
+        "Set a clear goal (learn, connect, relax) before browsing. (APA Goal Setting)",
+        "Follow quality sources to reduce misinformation stress. (WHO; CDC Media Literacy)",
+        "Schedule browsing windows to prevent spillover. (APA Time Management)",
+        "Use apps to track/limit time if needed. (Behavioral tools; APA)",
+        "Pair browsing with breaks to reset attention. (NIOSH; APA)",
+        "Curate feeds to emphasize uplifting/educational content. (APA Media Psychology)"
       ],
       "negative": [
-        "Limit screen time if you feel overwhelmed, and take breaks to move around. (CDC, 2022)",
-        "Be mindful of the content you consume and avoid negative news overload. (APA, 2021)",
-        "Schedule offline time to relax and recharge. (Mayo Clinic, 2022)"
+        "Reduce doom-scrolling; set limits on news/social when feeling low. (APA; WHO)",
+        "Take 5–10 minute offline breaks after extended browsing. (NIOSH; APA)",
+        "Mute or unfollow sources that harm mood. (APA Cyberpsychology)",
+        "Do a brief grounding exercise before/after heavy content. (APA Mindfulness)",
+        "Shift to offline hobbies for recovery. (APA Behavioral Activation)",
+        "Use bedtime cutoffs to protect sleep. (Sleep Foundation; NIH)"
       ]
     },
     "shopping": {
       "positive": [
-        "Shopping can be enjoyable and a way to treat yourself. (APA, 2021)",
-        "Shopping with friends or family can be a fun social activity. (CDC, 2022)",
-        "Making a list before shopping helps you stay organized. (Mayo Clinic, 2022)"
+        "Make lists and budgets to reduce decision fatigue. (APA Decision Science)",
+        "Shop with supportive friends/family to add social enjoyment. (CDC Social Health)",
+        "Choose off-peak hours to lower crowd stress. (Human Factors; APA)",
+        "Treat yourself within limits to maintain balance. (APA Self-Regulation)",
+        "Plan essentials ahead to prevent last-minute rushes. (APA; Time Management)",
+        "Use mindful purchasing—pause and reflect before buying. (APA Mindfulness)"
       ],
       "negative": [
-        "If shopping feels stressful, make a list and set a budget before you go. (APA, 2021)",
-        "Shop during less busy hours to avoid crowds and reduce stress. (CDC, 2022)",
-        "Take breaks if you feel overwhelmed while shopping. (Mayo Clinic, 2022)"
+        "Set a clear budget and stick to your list. (APA Financial Well-being)",
+        "Avoid crowded/overstimulating times if stressed. (Human Factors; APA)",
+        "Take breaks and hydrate to prevent fatigue. (CDC; WHO)",
+        "If mood dips, switch to a brief window-shopping or postpone. (APA Self-Regulation)",
+        "Use cash or set caps to reduce overspending guilt. (Behavioral Economics; APA)",
+        "Pair shopping with calming music and slow pacing. (APA; Mindfulness)"
       ]
     },
     "travel": {
       "positive": [
-        "Traveling exposes you to new experiences and cultures. Enjoy your journey! (CDC, 2022)",
-        "Planning ahead can make travel more enjoyable and less stressful. (APA, 2021)",
-        "Documenting your travels with photos or a journal can create lasting memories. (Mayo Clinic, 2022)"
+        "Plan ahead; build buffers and itinerary clarity. (APA Stress Reduction; PMI)",
+        "Use comfort items (water, snacks, neck pillow) to stabilize energy. (CDC Travel Health)",
+        "Practice light movement during long trips. (NIH; CDC)",
+        "Document highlights to build positive memory and meaning. (APA Positive Psych)",
+        "Use breathing or grounding in crowded transit. (APA Anxiety tools)",
+        "Sleep hygiene on trips to maintain mood stability. (Sleep Foundation; NIH)"
       ],
       "negative": [
-        "If travel is stressful, plan ahead and bring comfort items. (CDC, 2022)",
-        "Stay hydrated and take breaks during long trips. (Mayo Clinic, 2022)",
-        "Practice relaxation techniques if you feel anxious while traveling. (APA, 2021)"
+        "Prepare a simple coping plan for delays (plan B routes, snacks). (PMI Risk; APA)",
+        "Hydrate, stretch, and pace to lower physical stress. (CDC; NIH)",
+        "Lower stimulation (earplugs, eye mask) when fatigued. (WHO; Sleep Foundation)",
+        "Use short mindfulness practices during transit. (APA; NHS)",
+        "Travel with supportive company when possible. (CDC Social Health)",
+        "Limit heavy content consumption while stressed. (APA Media Psychology)"
       ]
     }
   },
   "Social": {
     "alone": {
       "positive": [
-        "Enjoying alone time is healthy and helps you recharge. (APA, 2021)",
-        "Use alone time for self-reflection or pursuing hobbies. (Mayo Clinic, 2022)",
-        "Practicing mindfulness alone can boost your well-being. (APA, 2021)"
+        "Use alone time for restorative activities (reading, nature). (APA; WHO Mental Health)",
+        "Practice mindfulness or gentle breathing to deepen calm. (APA; NHS)",
+        "Journal reflection to consolidate insights and goals. (APA; Positive Psych)",
+        "Plan small creative projects (art, music) that energize you. (APA Creativity Research)",
+        "Schedule boundaries to protect your recharge time. (APA Stress Management)",
+        "Balance alone time with periodic social contact. (CDC Social Health)"
       ],
       "negative": [
-        "If you feel lonely, reach out to a friend or join a group activity. (CDC, 2022)",
-        "Consider joining a club or online community to meet new people. (APA, 2021)",
-        "Volunteering can help you connect with others and feel more engaged. (Mayo Clinic, 2022)"
+        "Reach out to friends or join interest groups to reduce loneliness. (CDC; APA)",
+        "Try volunteer/community activities to build connection. (Mayo Clinic; APA)",
+        "Do short energizing activities outdoors to improve mood. (NIH; APA Nature and mental health)",
+        "Use guided meditations to stabilize emotions. (APA; NHS)",
+        "Plan one small social activity per week as a starter. (APA Behavioral Activation)",
+        "Seek support if loneliness persists. (APA; Mental Health services)"
       ]
     },
     "friends": {
       "positive": [
-        "Spending time with friends boosts happiness and reduces stress. (CDC, 2022)",
-        "Plan regular get-togethers to maintain strong friendships. (APA, 2021)",
-        "Share your feelings with friends for emotional support. (Mayo Clinic, 2022)"
+        "Plan regular check-ins or activities to maintain bonds. (APA Social Support)",
+        "Share appreciation and positive feedback to deepen connection. (APA Positive Psych)",
+        "Engage in cooperative tasks or games to strengthen teamwork. (APA Group Dynamics)",
+        "Use active listening to boost relationship quality. (APA Communication)",
+        "Balance digital and in-person interactions. (APA Cyberpsychology; CDC)",
+        "Protect friendship time with calendar boundaries. (APA Stress Management)"
       ],
       "negative": [
-        "If you're feeling left out, try inviting a friend to do something you enjoy. (APA, 2021)",
-        "Communicate openly with friends to resolve misunderstandings. (CDC, 2022)",
-        "Join new groups or clubs to expand your social circle. (Mayo Clinic, 2022)"
+        "Address misunderstandings with open, respectful dialogue. (APA Communication)",
+        "Invite a friend for a simple activity you enjoy. (CDC Social Health)",
+        "Expand circle via clubs or classes if feeling left out. (APA; CDC Youth Development)",
+        "Practice empathy and perspective-taking. (APA Social Psych)",
+        "Set healthy boundaries to prevent burnout. (APA; WHO)",
+        "Seek support if conflicts persist. (Counseling; APA)"
       ]
     },
     "family": {
       "positive": [
-        "Family support is important for well-being. Cherish your moments together. (CDC, 2022)",
-        "Plan family activities to strengthen your bond. (APA, 2021)",
-        "Express gratitude to family members for their support. (Mayo Clinic, 2022)"
+        "Plan shared activities and mealtimes to build connection. (CDC Family Health)",
+        "Express gratitude and recognition regularly. (APA Positive Psych)",
+        "Use calm communication techniques during conflicts. (APA Family Therapy basics)",
+        "Balance shared time with personal space. (APA Boundaries)",
+        "Create small traditions to reinforce belonging. (Family Studies; APA)",
+        "Practice problem-solving together for household matters. (APA Communication)"
       ],
       "negative": [
-        "If family time is tense, try open communication or take a short break to cool off. (APA, 2021)",
-        "Set boundaries to maintain healthy family relationships. (CDC, 2022)",
-        "Seek support from a counselor if family issues persist. (Mayo Clinic, 2022)"
+        "Use time-outs and cooling-off periods if tension rises. (APA Anger Management)",
+        "Set clear boundaries and expectations. (APA; WHO)",
+        "Seek mediation or counseling if issues persist. (APA Family Therapy)",
+        "Focus discussions on behaviors, not personal attacks. (APA Communication)",
+        "Plan short, positive interactions to rebuild trust. (APA Relationship repair)",
+        "Engage neutral activities (walks, games) to reset. (CDC; APA)"
       ]
     },
     "classmates": {
       "positive": [
-        "Working with classmates can make learning more enjoyable. (APA, 2021)",
-        "Collaborative projects can help you develop teamwork skills. (CDC, 2022)",
-        "Share study tips with classmates to support each other. (Mayo Clinic, 2022)"
+        "Use clear goals and roles in group work. (APA Group Dynamics)",
+        "Share study tips and resources to support each other. (APA Learning; CDC)",
+        "Rotate tasks to develop varied skills. (Education research; APA)",
+        "Practice respectful feedback and active listening. (APA Communication)",
+        "Celebrate milestones after submissions. (Positive Psych; APA)",
+        "Build peer networks for mutual support. (CDC; APA)"
       ],
       "negative": [
-        "If group work is challenging, set clear goals and communicate openly. (APA, 2021)",
-        "Divide tasks fairly to ensure everyone participates. (CDC, 2022)",
-        "Ask your teacher for guidance if group issues arise. (Mayo Clinic, 2022)"
+        "Set expectations early for fair contribution. (APA Group Dynamics)",
+        "Communicate concerns promptly and constructively. (APA Communication)",
+        "Ask instructors for guidance when blocked. (CDC Education; APA)",
+        "Document task agreements to prevent confusion. (PMI; APA)",
+        "Use brief check-ins to avoid last-minute rush. (Time Management; APA)",
+        "Keep focus on shared goals and mutual respect. (APA Group Process)"
       ]
     },
     "relationship": {
       "positive": [
-        "Healthy relationships provide support and joy. Keep nurturing your connections. (APA, 2021)",
-        "Express appreciation and listen actively to your partner. (Mayo Clinic, 2022)",
-        "Spend quality time together to strengthen your bond. (CDC, 2022)"
+        "Use active listening and empathy to strengthen bonds. (APA Couples Therapy)",
+        "Schedule quality time and shared activities. (APA Relationship research)",
+        "Express appreciation and small acts of kindness. (Positive Psych; APA)",
+        "Discuss needs and boundaries openly. (APA Communication)",
+        "Practice repair attempts after conflict. (Gottman Method; APA references)",
+        "Balance attachment and autonomy. (Attachment Theory; APA)"
       ],
       "negative": [
-        "If you're having relationship issues, talk openly and listen to each other. (APA, 2021)",
-        "Seek support from trusted friends or a counselor if needed. (Mayo Clinic, 2022)",
-        "Practice empathy and patience during disagreements. (CDC, 2022)"
+        "Use calm, non-accusatory language during conflict. (APA Communication)",
+        "Take breaks if discussions become heated. (APA Anger Management)",
+        "Seek counseling if patterns persist. (APA; NHS)",
+        "Clarify expectations and negotiate compromises. (APA Relationship skills)",
+        "Avoid harsh start-ups; begin gently. (Gottman research; APA)",
+        "Focus on specific behaviors, not character judgments. (APA Communication)"
       ]
     },
     "pet": {
       "positive": [
-        "Spending time with pets can reduce stress and boost mood. (CDC, 2022)",
-        "Playing with your pet is a great way to relax. (APA, 2021)",
-        "Caring for a pet can teach responsibility and empathy. (Mayo Clinic, 2022)"
+        "Schedule regular play to boost mood and connection. (CDC; APA Anthrozoology)",
+        "Use simple training for engagement and bonding. (Behavioral research; APA)",
+        "Routine care reduces stress and supports wellbeing. (CDC; WHO)",
+        "Go outdoors together for activity and sunlight. (NIH; CDC)",
+        "Share pet moments with friends/family to add social joy. (CDC Social Health)",
+        "Track care tasks to keep consistency. (APA Habit Formation)"
       ],
       "negative": [
-        "If caring for a pet feels overwhelming, ask for help or take short breaks. (CDC, 2022)",
-        "Establish a routine for pet care to make it easier. (APA, 2021)",
-        "Join online pet owner communities for support and advice. (Mayo Clinic, 2022)"
+        "Simplify routines; prioritize essentials during low energy days. (APA Self-Regulation)",
+        "Ask for help from family/friends when overwhelmed. (CDC; APA)",
+        "Do short play or gentle walks to maintain connection. (NIH; APA)",
+        "Use calm environments to reduce sensory overload. (NIOSH; APA)",
+        "Join supportive online communities for tips and morale. (APA Cyberpsychology)",
+        "Consult a vet or trainer for persistent issues. (CDC; Professional guidance)"
       ]
     }
   },
   "Health": {
     "jog": {
       "positive": [
-        "Jogging is great for your physical and mental health. Keep it up! (CDC, 2022)",
-        "Running outdoors can boost your mood and energy. (APA, 2021)",
-        "Track your progress to stay motivated. (Mayo Clinic, 2022)"
+        "Follow gradual progression (10% rule) to avoid injury and sustain habit. (ACSM; CDC, 2022)",
+        "Warm-up and cool-down to improve performance and recovery. (ACSM; NIH)",
+        "Track distance/time to reinforce progress. (Behavioral Psych; APA)",
+        "Hydrate and fuel appropriately for energy. (CDC Nutrition; WHO)",
+        "Use scenic paths to increase enjoyment. (APA Environmental Psych)",
+        "Pair jogging with music that fits pace. (APA; Performance psychology)"
       ],
       "negative": [
-        "If jogging feels tough, try a lighter walk or stretch instead. (CDC, 2022)",
-        "Set realistic goals and increase your distance gradually. (APA, 2021)",
-        "Stay hydrated and wear comfortable shoes to prevent injury. (Mayo Clinic, 2022)"
+        "Switch to brisk walking or low-impact activity when fatigued. (CDC; WHO)",
+        "Set small, realistic targets to rebuild consistency. (APA Goal Setting)",
+        "Check footwear and surfaces to reduce discomfort. (NIH; ACSM)",
+        "Stretch lightly; consider mobility work. (NIH; ACSM)",
+        "Track mood and energy to adjust training. (APA Self-Monitoring)",
+        "Consult a professional if pain persists. (CDC; Clinical guidance)"
       ]
     },
     "walk": {
       "positive": [
-        "Walking is a simple way to stay active and clear your mind. (CDC, 2022)",
-        "Invite a friend for a walk to make it more enjoyable. (APA, 2021)",
-        "Walking in nature can reduce stress and improve mood. (Mayo Clinic, 2022)"
+        "Aim for 150+ minutes/week of moderate activity. (CDC Physical Activity Guidelines, 2022)",
+        "Add nature walks for extra mood benefits. (APA; NIH)",
+        "Walk with a friend for social and accountability boosts. (CDC Social Health)",
+        "Use intervals (fast/slow) for variety. (ACSM; CDC)",
+        "Wear supportive shoes and hydrate. (NIH; ACSM)",
+        "Track steps for feedback and motivation. (Behavioral Psych; APA)"
       ],
       "negative": [
-        "If walking feels boring, listen to music or podcasts. (CDC, 2022)",
-        "Try exploring new routes to keep walks interesting. (APA, 2021)",
-        "Set small goals to gradually increase your activity. (Mayo Clinic, 2022)"
+        "Try shorter, more frequent walks if long ones feel hard. (CDC; APA)",
+        "Explore new routes to keep engagement up. (APA Motivation)",
+        "Pair walking with uplifting audio. (APA Media Psychology)",
+        "Schedule walks at consistent times to build habit. (APA Habit Formation)",
+        "Do gentle stretches post-walk if stiff. (NIH; ACSM)",
+        "Use indoor options if weather or safety is an issue. (CDC; WHO)"
       ]
     },
     "exercise": {
       "positive": [
-        "Regular exercise boosts mood and energy. Great job! (CDC, 2022)",
-        "Mixing different types of exercise can keep things fun. (APA, 2021)",
-        "Exercise with friends for extra motivation. (Mayo Clinic, 2022)"
+        "Mix cardio, strength, and flexibility weekly. (CDC; ACSM)",
+        "Progress gradually and track workouts. (ACSM; APA)",
+        "Use buddy systems or classes to boost adherence. (CDC Social Health)",
+        "Fuel and hydrate to support performance. (CDC Nutrition; WHO)",
+        "Recover adequately and sleep well. (Sleep Foundation; NIH)",
+        "Celebrate small milestones regularly. (Positive Psych; APA)"
       ],
       "negative": [
-        "Start with short, easy exercises and build up gradually. (CDC, 2022)",
-        "Find activities you enjoy to make exercise less of a chore. (APA, 2021)",
-        "Celebrate small achievements to stay motivated. (Mayo Clinic, 2022)"
+        "Start with short, low-intensity sessions and build up. (CDC; ACSM)",
+        "Choose enjoyable forms to reduce resistance. (APA Motivation; SDT)",
+        "Use checklists or apps to plan sessions. (APA Time Management)",
+        "Be self-compassionate if you miss days; resume gently. (APA Self-Compassion)",
+        "Stretch or do mobility routines on off days. (ACSM; NIH)",
+        "Consult professionals for persistent pain or barriers. (CDC; Clinical guidance)"
       ]
     },
     "meditate": {
       "positive": [
-        "Meditation helps reduce stress and improve focus. Keep practicing! (APA, 2021)",
-        "Try different meditation techniques to find what works best for you. (Mayo Clinic, 2022)",
-        "Regular meditation can improve sleep and mood. (Sleep Foundation, 2022)"
+        "Practice 5–10 minutes daily to build consistency. (APA; NHS Mindfulness)",
+        "Try different styles (breath, body scan, loving-kindness). (APA; MBSR)",
+        "Use guided sessions to deepen practice. (APA; NHS)",
+        "Pair with gentle stretching before/after. (NIH; CDC)",
+        "Keep non-judgmental awareness and patience. (APA Mindfulness)",
+        "Track mood changes to tailor sessions. (APA Self-Monitoring)"
       ],
       "negative": [
-        "Try guided meditation apps or short breathing exercises. (APA, 2021)",
-        "Start with just a few minutes a day and gradually increase. (Mayo Clinic, 2022)",
-        "Practice mindfulness during daily activities for added benefit. (CDC, 2022)"
+        "Start very short (2–3 minutes) if longer feels hard. (APA; Behavior shaping)",
+        "Use apps with beginner programs. (APA; NHS)",
+        "Shift to calming activities (walks, music) on tough days. (APA Behavioral Activation)",
+        "Practice breathing techniques during daily tasks. (APA Anxiety tools)",
+        "Avoid self-criticism; progress comes with practice. (APA Self-Compassion)",
+        "Seek guidance if distress increases. (APA; Clinical support)"
       ]
     },
     "sports": {
       "positive": [
-        "Playing sports is a fun way to stay fit and make friends. (CDC, 2022)",
-        "Team sports can improve communication and leadership skills. (APA, 2021)",
-        "Enjoy the game and focus on having fun. (Mayo Clinic, 2022)"
+        "Focus on learning and teamwork, not just outcomes. (APA Sport Psych)",
+        "Warm-up, cool-down, and hydrate for performance. (ACSM; CDC)",
+        "Use positive self-talk and visualization. (APA Performance Psych)",
+        "Set skill goals and monitor progress. (APA Goal Setting)",
+        "Balance training load with rest. (NIH; ACSM)",
+        "Foster supportive team culture. (APA Group Dynamics)"
       ],
       "negative": [
-        "If sports feel stressful, focus on learning and improving rather than winning. (CDC, 2022)",
-        "Talk to your coach or teammates if you're feeling pressure. (APA, 2021)",
-        "Remember to warm up and cool down to prevent injuries. (Mayo Clinic, 2022)"
+        "Reframe pressure and seek coach feedback. (APA Sport Psych)",
+        "Use stress management techniques pre-game. (APA Anxiety tools)",
+        "Cross-train or reduce intensity if fatigued. (ACSM; CDC)",
+        "Address conflicts with calm communication. (APA Communication)",
+        "Prioritize recovery for mood stability. (NIH; Sleep Foundation)",
+        "Consult professionals for persistent performance anxiety. (APA; Clinical support)"
       ]
     },
     "eat-healthy": {
       "positive": [
-        "Eating healthy supports your body and mind. Keep making good choices! (CDC, 2022)",
-        "Try new healthy recipes to keep meals interesting. (Mayo Clinic, 2022)",
-        "Plan meals ahead to maintain healthy eating habits. (APA, 2021)"
+        "Follow balanced plates: fruits/veg, whole grains, lean proteins. (CDC; WHO Nutrition)",
+        "Plan meals ahead to reduce stress and improve choices. (APA Time Management)",
+        "Hydrate and limit sugary beverages. (CDC; WHO)",
+        "Add fiber-rich foods for energy stability. (NIH; CDC)",
+        "Experiment with healthy recipes to keep meals interesting. (Mayo Clinic; APA)",
+        "Practice mindful eating to enjoy and regulate intake. (APA Mindfulness)"
       ],
       "negative": [
-        "Try adding more fruits and veggies to your meals. Small changes help! (CDC, 2022)",
-        "Limit sugary drinks and snacks for better energy. (Mayo Clinic, 2022)",
-        "Prepare healthy snacks in advance to avoid unhealthy choices. (APA, 2021)"
+        "Make gradual substitutions (water for soda, fruits for candy). (CDC; WHO)",
+        "Prepare easy healthy snacks (nuts, yogurt, fruit). (NIH; CDC)",
+        "Limit ultra-processed foods; read labels. (WHO; CDC)",
+        "Keep regular meal times to stabilize energy. (NIH; Sleep Foundation)",
+        "Use smaller portions and slow eating pace. (APA Mindful Eating)",
+        "Consult a professional for tailored guidance if needed. (Registered Dietitian; CDC)"
       ]
     },
     "no-physical": {
       "positive": [
-        "Rest days are important for recovery. Listen to your body. (CDC, 2022)",
-        "Use rest days for gentle stretching or mindfulness. (APA, 2021)",
-        "Enjoy relaxing activities like reading or listening to music. (Mayo Clinic, 2022)"
+        "Use rest days for recovery and gentle mobility. (ACSM; NIH)",
+        "Practice light stretching or mindful breathing. (APA; CDC)",
+        "Engage in relaxing hobbies to restore mental energy. (APA; Positive Psych)",
+        "Go outside briefly for sunlight and mood lift. (NIH; APA)",
+        "Plan your next activity day to build anticipation. (APA Goal Setting)",
+        "Keep hydration and sleep consistent. (Sleep Foundation; CDC)"
       ],
       "negative": [
-        "Try gentle stretching or a short walk to boost your energy. (CDC, 2022)",
-        "Set a reminder to move every hour, even if just for a few minutes. (APA, 2021)",
-        "Start with light activities and gradually increase your movement. (Mayo Clinic, 2022)"
+        "Start with very light movement (5–10 minutes). (CDC; ACSM)",
+        "Set small, realistic activity goals. (APA Goal Setting)",
+        "Use reminders to move briefly each hour. (NIOSH; APA)",
+        "Pair movement with music for enjoyment. (APA Behavioral Activation)",
+        "Track mood and energy—celebrate tiny wins. (APA Self-Monitoring)",
+        "Consult professionals if barriers persist. (CDC; Clinical guidance)"
       ]
     },
     "eat-unhealthy": {
       "positive": [
-        "It's okay to enjoy treats sometimes. Balance is key! (CDC, 2022)",
-        "Pair treats with healthy foods for a balanced diet. (Mayo Clinic, 2022)",
-        "Practice mindful eating to enjoy your food more. (APA, 2021)"
+        "Balance treats with healthy meals; avoid all-or-nothing thinking. (APA Self-Regulation; CDC)",
+        "Practice portion control to enjoy without overdoing. (WHO; CDC)",
+        "Pair treats with protein or fiber to stabilize energy. (NIH; CDC)",
+        "Schedule treat windows to reduce impulsive snacking. (Behavioral Economics; APA)",
+        "Savor slowly to increase satisfaction. (APA Mindful Eating)",
+        "Offset with hydration and activity later. (CDC; WHO)"
       ],
       "negative": [
-        "Try to limit junk food and choose healthier snacks when possible. (CDC, 2022)",
-        "Replace sugary drinks with water or herbal tea. (Mayo Clinic, 2022)",
-        "Plan your meals to avoid last-minute unhealthy choices. (APA, 2021)"
+        "Plan meals/snacks to avoid last-minute choices. (CDC; APA)",
+        "Swap a few items for healthier options progressively. (WHO; CDC)",
+        "Keep tempting foods out of immediate reach. (Behavioral Psych; APA)",
+        "Use mindful eating to recognize fullness. (APA; NIH)",
+        "Hydrate and add fruits/veg to rebalance. (CDC; WHO)",
+        "Seek nutrition guidance if patterns persist. (Registered Dietitian; CDC)"
       ]
     }
   },
   "Sleep": {
     "less": [
-      "Try to get at least 7-8 hours of sleep for better mood and focus. (Sleep Foundation, 2022)",
-      "Establish a relaxing bedtime routine to improve your sleep quality. (Sleep Foundation, 2022)",
-      "Limit screen time before bed to help you fall asleep faster. (CDC, 2022)",
-      "Keep your sleep schedule consistent, even on weekends. (Sleep Foundation, 2022)"
+      "Aim for 7–9 hours; prioritize consistent bed/wake times. (Sleep Foundation, 2022; NIH)",
+      "Create a wind-down routine (dim lights, calm audio). (Sleep Foundation; NHS)",
+      "Limit caffeine late in the day. (NIH; WHO)",
+      "Reduce screens 60 minutes before bed; use night mode if needed. (Sleep Foundation; WHO)",
+      "Keep bedroom cool, dark, and quiet. (Sleep Foundation; WHO)",
+      "Expose yourself to morning light to anchor circadian rhythm. (NIH; Sleep research)"
     ],
     "enough": [
-      "Great job maintaining healthy sleep habits! (Sleep Foundation, 2022)",
-      "Consistent sleep supports your mood and learning. (CDC, 2022)",
-      "Keep up your good sleep routine for lasting benefits. (Sleep Foundation, 2022)"
+      "Maintain your routine; protect sleep windows. (Sleep Foundation; NIH)",
+      "Keep consistent timing even on weekends. (Sleep Foundation; APA)",
+      "Use light stretching and breath exercises before bed if desired. (APA; NIH)",
+      "Avoid heavy meals and late intense exercise close to bedtime. (NIH; Sleep Foundation)",
+      "Monitor sleep quality and adjust environment (noise, light). (WHO; Sleep Foundation)",
+      "Continue balancing daytime activity and rest. (CDC; NIH)"
     ],
     "more": [
-      "Too much sleep can affect your mood. Try to keep a regular sleep schedule. (Sleep Foundation, 2022)",
-      "Stay active during the day to help regulate your sleep. (CDC, 2022)",
-      "If you feel tired despite sleeping a lot, talk to a healthcare provider. (Sleep Foundation, 2022)"
+      "If oversleeping, set consistent alarms and morning activity. (Sleep Foundation; NIH)",
+      "Increase daytime light and movement to regulate rhythm. (CDC; WHO)",
+      "Assess stress/schedule; oversleeping may signal imbalance. (APA; NIH)",
+      "Avoid excessive naps; keep naps short and early. (Sleep Foundation)",
+      "Talk to a provider if excessive sleep persists with fatigue. (NIH; Clinical guidance)",
+      "Gradually adjust bedtime/wake time to desired schedule. (Sleep Foundation; APA)"
     ]
   }
 }

@@ -58,12 +58,31 @@ function computeTopListsFromMeans(means = {}, counts = {}, minN = 2, limit = 5) 
   return { topPositive, topNegative };
 }
 
-// Pick saved means/counts, else backfilled ones
-function pickSavedOrBackfill(saved = {}, backfill = {}) {
-  return (saved && Object.keys(saved).length > 0) ? saved : backfill;
+// Strictly filter groups by local counts (>=2)
+function sanitizeByCounts(dataMap) {
+  const counts = Object.fromEntries(Object.entries(dataMap).map(([k, arr]) => [k, (arr?.length || 0)]));
+  const included = Object.keys(counts).filter(k => counts[k] >= 2);
+  return { counts, included };
 }
 
-// Always build frontend payload for a saved record with backfilled means/counts (USING RANGE)
+// Build latest MoodScore _id per activity from docs
+function buildLatestIdsMap(docs = []) {
+  const latestByAct = {};
+  for (const d of docs) {
+    const a = d.activity || 'unknown';
+    const ts = new Date(d.date).getTime();
+    const prevTs = latestByAct[a]?.ts ?? -Infinity;
+    if (ts >= prevTs) {
+      latestByAct[a] = { id: d._id, ts };
+    }
+  }
+  const map = {};
+  Object.entries(latestByAct).forEach(([a, v]) => { map[a] = v.id; });
+  return map;
+}
+
+// Build payload from a saved snapshot, but re-check counts using live MoodScore docs (min 2 per activity)
+// Also compute groupLastIds strictly from MoodScore docs within the day.
 async function buildSavedPayload(userId, startDate, nextDate, category) {
   const saved = await AnovaResult.findOne({
     user: userId,
@@ -72,15 +91,76 @@ async function buildSavedPayload(userId, startDate, nextDate, category) {
   }).lean();
   if (!saved) return null;
 
-  const docs = await MoodScore.find({
+  const gmRaw = saved.anova?.groupMeans || {};
+  const gcRaw = saved.anova?.groupCounts || {};
+
+  // Rebuild true counts and collect today's MoodScore docs for this category
+  const msDocs = await MoodScore.find({
     user: userId,
     date: { $gte: startDate, $lt: nextDate },
     category
-  }).lean();
+  }).select('activity date moodScore').lean();
 
-  const { groupMeans, groupCounts } = computeMeansAndCountsFromDocs(docs);
-  const gm = pickSavedOrBackfill(saved.anova?.groupMeans, groupMeans);
-  const gc = pickSavedOrBackfill(saved.anova?.groupCounts, groupCounts);
+  const trueCounts = {};
+  for (const d of msDocs) {
+    const a = d.activity || 'unknown';
+    trueCounts[a] = (trueCounts[a] || 0) + 1;
+  }
+
+  // Allowed = strictly those with true count ≥2 today
+  const allowed = Object.keys(trueCounts).filter(a => (trueCounts[a] || 0) >= 2);
+  const allowSet = new Set(allowed);
+
+  // Build means/counts restricted to allowed
+  const groupMeans = {};
+  const groupCounts = {};
+  for (const g of allowSet) {
+    if (typeof gmRaw[g] === 'number') groupMeans[g] = gmRaw[g];
+    if (typeof trueCounts[g] === 'number') groupCounts[g] = trueCounts[g];
+  }
+
+  // Filter Tukey rows to allowed set
+  const tukeyHSD = normalizeTukey(saved.tukeyHSD || []).filter(r => allowSet.has(r.group1) && allowSet.has(r.group2));
+
+  // Always recompute top lists from filtered means/counts (ignore saved lists)
+  const { topPositive, topNegative } = computeTopListsFromMeans(groupMeans, groupCounts);
+
+  // Build ignoredGroups list for transparency (anything seen but not allowed)
+  const allSeen = new Set([
+    ...Object.keys(gcRaw),
+    ...Object.keys(trueCounts),
+    ...Object.keys(gmRaw)
+  ]);
+  const ignoredGroups = [...allSeen].filter(g => !allowSet.has(g));
+
+  // groupLastIds (latest MoodScore id per activity for that day), restricted to allowed
+  const msDocsWithIds = await MoodScore.find({
+    user: userId,
+    date: { $gte: startDate, $lt: nextDate },
+    category
+  }).select('activity date _id').lean();
+  const latestIdsMap = buildLatestIdsMap(msDocsWithIds);
+  const groupLastIds = {};
+  for (const g of allowSet) {
+    if (latestIdsMap[g]) groupLastIds[g] = latestIdsMap[g];
+  }
+
+  // If nothing has ≥2 today, return an insufficient payload
+  if (allowed.length === 0) {
+    return {
+      insufficient: true,
+      message: 'Not enough logs per activity (need ≥2 each).',
+      includedGroups: [],
+      ignoredGroups,
+      tukeyHSD: [],
+      tukeyInfo: saved.anova?.tukeyInfo || {},
+      groupMeans: {},
+      groupCounts: {},
+      groupLastIds: {},
+      topPositive: [],
+      topNegative: []
+    };
+  }
 
   return {
     success: true,
@@ -89,12 +169,15 @@ async function buildSavedPayload(userId, startDate, nextDate, category) {
     MSB: saved.anova?.MSB,
     MSW: saved.anova?.MSW,
     interpretation: saved.anova?.interpretation,
-    includedGroups: saved.anova?.includedGroups || [],
-    ignoredGroups: saved.anova?.ignoredGroups || [],
-    tukeyHSD: normalizeTukey(saved.tukeyHSD || []),
+    includedGroups: [...allowSet],
+    ignoredGroups,
+    tukeyHSD,
     tukeyInfo: saved.anova?.tukeyInfo || {},
-    groupMeans: gm,
-    groupCounts: gc
+    groupMeans,
+    groupCounts,
+    groupLastIds,
+    topPositive,
+    topNegative
   };
 }
 
@@ -114,7 +197,7 @@ exports.runAnovaForUser = async (req, res) => {
       date: { $gte: targetDate, $lt: nextDate }
     });
 
-    // If no logs, return saved payloads for all categories (RANGE)
+    // If no logs, return saved payloads (filtered to true counts ≥2) + sleep if present
     if (!logs || logs.length === 0) {
       const anovaResultsForFrontend = {};
       for (const cat of categories) {
@@ -171,7 +254,7 @@ exports.runAnovaForUser = async (req, res) => {
     });
 
     if (sleepHours !== null && sleepMoodScore !== null) {
-      // Use date RANGE for upsert to avoid time equality issues
+      // Use date RANGE for upsert
       const sleepScore = await MoodScore.findOneAndUpdate(
         { user: userId, category: 'sleep', activity: 'sleep', date: { $gte: targetDate, $lt: nextDate } },
         { $set: { moodScore: sleepMoodScore, sleepHours, sleepQuality }, $setOnInsert: { date: targetDate } },
@@ -209,6 +292,7 @@ exports.runAnovaForUser = async (req, res) => {
         category
       });
 
+      // Build arrays for Python
       const dataForPython = { data: { [category]: {} } };
       moodScores.forEach(doc => {
         const activityName = doc.activity || 'unknown';
@@ -216,10 +300,30 @@ exports.runAnovaForUser = async (req, res) => {
         dataForPython.data[category][activityName].push(doc.moodScore);
       });
 
-      // If no groups, return saved payload (RANGE)
-      if (!Object.keys(dataForPython.data[category]).length) {
+      const groupsMap = dataForPython.data[category];
+
+      // If no groups, return saved payload (filtered to true counts ≥2)
+      if (!Object.keys(groupsMap).length) {
         const payload = await buildSavedPayload(userId, targetDate, nextDate, category);
         if (payload) anovaResultsForFrontend[category] = payload;
+        continue;
+      }
+
+      // Local counts and included groups (min 2)
+      const { counts: localCounts, included: localIncluded } = sanitizeByCounts(groupsMap);
+
+      // If nothing with ≥2 logs, use saved payload or mark insufficient
+      if (localIncluded.length === 0) {
+        const payload = await buildSavedPayload(userId, targetDate, nextDate, category);
+        if (payload) {
+          anovaResultsForFrontend[category] = payload;
+          continue;
+        }
+        anovaResultsForFrontend[category] = {
+          insufficient: true,
+          message: 'Not enough logs per activity (need ≥2 each).',
+          ignoredGroups: Object.keys(localCounts)
+        };
         continue;
       }
 
@@ -232,57 +336,63 @@ exports.runAnovaForUser = async (req, res) => {
           'Content-Type': 'application/json',
           'Authorization': token
         },
-        body: JSON.stringify(dataForPython)
+        body: JSON.stringify({ data: { [category]: groupsMap } })
       });
 
       const pythonData = await pythonResponse.json();
       const resultData = pythonData?.results?.[category];
 
-      // If Python says insufficient, return saved payload (RANGE)
+      // If Python insufficient/fails, fallback to saved payload or mark insufficient with local info
       if (!pythonData.success || !resultData || resultData.success === false) {
         const payload = await buildSavedPayload(userId, targetDate, nextDate, category);
         if (payload) {
           anovaResultsForFrontend[category] = payload;
           continue;
         }
-
-        const ignoredGroups =
-          (resultData && resultData.ignoredGroups) ||
-          Object.entries(dataForPython.data[category])
-            .filter(([, arr]) => (arr?.length || 0) < 2)
-            .map(([name]) => name);
-
         anovaResultsForFrontend[category] = {
           insufficient: true,
           message:
             (resultData && resultData.message) ||
             pythonData.message ||
             'Logs are still insufficient to run a proper analysis. Come back later!',
-          ignoredGroups
+          ignoredGroups: Object.keys(localCounts).filter(g => (localCounts[g] || 0) < 2)
         };
         continue;
       }
 
-      // Normalize Tukey
-      let tukeyRows = normalizeTukey(resultData.tukeyHSD);
+      // Always compute counts from our own arrays
+      const groupCounts = localCounts;
 
-      // Ensure groupCounts present
-      const groupCounts = resultData.groupCounts && Object.keys(resultData.groupCounts).length
-        ? resultData.groupCounts
-        : Object.fromEntries(
-            Object.entries(dataForPython.data[category]).map(([activity, arr]) => [activity, arr.length])
-          );
-
-      // Filter Tukey pairs to only those with both groups >= 2 logs
-      tukeyRows = tukeyRows.filter(r =>
-        (groupCounts[r.group1] || 0) >= 2 && (groupCounts[r.group2] || 0) >= 2
+      // Filter Tukey pairs to only those with both groups in localIncluded
+      let tukeyRows = normalizeTukey(resultData.tukeyHSD).filter(r =>
+        localIncluded.includes(r.group1) && localIncluded.includes(r.group2)
       );
 
-      // Persist (store snapshot of groupMeans & groupCounts)
+      // Means: only keep means for localIncluded groups
+      const filteredMeans = {};
+      const filteredCounts = {};
+      for (const g of localIncluded) {
+        if (typeof resultData.groupMeans?.[g] === 'number') filteredMeans[g] = resultData.groupMeans[g];
+        if (typeof groupCounts[g] === 'number') filteredCounts[g] = groupCounts[g];
+      }
+
+      // Build groupLastIds (latest MoodScore id per activity restricted to localIncluded)
+      const msDocsWithIds = await MoodScore.find({
+        user: userId,
+        date: { $gte: targetDate, $lt: nextDate },
+        category
+      }).select('activity date _id').lean();
+      const latestIdsMap = buildLatestIdsMap(msDocsWithIds);
+      const groupLastIds = {};
+      for (const g of localIncluded) {
+        if (latestIdsMap[g]) groupLastIds[g] = latestIdsMap[g];
+      }
+
+      // Persist snapshot (store filtered means/counts and includedGroups strictly from local counts)
       let result = await AnovaResult.findOne({
         user: userId,
         category,
-        date: { $gte: targetDate, $lt: nextDate } // RANGE write-protect
+        date: { $gte: targetDate, $lt: nextDate }
       });
 
       const anovaPayload = {
@@ -291,11 +401,13 @@ exports.runAnovaForUser = async (req, res) => {
         MSB: resultData.MSB,
         MSW: resultData.MSW,
         interpretation: resultData.interpretation,
-        includedGroups: resultData.includedGroups || [],
-        ignoredGroups: resultData.ignoredGroups || [],
+        includedGroups: localIncluded,
+        ignoredGroups: Object.keys(groupCounts).filter(g => !localIncluded.includes(g)),
         tukeyInfo: resultData.tukeyInfo || {},
-        groupMeans: resultData.groupMeans || {},
-        groupCounts
+        groupMeans: filteredMeans,
+        groupCounts: filteredCounts
+        // Note: we keep groupLastIds only in frontend payload (not persisted),
+        // to avoid bloating saved snapshot. If you want to persist, add it to the model.
       };
 
       const { topPositive, topNegative } = computeTopListsFromMeans(anovaPayload.groupMeans, anovaPayload.groupCounts);
@@ -307,14 +419,14 @@ exports.runAnovaForUser = async (req, res) => {
         result = new AnovaResult({
           user: userId,
           category,
-          date: localNoonAnchor, // store local-day anchor at noon
+          date: localNoonAnchor,
           anova: anovaPayload,
           topPositive,
           topNegative,
           tukeyHSD: tukeyRows
         });
       } else {
-        result.date = localNoonAnchor; // keep anchor consistent if we previously saved midnight
+        result.date = localNoonAnchor;
         result.anova = anovaPayload;
         result.topPositive = topPositive;
         result.topNegative = topNegative;
@@ -324,7 +436,7 @@ exports.runAnovaForUser = async (req, res) => {
       await result.save();
       savedResults.push(result);
 
-      // Frontend payload
+      // Frontend payload (strict)
       anovaResultsForFrontend[category] = {
         success: true,
         F_value: resultData.F_value,
@@ -332,12 +444,15 @@ exports.runAnovaForUser = async (req, res) => {
         MSB: resultData.MSB,
         MSW: resultData.MSW,
         interpretation: resultData.interpretation,
-        includedGroups: resultData.includedGroups || [],
-        ignoredGroups: resultData.ignoredGroups || [],
+        includedGroups: localIncluded,
+        ignoredGroups: Object.keys(groupCounts).filter(g => !localIncluded.includes(g)),
         tukeyHSD: tukeyRows,
         tukeyInfo: resultData.tukeyInfo || {},
-        groupMeans: resultData.groupMeans || {},
-        groupCounts
+        groupMeans: filteredMeans,
+        groupCounts: filteredCounts,
+        groupLastIds, // added for Recommendation button linking
+        topPositive,
+        topNegative
       };
     }
 
@@ -345,7 +460,7 @@ exports.runAnovaForUser = async (req, res) => {
       ? { quality: sleepQuality, hours: sleepHours, moodScore: sleepMoodScore, _id: sleepMoodScoreId }
       : null;
 
-    // Final fallback: return saved payloads if recomputation produced none (RANGE)
+    // Final fallback: return saved payloads if recomputation produced none
     if (Object.keys(anovaResultsForFrontend).length === 0 && !sleepData) {
       const payload = {};
       for (const cat of ['activity', 'social', 'health']) {
@@ -405,7 +520,6 @@ exports.getHistoricalAnova = async (req, res) => {
     const anovaByDate = {};
     anovaResults.forEach(result => {
       const dt = new Date(result.date);
-      // Build LOCAL YYYY-MM-DD key (avoid UTC ISO previous-day)
       const dateKey = `${dt.getFullYear()}-${String(dt.getMonth() + 1).padStart(2, '0')}-${String(dt.getDate()).padStart(2, '0')}`;
       if (!anovaByDate[dateKey]) anovaByDate[dateKey] = {};
       anovaByDate[dateKey][result.category] = {
