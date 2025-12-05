@@ -20,8 +20,6 @@ const musicRoutes = require('./routes/musicRoutes');
 
 const app = express();
 
-const { initScheduledTasks } = require('./utils/cronScheduler');
-
 // Middleware
 app.use(bodyParser.json());
 app.use(cors()); 
@@ -41,7 +39,6 @@ app.use('/api/anova', anovaRoutes);
 app.use('/api/recommendation', recommendationRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/music', musicRoutes);
-initScheduledTasks();
 
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,

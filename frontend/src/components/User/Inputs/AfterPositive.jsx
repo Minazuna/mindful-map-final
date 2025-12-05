@@ -4,12 +4,14 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import ContinueTrackingModal from './ContinueTrackingModal';
 import { emotionImages } from '../../../../utils/moods';
+import { validateReason } from '../../../utils/reasonValidator';
 
 const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
   const navigate = useNavigate();
   const [selectedEmotion, setSelectedEmotion] = useState('');
   const [intensity, setIntensity] = useState(0);
   const [reason, setReason] = useState('');
+  const [reasonError, setReasonError] = useState('');
   const [showContinueModal, setShowContinueModal] = useState(false);
 
   const emotions = [
@@ -29,6 +31,19 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
 
   const handleIntensitySelect = (level) => {
     setIntensity(level);
+  };
+
+  const handleReasonChange = (e) => {
+    const value = e.target.value;
+    setReason(value);
+    
+    // Real-time validation as user types
+    if (value.trim()) {
+      const validation = validateReason(value);
+      setReasonError(validation.error || '');
+    } else {
+      setReasonError('');
+    }
   };
 
   const handleContinueTracking = () => {
@@ -63,10 +78,17 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
 
   const handleSubmit = async () => {
     if (selectedEmotion && intensity > 0 && reason.trim()) {
+      // Validate reason
+      const validation = validateReason(reason);
+      if (!validation.isValid) {
+        setReasonError(validation.error);
+        return;
+      }
+
       // Count words in reason
       const wordCount = reason.trim().split(/\s+/).length;
       if (wordCount > 100) {
-        alert('Please limit your response to 100 words or less.');
+        setReasonError('Please limit your response to 100 words or less.');
         return;
       }
 
@@ -272,17 +294,24 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
             </h3>
             <textarea
               value={reason}
-              onChange={(e) => setReason(e.target.value)}
+              onChange={handleReasonChange}
               placeholder="Describe what made you feel this way..."
               className="w-full p-4 rounded-2xl border-2 resize-none"
               style={{ 
                 backgroundColor: '#D8EFD3',
-                borderColor: '#95D2B3',
+                borderColor: reasonError ? '#dc2626' : '#95D2B3',
                 color: '#272829',
                 minHeight: '120px'
               }}
               maxLength={500}
             />
+            {reasonError && (
+              <div className="mt-2 p-2 rounded bg-red-100 border border-red-400">
+                <p className="text-sm" style={{ color: '#dc2626' }}>
+                  {reasonError}
+                </p>
+              </div>
+            )}
             <div className="text-right mt-2">
               <span 
                 className="text-sm"
@@ -290,6 +319,11 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
               >
                 {reason.trim() === '' ? 0 : reason.trim().split(/\s+/).length}/100 words
               </span>
+            </div>
+            <div className="mt-3 p-3 rounded-lg bg-blue-50 border border-blue-200">
+              <p className="text-xs" style={{ color: '#1e40af' }}>
+                💬 <span className="font-medium">Please avoid gibberish or unclear text for more accurate insights. </span> 
+              </p>
             </div>
           </div>
         )}

@@ -9,6 +9,8 @@ import {
   Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { generateActivitiesStatisticsPDF } from '../PDFTemplates/ActivitiesStatisticsPDF';
+import { Download } from 'lucide-react';
 ChartJS.register(ChartDataLabels);
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -228,6 +230,19 @@ const ActivitiesStatistics = () => {
   const { emotion, moodType, moodPeriod } = location.state || {};
   const [loading, setLoading] = useState(true);
   const [grouped, setGrouped] = useState({ activity: [], social: [], health: [], sleep: [] });
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
+  const handleDownloadPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      await generateActivitiesStatisticsPDF(emotion, moodType, moodPeriod, showSections);
+    } catch (error) {
+      console.error('Failed to generate PDF:', error);
+      alert('Failed to generate PDF. Please try again.');
+    } finally {
+      setIsGeneratingPDF(false);
+    }
+  };
 
   useEffect(() => {
     if (!emotion || !moodType || !moodPeriod) {
@@ -285,6 +300,19 @@ const ActivitiesStatistics = () => {
               {moodType === 'before' ? 'Before' : 'After'} Emotion · {moodPeriod.charAt(0).toUpperCase() + moodPeriod.slice(1)}
             </p>
           </div>
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isGeneratingPDF || loading}
+            className={`px-6 py-2 rounded-full font-bold shadow-lg transition text-lg border-2 flex items-center gap-2
+              ${isGeneratingPDF || loading
+                ? 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
+                : 'bg-gradient-to-r from-[#f59e42] to-[#ff714b] text-white border-[#f59e42] hover:from-[#e68a2e] hover:to-[#e65a3a]'
+              }`}
+            style={{ minWidth: 150 }}
+          >
+            <Download size={20} />
+            {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+          </button>
         </div>
         {loading ? (
           <div className="flex justify-center items-center h-64">

@@ -539,7 +539,7 @@ const CalendarLog = () => {
                 Your Mood Calendar
               </h2>
               <p className="text-sm text-gray-600 leading-relaxed max-w-2xl mx-auto mb-4">
-                Track your daily emotions and activities. <strong> Click any circle in the current week</strong> to log multiple moods. 
+                Track your daily emotions. <strong> Click any date of the current week</strong> to log multiple moods. 
                 {'\n'} Past weeks are view-only.
               </p>
             </div>
