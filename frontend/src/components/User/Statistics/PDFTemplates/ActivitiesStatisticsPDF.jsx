@@ -167,7 +167,7 @@ export async function generateActivitiesStatisticsPDF(emotion, moodType, moodPer
     const titleWidth = doc.getTextWidth(title);
     doc.text(title, (pageWidth - titleWidth) / 2, headerY + 8);
     
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     const subtitle = 'for Emotional Regulation';
     const subtitleWidth = doc.getTextWidth(subtitle);
     doc.text(subtitle, (pageWidth - subtitleWidth) / 2, headerY + 14);
@@ -212,17 +212,17 @@ export async function generateActivitiesStatisticsPDF(emotion, moodType, moodPer
     doc.setFillColor(240, 248, 255);
     doc.roundedRect(15, yPos, pageWidth - 30, 20, 3, 3, 'F');
     
-    doc.setFontSize(10);
+    doc.setFontSize(12); 
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(85, 173, 155);
-    doc.text('Overall Summary', 20, yPos + 6);
-    
+    doc.text('Overall Summary', 20, yPos + 7);
+
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(60, 60, 60);
-    doc.setFontSize(9);
+    doc.setFontSize(10); // Increased font size for overall summary phrases
     const overallSummary = getOverallSummary(sectionsData);
     const summaryLines = doc.splitTextToSize(overallSummary, pageWidth - 40);
-    doc.text(summaryLines, 20, yPos + 12);
+    doc.text(summaryLines, 20, yPos + 15);
     
     yPos += 30;
     
@@ -283,12 +283,12 @@ export async function generateActivitiesStatisticsPDF(emotion, moodType, moodPer
         doc.setFillColor(250, 250, 250);
         doc.roundedRect(colX, sectionY, colWidth, 15, 2, 2, 'F');
         
-        doc.setFontSize(7);
+        doc.setFontSize(9); 
         doc.setFont('helvetica', 'italic');
         doc.setTextColor(80, 80, 80);
         const summary = getSummaryPhrase(section.title, section.data);
         const summaryTextLines = doc.splitTextToSize(summary, colWidth - 8);
-        doc.text(summaryTextLines, colX + 3, sectionY + 4);
+        doc.text(summaryTextLines, colX + 3, sectionY + 5);
         
         sectionY += 18;
         
@@ -356,7 +356,7 @@ export async function generateActivitiesStatisticsPDF(emotion, moodType, moodPer
         const legendX = colX + 38;
         let legendY = sectionY + 3;
         
-        doc.setFontSize(7.5);
+        doc.setFontSize(8);
         section.data.forEach((item, idx) => {
           const colorHex = pieColors[idx % pieColors.length];
           const r = parseInt(colorHex.slice(1, 3), 16);
