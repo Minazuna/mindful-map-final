@@ -18,10 +18,12 @@ const RecommendationSchema = new mongoose.Schema({
   category: {
     type: String,
     required: true,
-    enum: ['activity', 'social', 'health', 'sleep']
+    enum: ['activity', 'social', 'health', 'sleep'],
+    trim: true
   },
   activity: {
-    type: String
+    type: String,
+    trim: true
   },
   moodScoreValue: {
     type: Number,
@@ -34,17 +36,24 @@ const RecommendationSchema = new mongoose.Schema({
   },
   recommendation: {
     type: String,
-    required: true
+    required: true,
+    trim: true
   },
   type: {
     type: String,
     enum: ['positive', 'negative'],
-    required: true
+    required: true,
+    trim: true
   },
   createdAt: {
     type: Date,
     default: Date.now
   }
 });
+
+
+RecommendationSchema.index({ moodScore: 1, recommendation: 1 }, { unique: true });
+
+RecommendationSchema.index({ user: 1, date: 1 });
 
 module.exports = mongoose.model('Recommendation', RecommendationSchema);
