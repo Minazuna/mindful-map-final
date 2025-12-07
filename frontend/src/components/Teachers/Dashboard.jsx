@@ -83,6 +83,22 @@ const Dashboard = () => {
     return 'text-gray-600 bg-gray-100';
   };
 
+  const getMoodColor = (mood) => {
+    const moodColors = {
+      pleased: '#A78BFA',      // purple-400
+      happy: '#F472B6',        // pink-400
+      relaxed: '#4ADE80',      // green-400
+      calm: '#FACC15',         // yellow-400
+      angry: '#F87171',        // red-400
+      disappointed: '#22D3EE', // cyan-400
+      tense: '#818CF8',        // indigo-400
+      sad: '#2DD4BF',          // teal-400
+      excited: '#FB923C',      // orange-400
+      bored: '#60A5FA'         // blue-400
+    };
+    return moodColors[mood?.toLowerCase()] || '#9CA3AF'; // gray-400 as fallback
+  };
+
   if (loading) {
     return (
       <div className="flex">
@@ -261,22 +277,22 @@ const Dashboard = () => {
             </div>
             <div className="p-6">
               {dashboardStats && dashboardStats.moodDistribution.length > 0 ? (
-                <div className="space-y-4">
-                  {dashboardStats.moodDistribution.slice(0, 6).map((mood, index) => (
+                <div className="space-y-4 max-h-96 overflow-y-auto">
+                  {dashboardStats.moodDistribution.map((mood) => (
                     <div key={mood._id} className="flex items-center justify-between">
                       <div className="flex items-center space-x-3">
-                        <div className={`w-3 h-3 rounded-full ${
-                          ['bg-purple-400', 'bg-blue-400', 'bg-green-400', 'bg-yellow-400', 'bg-red-400', 'bg-gray-400'][index]
-                        }`}></div>
+                        <div 
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: getMoodColor(mood._id) }}
+                        ></div>
                         <span className="text-sm font-medium text-gray-900 capitalize">{mood._id}</span>
                       </div>
                       <div className="flex items-center space-x-3">
                         <div className="w-32 bg-gray-200 rounded-full h-2">
                           <div 
-                            className={`h-2 rounded-full ${
-                              ['bg-purple-400', 'bg-blue-400', 'bg-green-400', 'bg-yellow-400', 'bg-red-400', 'bg-gray-400'][index]
-                            }`}
+                            className="h-2 rounded-full"
                             style={{ 
+                              backgroundColor: getMoodColor(mood._id),
                               width: `${(mood.count / dashboardStats.moodDistribution[0].count) * 100}%` 
                             }}
                           ></div>
@@ -296,38 +312,6 @@ const Dashboard = () => {
             </div>
           </div>
         </div>
-
-        {/* Section Overview */}
-        {teacher && (
-          <div className="mt-8 bg-white rounded-lg shadow-sm">
-            <div className="p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">Section Overview</h2>
-              <p className="text-sm text-gray-600 mt-1">Information about {teacher.assignedSection}</p>
-            </div>
-            <div className="p-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-600">
-                    {dashboardStats ? dashboardStats.studentsCount : 0}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">Total Students</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-green-600">
-                    {dashboardStats ? dashboardStats.totalMoodLogs : 0}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">Total Logs</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-3xl font-bold text-purple-600">
-                    {dashboardStats ? dashboardStats.recentMoodLogs : 0}
-                  </div>
-                  <div className="text-sm text-gray-600 mt-1">Recent Activity</div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
