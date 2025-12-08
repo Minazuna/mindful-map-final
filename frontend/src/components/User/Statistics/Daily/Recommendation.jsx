@@ -130,6 +130,24 @@ const Recommendation = () => {
               {items.map((item, idx) => {
                 const text = typeof item === 'string' ? item : item?.recommendation;
                 const key = (typeof item === 'object' && item?._id) || `rec-${idx}`;
+                const recommendationId = typeof item === 'object' ? item?._id : null;
+
+                // Show "Update effectiveness" if this recommendation already has feedback(s)
+                const hasExistingFeedback =
+                  typeof item?.effectivenessCount === 'number' && item.effectivenessCount > 0;
+
+                const statusChip =
+                  typeof item?.effective === 'boolean' ? (
+                    <span
+                      className={`ml-2 text-xs px-2 py-1 rounded-full border ${
+                        item.effective
+                          ? 'bg-[#F1F8E8] border-[#D8EFD3] text-[#2f6c60]'
+                          : 'bg-[#FFF7ED] border-[#FDE68A] text-[#92400E]'
+                      }`}
+                    >
+                      {item.effective ? 'Effective' : 'Not effective'}
+                    </span>
+                  ) : null;
 
                 return (
                   <div
@@ -143,14 +161,32 @@ const Recommendation = () => {
                     <div className="flex-1">
                       <p className="text-base md:text-lg leading-relaxed">
                         {text}
+                        {statusChip}
                       </p>
 
+                      {/* Rate/Update effectiveness CTA */}
+                      {recommendationId && (
+                        <div className="mt-3">
+                          <button
+                            onClick={() =>
+                              navigate(
+                                hasExistingFeedback
+                                  ? `/recommendation/${recommendationId}/edit`
+                                  : `/recommendation/${recommendationId}/rate`
+                              )
+                            }
+                            className="px-3 py-1.5 rounded-full text-white text-sm font-semibold shadow transition bg-[#1b5f52] hover:opacity-90"
+                          >
+                            {hasExistingFeedback ? 'Update effectiveness' : 'Rate effectiveness'}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 );
               })}
 
-              {/* Footer CTA */}
+              {/* Friendly strip */}
               <div className="mt-6 flex items-center justify-between bg-[#F7FBF4] border border-[#E6F4EA] rounded-2xl p-4">
                 <div className="text-[#2f6c60]">
                   <p className="font-semibold">Stay consistent</p>

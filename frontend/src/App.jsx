@@ -80,7 +80,12 @@ import DailyAnova from './components/User/Statistics/Daily/DailyAnova';
 import WeeklyAnova from './components/User/Statistics/Weekly/WeeklyAnova';
 import MoodStatistics from './components/User/Statistics/MoodStatistics';
 import ActivityStatistics from './components/User/Statistics/StatisticsComponents/ActivitiesStatistics';
+
 import Recommendation from './components/User/Statistics/Daily/Recommendation';
+import RecommendationRating from './components/User/Statistics/Daily/RecommendationRating'; 
+import ViewRecommendation from './components/User/Statistics/Daily/ViewRecommendation';
+import EditRecommendationRating from './components/User/Statistics/Daily/EditRecommendation';
+
 
 const useAuth = () => {
   const token = localStorage.getItem('token');
@@ -369,6 +374,30 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <Recommendation />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/recommendation/:recommendationId/rate"
+          element={
+            <UserPrivateRoute>  
+              <RecommendationRating />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/recommendation/:recommendationId/view"
+          element={
+            <UserPrivateRoute>
+              <ViewRecommendation />
+            </UserPrivateRoute>
+          }
+        />
+        <Route
+          path="/recommendation/:recommendationId/edit"
+          element={
+            <UserPrivateRoute>
+              <EditRecommendationRating />
             </UserPrivateRoute>
           }
         />
