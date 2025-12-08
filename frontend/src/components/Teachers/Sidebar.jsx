@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, FileText, BarChart3, Settings, LogOut, Menu, X, BookOpen, ChevronDown } from 'lucide-react';
 
 const Sidebar = ({ teacher }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isStudentLogsExpanded, setIsStudentLogsExpanded] = useState(false);
-  const currentPath = window.location.pathname;
+  const navigate = useNavigate();
+  const location = useLocation();
+  const currentPath = location.pathname;
 
   // All available sections
   const allSections = ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)'];
@@ -17,7 +20,11 @@ const Sidebar = ({ teacher }) => {
 
   const handleLogout = () => {
     localStorage.removeItem('token');
-    window.location.href = '/signin';
+    navigate('/signin');
+  };
+
+  const handleNavigation = (path) => {
+    navigate(path);
   };
 
   const isActive = (path) => currentPath === path;
@@ -85,10 +92,10 @@ const Sidebar = ({ teacher }) => {
           const active = isActive(item.path);
           
           return (
-            <a
+            <button
               key={item.path}
-              href={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              onClick={() => handleNavigation(item.path)}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                 active
                   ? 'text-white shadow-lg'
                   : 'text-gray-600 hover:bg-gray-50'
@@ -110,7 +117,7 @@ const Sidebar = ({ teacher }) => {
               {active && !isCollapsed && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white"></div>
               )}
-            </a>
+            </button>
           );
         })}
 
@@ -119,45 +126,48 @@ const Sidebar = ({ teacher }) => {
           <button
             onClick={() => !isCollapsed && setIsStudentLogsExpanded(!isStudentLogsExpanded)}
             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
-              currentPath.includes('/teacher/student-logs')
+              currentPath.includes('/teacher/section/')
                 ? 'text-white shadow-lg'
                 : 'text-gray-600 hover:bg-gray-50'
             }`}
-            style={currentPath.includes('/teacher/student-logs') ? { backgroundColor: '#7BC5A5' } : {}}
+            style={currentPath.includes('/teacher/section/') ? { backgroundColor: '#7BC5A5' } : {}}
             title={isCollapsed ? 'Student Logs' : ''}
           >
             <FileText 
               className={`w-5 h-5 transition-transform duration-200 ${
-                currentPath.includes('/teacher/student-logs') ? 'text-white' : 'text-gray-500 group-hover:scale-110'
+                currentPath.includes('/teacher/section/') ? 'text-white' : 'text-gray-500 group-hover:scale-110'
               }`}
-              style={currentPath.includes('/teacher/student-logs') ? {} : { color: '#7BC5A5' }}
+              style={currentPath.includes('/teacher/section/') ? {} : { color: '#7BC5A5' }}
             />
             {!isCollapsed && (
               <>
-                <span className={`font-medium text-sm ${currentPath.includes('/teacher/student-logs') ? 'text-white' : 'text-gray-700'}`}>
+                <span className={`font-medium text-sm ${currentPath.includes('/teacher/section/') ? 'text-white' : 'text-gray-700'}`}>
                   Student Logs
                 </span>
                 <ChevronDown 
                   className={`w-4 h-4 ml-auto transition-transform duration-200 ${
-                    isStudentLogsExpanded || currentPath.includes('/teacher/student-logs') ? 'rotate-180' : ''
-                  } ${currentPath.includes('/teacher/student-logs') ? 'text-white' : 'text-gray-500'}`}
+                    isStudentLogsExpanded || currentPath.includes('/teacher/section/') ? 'rotate-180' : ''
+                  } ${currentPath.includes('/teacher/section/') ? 'text-white' : 'text-gray-500'}`}
                 />
               </>
             )}
           </button>
 
           {/* Dropdown Menu for Sections */}
-          {(isStudentLogsExpanded || currentPath.includes('/teacher/student-logs')) && !isCollapsed && (
+          {(isStudentLogsExpanded || currentPath.includes('/teacher/section/')) && !isCollapsed && (
             <div className="ml-4 space-y-1 border-l-2 border-gray-200 pl-4">
               {allSections.map((section, index) => {
                 const isAssigned = teacher?.assignedSections?.includes(section);
                 const sectionPath = `/teacher/section/${encodeURIComponent(section)}`;
                 
                 return isAssigned ? (
-                  <a
+                  <button
                     key={index}
-                    href={sectionPath}
-                    className={`flex items-center space-x-3 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
+                    onClick={() => {
+                      handleNavigation(sectionPath);
+                      setIsStudentLogsExpanded(false);
+                    }}
+                    className={`w-full flex items-center space-x-3 px-4 py-2 rounded-lg text-sm transition-all duration-200 ${
                       currentPath === sectionPath
                         ? 'bg-gray-100 text-gray-900 font-medium'
                         : 'text-gray-600 hover:bg-gray-50'
@@ -165,7 +175,7 @@ const Sidebar = ({ teacher }) => {
                   >
                     <div className="w-2 h-2 rounded-full" style={{ backgroundColor: '#7BC5A5' }}></div>
                     <span>{section}</span>
-                  </a>
+                  </button>
                 ) : (
                   <div
                     key={index}
