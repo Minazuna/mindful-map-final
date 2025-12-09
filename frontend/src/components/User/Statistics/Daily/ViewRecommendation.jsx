@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { motion } from 'framer-motion';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import StarIcon from '@mui/icons-material/Star';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import CommentIcon from '@mui/icons-material/Comment';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 
 const ViewRecommendation = () => {
   const { recommendationId } = useParams();
@@ -15,7 +23,6 @@ const ViewRecommendation = () => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Fallback: if navigated directly, fetch recommendation details
     async function fetchRec() {
       if (!recommendation) {
         setLoading(true);
@@ -35,86 +42,171 @@ const ViewRecommendation = () => {
     fetchRec();
   }, [recommendationId]);
 
-  const effLabel = effective ? 'Effective' : 'Needs improvement';
-  const effColor = effective ? '#1b5f52' : '#b91c1c';
+  // Helper function to format text: capitalize first letters and remove dashes
+  const formatText = (text) => {
+    if (!text) return '';
+    return text
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
+
   const scorePct = Math.round(Math.max(0, Math.min(1, combinedScore)) * 100);
+  const ratingEmojis = ['😟', '😐', '🙂', '😊', '🤩'];
+  const ratingLabels = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
 
   return (
-    <div className="min-h-screen px-4 py-8" style={{ background: 'linear-gradient(135deg, #D8EFD3 0%, #74c89e 45%, #55AD9B 100%)' }}>
-      <div className="w-full max-w-3xl mx-auto">
-        <div className="flex items-center justify-between mb-4 mt-2">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-4 py-2 rounded-full bg-white/70 text-[#1b5f52] font-semibold shadow hover:bg-white transition backdrop-blur"
+    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
+
+
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        {loading ? (
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="animate-pulse bg-white rounded-2xl p-8 border-2 border-[#E6F4EA] shadow-sm"
+            >
+              <div className="h-6 w-3/4 bg-[#E6F4EA] rounded mb-4" />
+              <div className="h-6 w-1/2 bg-[#F7FBF9] rounded" />
+            </motion.div>
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
           >
-            Back
-          </button>
-          <span className="text-white/90 text-sm">Recommendation</span>
-        </div>
+            {/* Success Banner */}
+            <div className="bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] rounded-2xl p-7 shadow-lg text-white">
+              <div className="flex items-center gap-4">
+                <div className="h-14 w-14 rounded-full bg-white/20 flex items-center justify-center backdrop-blur">
+                  <CheckCircleIcon style={{ fontSize: 28 }} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="font-bold text-xl mb-1">Feedback Submitted Successfully!</h3>
+                  <p className="text-white/90 text-base">Your input helps us improve your experience</p>
+                </div>
+              </div>
+            </div>
 
-        <div className="bg-white rounded-[32px] shadow-xl border border-[#E8F5E9] p-6 md:p-8">
-          <h2 className="text-2xl md:text-3xl font-extrabold text-[#1b5f52]">Your feedback summary</h2>
+            {/* Recommendation Card */}
+            {recommendation && (
+              <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+                <div className="flex items-start gap-4 mb-6">
+                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#55AD9B]/10 to-[#95D2B3]/10 flex items-center justify-center border-2 border-[#55AD9B]/30">
+                    <StarIcon style={{ color: '#55AD9B', fontSize: 26 }} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-[#1b5f52] font-bold text-xl mb-2">Your Recommendation</h3>
+                    <p className="text-[#272829] text-lg leading-relaxed">{recommendation.recommendation}</p>
+                  </div>
+                </div>
 
-          <div className="mt-6 border-t border-[#E6F4EA]" />
+                {/* Tags */}
+                <div className="flex flex-wrap gap-3">
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#55AD9B]/10 text-[#1b5f52] border border-[#55AD9B]/30 text-sm font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
+                    {formatText(recommendation.category)}
+                  </span>
+                  {recommendation.activity && (
+                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#95D2B3]/10 text-[#1b5f52] border border-[#95D2B3]/30 text-sm font-semibold">
+                      <span className="w-2 h-2 rounded-full bg-[#95D2B3]"></span>
+                      {formatText(recommendation.activity)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
-          {loading ? (
-            <div className="mt-6 animate-pulse h-24 w-full bg-[#F7FBF4] rounded-2xl border border-[#E6F4EA]" />
-          ) : (
-            <>
-              {/* Recommendation text */}
-              <div className="mt-6 rounded-2xl p-5 border border-[#E6F4EA] bg-white text-[#1f2a27] shadow-sm">
-                {recommendation ? (
-                  <>
-                    <p className="text-base md:text-lg leading-relaxed">{recommendation.recommendation}</p>
-                    <div className="mt-2 text-xs text-[#3e8e7e]">
-                      <span>Category: {recommendation.category}</span>
-                      {recommendation.activity && <span> • Activity: {recommendation.activity}</span>}
+            {/* Rating and Effectiveness Grid */}
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Your Rating */}
+              <div className="bg-white rounded-2xl p-6 border-2 border-[#D8EFD3] shadow-md">
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-[#1b5f52] font-bold text-lg">Your Rating</h3>
+                </div>
+
+                {feedback?.rating ? (
+                  <div className="flex items-center gap-4">
+                    <div className="text-5xl">{ratingEmojis[feedback.rating - 1]}</div>
+                    <div>
+                      <div className="text-4xl font-bold text-[#55AD9B]">{feedback.rating}</div>
+                      <div className="text-sm text-[#6b7280]">out of 5</div>
+                      <div className="text-base font-semibold text-[#1b5f52] mt-1">
+                        {ratingLabels[feedback.rating - 1]}
+                      </div>
                     </div>
-                  </>
+                  </div>
                 ) : (
-                  <p className="text-sm text-[#3e8e7e]">Recommendation details unavailable.</p>
+                  <div className="text-[#6b7280]">No rating provided</div>
                 )}
               </div>
 
-              {/* Feedback details */}
-              <div className="mt-6 grid md:grid-cols-2 gap-6">
-                <div className="rounded-2xl p-5 border border-[#E6F4EA] bg-[#F7FBF4]">
-                  <div className="text-sm text-[#3e8e7e]">Your rating</div>
-                  <div className="mt-2 text-3xl font-bold text-[#1b5f52]">
-                    {feedback?.rating ?? '—'}
-                  </div>
-                  <div className="mt-1 text-xs text-[#3e8e7e]">Scale 1–5</div>
+              {/* Effectiveness */}
+              <div className="bg-white rounded-2xl p-6 border-2 border-[#D8EFD3] shadow-md">
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-[#1b5f52] font-bold text-lg">Effectiveness</h3>
                 </div>
 
-                <div className="rounded-2xl p-5 border border-[#E6F4EA] bg-[#F7FBF4]">
-                  <div className="text-sm text-[#3e8e7e]">Effectiveness</div>
-                  <div className="mt-2 text-lg font-bold" style={{ color: effColor }}>
-                    {effLabel}
+                <div className="space-y-4">
+                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-base font-bold ${
+                    effective 
+                      ? 'bg-[#55AD9B]/10 text-[#1b5f52] border-2 border-[#55AD9B]/30' 
+                      : 'bg-[#FF9800]/10 text-[#92400e] border-2 border-[#FF9800]/30'
+                  }`}>
+                    {effective ? '✓ Effective' : '✗ Needs Improvement'}
                   </div>
-                  <div className="mt-1 text-xs text-[#3e8e7e]">Combined score: {scorePct}%</div>
-                  <div className="mt-1 text-xs text-[#3e8e7e]">Sentiment score: {sentimentScore?.toFixed(3)}</div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-[#6b7280]">Combined Score</span>
+                      <span className="font-bold text-[#1b5f52]">{scorePct}%</span>
+                    </div>
+                    <div className="w-full bg-[#E6F4EA] rounded-full h-3 overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] rounded-full transition-all duration-500"
+                        style={{ width: `${scorePct}%` }}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 text-sm text-[#6b7280]">
+                    <EmojiEmotionsIcon style={{ fontSize: 18 }} />
+                    <span>Sentiment: {sentimentScore?.toFixed(3)}</span>
+                  </div>
                 </div>
               </div>
+            </div>
 
-              {/* Optional comment */}
-              {feedback?.comment ? (
-                <div className="mt-6 rounded-2xl p-5 border border-[#E6F4EA] bg-white text-[#1f2a27] shadow-sm">
-                  <div className="text-sm text-[#3e8e7e]">Your comment</div>
-                  <p className="mt-2 text-base leading-relaxed">{feedback.comment}</p>
+            {/* Comment */}
+            {feedback?.comment && (
+              <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+                <div className="flex items-center gap-3 mb-4">
+                  <h3 className="text-[#1b5f52] font-bold text-lg">Your Thoughts</h3>
                 </div>
-              ) : null}
-
-              <div className="mt-6 flex items-center justify-end gap-3">
-                <button
-                  onClick={() => navigate(-1)}
-                  className="px-4 py-2 rounded-full border border-[#E6F4EA] bg-white text-[#1b5f52] text-sm font-semibold hover:bg-[#F7FBF4] transition"
-                >
-                  Done
-                </button>
+                <p className="text-[#272829] text-base leading-relaxed">{feedback.comment}</p>
               </div>
-            </>
-          )}
-        </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <button
+                onClick={() => navigate('/daily-anova')}
+                className="w-full sm:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white text-base font-semibold shadow-md hover:shadow-lg transition-all duration-300"
+              >
+                Back to Daily Analysis
+              </button>
+              <button
+                onClick={() => navigate(-2)}
+                className="w-full sm:w-auto px-8 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
+              >
+                View Recommendations
+              </button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );

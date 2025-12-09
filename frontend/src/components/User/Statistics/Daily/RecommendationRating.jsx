@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-
-const primaryGradient = 'linear-gradient(135deg, #D8EFD3 0%, #74c89e 45%, #55AD9B 100%)';
-const greenDark = '#1b5f52';
-const greenMid = '#55AD9B';
-const greenSoft = '#3e8e7e';
-const accent = '#F59E0B';
-
-const circlePalette = ['#D8EFD3', '#BFE8CF', '#95D2B3', '#74c89e', '#55AD9B'];
+import { motion } from 'framer-motion';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import ThumbUpIcon from '@mui/icons-material/ThumbUp';
+import StarIcon from '@mui/icons-material/Star';
+import CommentIcon from '@mui/icons-material/Comment';
+import SendIcon from '@mui/icons-material/Send';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const RecommendationRating = () => {
   const { recommendationId } = useParams();
@@ -19,8 +18,6 @@ const RecommendationRating = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-
-  const pageBackground = useMemo(() => primaryGradient, []);
 
   useEffect(() => {
     const loadRecommendation = async () => {
@@ -68,7 +65,6 @@ const RecommendationRating = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
-      // Navigate to a friendly summary view with saved data
       navigate(`/recommendation/${recommendationId}/view`, {
         state: {
           recommendation,
@@ -84,195 +80,243 @@ const RecommendationRating = () => {
     setSubmitting(false);
   };
 
-  const Header = () => (
-    <div className="w-full max-w-3xl flex items-center justify-between mt-6 mb-4">
-      <button
-        onClick={() => navigate(-1)}
-        className="px-4 py-2 rounded-full bg-white/70 text-[#1b5f52] font-semibold shadow hover:bg-white transition backdrop-blur"
-        aria-label="Back"
-        title="Back"
-      >
-        Back
-      </button>
-      <div className="flex items-center gap-2 text-white/90">
-        <span className="text-sm">Feedback</span>
-      </div>
-    </div>
-  );
+  // Helper function to format text: capitalize first letters and remove dashes
+  const formatText = (text) => {
+    if (!text) return '';
+    return text
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  };
 
-  const RecommendationCard = () => (
-    <div className="rounded-2xl p-5 border border-[#E6F4EA] bg-white/95 text-[#1f2a27] shadow-sm">
-      {recommendation ? (
-        <>
-          <p className="text-base md:text-lg leading-relaxed">{recommendation.recommendation}</p>
-          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-[#3e8e7e]">
-            <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#F7FBF4] border border-[#E6F4EA]">
-              <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: greenMid }} />
-              Category: {recommendation.category}
-            </span>
-            {recommendation.activity && (
-              <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-[#F7FBF4] border border-[#E6F4EA]">
-                <span className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: greenMid }} />
-                Activity: {recommendation.activity}
-              </span>
-            )}
-          </div>
-        </>
-      ) : (
-        <p className="text-sm text-[#3e8e7e]">Recommendation details unavailable.</p>
-      )}
-    </div>
-  );
-
-  const RatingSelector = () => (
-    <div className="mt-6">
-      <div className="flex items-center justify-between">
-        <label className="text-sm text-[#3e8e7e]">Your rating</label>
-        <span className="text-xs text-[#3e8e7e]">Scale 1–5</span>
-      </div>
-      <div className="mt-3 flex items-center gap-4">
-        {[1, 2, 3, 4, 5].map((n, i) => {
-          const active = n === rating;
-          const baseColor = circlePalette[i % circlePalette.length];
-          return (
-            <button
-              key={n}
-              onClick={() => setRating(n)}
-              className="h-12 w-12 rounded-2xl flex items-center justify-center transition"
-              style={{
-                background: active ? baseColor : '#FFFFFF',
-                border: `2px solid ${active ? baseColor : '#D8EFD3'}`,
-                boxShadow: active ? '0 10px 24px rgba(0,0,0,0.12)' : 'none'
-              }}
-              aria-label={`Rate ${n}`}
-              title={`Rate ${n}`}
-            >
-              <span className="text-sm font-bold" style={{ color: active ? greenDark : '#3e8e7e' }}>
-                {n}
-              </span>
-            </button>
-          );
-        })}
-      </div>
-      <div className="mt-2 text-xs text-[#3e8e7e]">Select one from 1 (low) to 5 (high)</div>
-    </div>
-  );
-
-  const CommentBox = () => (
-    <div className="mt-6">
-      <div className="flex items-center justify-between">
-        <label className="text-sm text-[#3e8e7e]">Your thoughts</label>
-        <span className="text-xs inline-flex items-center gap-1 text-[#6b7280]">
-          <span className="text-[11px] px-2 py-0.5 rounded-full border border-[#E6F4EA] bg-[#F7FBF4]">
-            Optional text analysis
-          </span>
-          <span className="text-[#9CA3AF]">Add a short comment to improve accuracy</span>
-        </span>
-      </div>
-      <textarea
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-        rows={4}
-        className="mt-2 w-full rounded-2xl border border-[#E6F4EA] p-4 text-[#1f2a27] bg-[#F7FBF4] focus:outline-none focus:ring-2 focus:ring-[#95D2B3]"
-        placeholder="Optional. e.g., Nakakatulong siya, mas naging kalmado ako."
-      />
-      <div className="mt-1 text-[11px] text-[#6b7280]">
-        Comments with at least 10 characters will use text analysis (Filipino/English mixed is okay).
-      </div>
-    </div>
-  );
+  const ratingLabels = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
+  const ratingEmojis = ['😟', '😐', '🙂', '😊', '🤩'];
 
   return (
-    <div className="min-h-screen flex flex-col items-center px-4 py-8" style={{ background: pageBackground }}>
-      <Header />
+    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
+      {/* Header */}
+      <div className="py-8 border-b-2 border-[#CBE7DC] bg-white backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-3 rounded-full hover:bg-white/80 shadow-md hover:shadow-lg transition-all duration-300"
+            aria-label="Back"
+          >
+            <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
+          </button>
 
-      <div className="relative w-full max-w-3xl">
-        {/* Ambient glow */}
-        <div className="absolute inset-0 -z-10 blur-2xl opacity-40 rounded-[36px]" style={{ background: '#95D2B3' }} />
-
-        <div className="bg-white/95 rounded-[32px] shadow-xl border border-[#E8F5E9] p-6 md:p-8">
-          {/* Title row */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-start gap-3">
-              <div className="h-9 w-9 rounded-2xl flex items-center justify-center" style={{ backgroundColor: '#E6F4EA' }}>
-                <span className="material-icons-outlined" style={{ color: greenDark, fontSize: 20 }}>thumb_up</span>
-              </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-[#1b5f52]">Rate effectiveness</h2>
-                <p className="text-[#3e8e7e] text-sm md:text-base">
-                  Your feedback helps improve future recommendations.
-                </p>
-              </div>
-            </div>
-            <div className="hidden md:flex items-center gap-2">
-              <span className="text-xs text-[#3e8e7e]">Week window</span>
-              <span className="text-xs px-2 py-1 rounded-full bg-[#F7FBF4] border border-[#E6F4EA] text-[#1b5f52]">
-                You can rate within this week
-              </span>
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center gap-3 text-[#1b5f52] text-3xl font-bold mb-2">
+              <span>Rate Effectiveness</span>
             </div>
           </div>
 
-          <div className="mt-6 border-t border-[#E6F4EA]" />
-
-          <div className="mt-6">
-            {loading ? (
-              <div className="space-y-4">
-                <div className="animate-pulse bg-gradient-to-r from-[#F7FBF4] to-[#EDF7F0] rounded-2xl p-5 border border-[#E6F4EA]">
-                  <div className="h-4 w-2/3 bg-[#DDEFE3] rounded mb-2" />
-                  <div className="h-4 w-1/2 bg-[#E6F4EA] rounded" />
-                </div>
-                <div className="animate-pulse h-24 w-full bg-[#F7FBF4] rounded-2xl border border-[#E6F4EA]" />
-              </div>
-            ) : recommendation ? (
-              <>
-                <RecommendationCard />
-                <RatingSelector />
-                <CommentBox />
-
-                <div className="mt-8 flex items-center justify-end gap-3">
-                  <button
-                    onClick={() => navigate(-1)}
-                    className="px-4 py-2 rounded-full border border-[#E6F4EA] bg-white text-[#1b5f52] text-sm font-semibold hover:bg-[#F7FBF4] transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmit}
-                    disabled={submitting || !rating}
-                    className={`px-5 py-2.5 rounded-full text-sm font-semibold text-white transition ${
-                      submitting || !rating ? 'bg-[#94A3B8] cursor-not-allowed' : 'bg-[#1b5f52] hover:opacity-90'
-                    }`}
-                  >
-                    {submitting ? 'Submitting...' : 'Submit feedback'}
-                  </button>
-                </div>
-
-                {/* Friendly note */}
-                <div className="mt-4 text-[12px] flex items-center gap-2 text-[#6b7280]">
-                  <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: accent }} />
-                  You can add a brief comment to improve accuracy, but it’s optional.
-                </div>
-              </>
-            ) : (
-              <div className="text-[#1f2a27]">
-                <p className="text-sm">Recommendation not found.</p>
-                <div className="mt-4">
-                  <button
-                    onClick={() => navigate(-1)}
-                    className="px-4 py-2 rounded-full border border-[#E6F4EA] bg-white text-[#1b5f52] text-sm font-semibold hover:bg-[#F7FBF4] transition"
-                  >
-                    Go back
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
+          <div className="w-[52px]"></div>
         </div>
       </div>
 
-      <div className="mt-8 mb-6 text-white/85 text-sm">
-        Thank you for helping improve your recommendations.
+      {/* Content */}
+      <div className="max-w-4xl mx-auto px-6 py-10">
+        {loading ? (
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="animate-pulse bg-white rounded-2xl p-8 border-2 border-[#E6F4EA] shadow-sm"
+            >
+              <div className="h-6 w-3/4 bg-[#E6F4EA] rounded mb-4" />
+              <div className="h-6 w-1/2 bg-[#F7FBF9] rounded" />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="animate-pulse bg-white rounded-2xl p-8 border-2 border-[#E6F4EA] shadow-sm h-32"
+            />
+          </div>
+        ) : recommendation ? (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Info Banner */}
+            <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] rounded-2xl p-5 border-2 border-[#fbbf24]/30 shadow-sm">
+              <div className="flex items-start gap-3">
+                <InfoOutlinedIcon style={{ color: '#92400e', fontSize: 24 }} />
+                <div>
+                  <p className="text-[#92400e] font-semibold text-base mb-1">Rating Window</p>
+                  <p className="text-[#78350f] text-sm leading-relaxed">
+                    You can rate this recommendation within this week to help us understand what works best for you.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Recommendation Card */}
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+              <div className="flex items-start gap-4 mb-6">
+                <div className="h-12 w-12 rounded-full bg-gradient-to-br from-[#55AD9B]/10 to-[#95D2B3]/10 flex items-center justify-center border-2 border-[#55AD9B]/30">
+                  <StarIcon style={{ color: '#55AD9B', fontSize: 26 }} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-[#1b5f52] font-bold text-xl mb-2">Your Recommendation</h3>
+                  <p className="text-[#272829] text-lg leading-relaxed">{recommendation.recommendation}</p>
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div className="flex flex-wrap gap-3">
+                <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#55AD9B]/10 text-[#1b5f52] border border-[#55AD9B]/30 text-sm font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
+                  {formatText(recommendation.category)}
+                </span>
+                {recommendation.activity && (
+                  <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#95D2B3]/10 text-[#1b5f52] border border-[#95D2B3]/30 text-sm font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-[#95D2B3]"></span>
+                    {formatText(recommendation.activity)}
+                  </span>
+                )}
+              </div>
+            </div>
+
+            {/* Rating Selector */}
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1">
+                  <h3 className="text-[#1b5f52] font-bold text-xl">How effective was this recommendation?</h3>
+                  <p className="text-[#6b7280] text-md">Select a rating from 1 (not helpful) to 5 (very helpful)</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col items-center gap-6">
+                <div className="flex items-center gap-4">
+                  {[1, 2, 3, 4, 5].map((n) => {
+                    const active = n === rating;
+                    return (
+                      <motion.button
+                        key={n}
+                        onClick={() => setRating(n)}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`h-16 w-16 rounded-2xl flex items-center justify-center font-bold text-lg transition-all duration-300 ${
+                          active
+                            ? 'bg-gradient-to-br from-[#55AD9B] to-[#3e8e7e] text-white shadow-lg scale-110'
+                            : 'bg-white border-2 border-[#D8EFD3] text-[#55AD9B] hover:border-[#55AD9B]'
+                        }`}
+                        aria-label={`Rate ${n}`}
+                      >
+                        {n}
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {rating > 0 && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] border-2 border-[#D8EFD3]"
+                  >
+                    <span className="text-3xl">{ratingEmojis[rating - 1]}</span>
+                    <div>
+                      <p className="text-[#1b5f52] font-bold text-lg">{ratingLabels[rating - 1]}</p>
+                      <p className="text-[#6b7280] text-sm">You rated this {rating} out of 5</p>
+                    </div>
+                  </motion.div>
+                )}
+              </div>
+            </div>
+
+            {/* Comment Box */}
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1">
+                  <h3 className="text-[#1b5f52] font-bold text-xl">Share your thoughts</h3>
+                </div>
+                <span className="px-3 py-1.5 rounded-full bg-[#fbbf24]/10 text-[#92400e] border border-[#fbbf24]/30 text-md font-semibold">
+                  Optional
+                </span>
+              </div>
+
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                rows={5}
+                className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-base bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none"
+                placeholder="e.g., This helped me feel more relaxed and focused. Nakatulong talaga siya sa akin!"
+              />
+
+              <div className="mt-3 flex items-start gap-2 text-sm text-[#6b7280]">
+                <InfoOutlinedIcon style={{ fontSize: 18, color: '#6b7280' }} />
+                <p className="leading-relaxed">
+                  Comments with at least 10 characters will be analyzed to better understand your experience. 
+                  Feel free to write in Filipino, English, or a mix of both!
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+              <button
+                onClick={() => navigate(-1)}
+                className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSubmit}
+                disabled={submitting || !rating}
+                className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
+                  submitting || !rating
+                    ? 'bg-[#94A3B8] cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg'
+                }`}
+              >
+                {submitting ? (
+                  <>
+                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Submitting...</span>
+                  </>
+                ) : (
+                  <>
+                    <SendIcon style={{ fontSize: 20 }} />
+                    <span>Submit Feedback</span>
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Bottom Note */}
+            <div className="text-center">
+              <p className="text-[#6b7280] text-md leading-relaxed">
+                Your feedback helps us understand what works best for you and helps improve future recommendations.
+              </p>
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-white rounded-2xl shadow-lg border-2 border-[#D8EFD3] p-12 text-center"
+          >
+            <div className="h-24 w-24 rounded-full bg-gradient-to-br from-[#55AD9B]/10 to-[#95D2B3]/10 flex items-center justify-center mx-auto mb-6 border-2 border-[#55AD9B]/30">
+              <InfoOutlinedIcon style={{ fontSize: 48, color: '#55AD9B' }} />
+            </div>
+            <h3 className="text-2xl font-bold text-[#1b5f52] mb-4">Recommendation Not Found</h3>
+            <p className="text-[#6b7280] text-base mb-6 max-w-md mx-auto">
+              We couldn't find this recommendation. It may have been removed or is no longer available.
+            </p>
+            <button
+              onClick={() => navigate(-1)}
+              className="px-8 py-3 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white text-base font-semibold shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              Go Back
+            </button>
+          </motion.div>
+        )}
       </div>
+
     </div>
   );
 };
