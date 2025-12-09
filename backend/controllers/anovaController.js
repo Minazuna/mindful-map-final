@@ -181,7 +181,6 @@ async function buildSavedPayload(userId, startDate, nextDate, category) {
   };
 }
 
-// Run ANOVA for a single day; frontend uses groupMeans and tukeyHSD
 exports.runAnovaForUser = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -236,22 +235,28 @@ exports.runAnovaForUser = async (req, res) => {
     let sleepMoodScore = null;
     let sleepMoodScoreId = null;
 
-    logs.forEach(log => {
-      if (log.category === 'sleep') {
-        sleepHours = log.hrs;
-        if (sleepHours <= 4) sleepQuality = 'Poor';
-        else if (sleepHours >= 6 && sleepHours <= 8) sleepQuality = 'Sufficient';
-        else if (sleepHours > 8) sleepQuality = 'Good';
+logs.forEach(log => {
+  if (log.category === 'sleep') {
+    sleepHours = log.hrs;
+    if (sleepHours <= 5) sleepQuality = 'Poor';
+    else if (sleepHours >= 6 && sleepHours <= 8) sleepQuality = 'Sufficient';
+    else if (sleepHours > 8) sleepQuality = 'Good';
 
-        if (sleepHours >= 7 && sleepHours <= 9) {
-          sleepMoodScore = Math.round(((sleepHours - 4) / 5) * 80);
-        } else if (sleepHours < 7) {
-          sleepMoodScore = Math.round(((sleepHours - 7) / 7) * 100);
-        } else if (sleepHours > 9) {
-          sleepMoodScore = Math.round(((9 - sleepHours) / 2) * 30);
-        }
+    // Always compute a moodScore for sleep
+    if (typeof sleepHours === 'number') {
+      // Use your existing formula, or fallback to a negative score
+      if (sleepHours >= 7 && sleepHours <= 9) {
+        sleepMoodScore = Math.round(((sleepHours - 4) / 5) * 80);
+      } else if (sleepHours < 7) {
+        sleepMoodScore = Math.round(((sleepHours - 7) / 7) * 100);
+      } else if (sleepHours > 9) {
+        sleepMoodScore = Math.round(((9 - sleepHours) / 2) * 30);
       }
-    });
+      // Always set a value, even if it's negative
+      if (isNaN(sleepMoodScore)) sleepMoodScore = -100;
+    }
+  }
+});
 
     if (sleepHours !== null && sleepMoodScore !== null) {
       // Use date RANGE for upsert
@@ -389,12 +394,7 @@ exports.runAnovaForUser = async (req, res) => {
       }
 
       // Persist snapshot (store filtered means/counts and includedGroups strictly from local counts)
-      let result = await AnovaResult.findOne({
-        user: userId,
-        category,
-        date: { $gte: targetDate, $lt: nextDate }
-      });
-
+      // Use findOneAndUpdate to avoid VersionError
       const anovaPayload = {
         F_value: resultData.F_value,
         p_value: resultData.p_value,
@@ -406,8 +406,6 @@ exports.runAnovaForUser = async (req, res) => {
         tukeyInfo: resultData.tukeyInfo || {},
         groupMeans: filteredMeans,
         groupCounts: filteredCounts
-        // Note: we keep groupLastIds only in frontend payload (not persisted),
-        // to avoid bloating saved snapshot. If you want to persist, add it to the model.
       };
 
       const { topPositive, topNegative } = computeTopListsFromMeans(anovaPayload.groupMeans, anovaPayload.groupCounts);
@@ -415,25 +413,24 @@ exports.runAnovaForUser = async (req, res) => {
       // Anchor saved document at local NOON to avoid UTC previous-day display
       const localNoonAnchor = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate(), 12, 0, 0, 0);
 
-      if (!result) {
-        result = new AnovaResult({
+      const result = await AnovaResult.findOneAndUpdate(
+        {
           user: userId,
           category,
-          date: localNoonAnchor,
-          anova: anovaPayload,
-          topPositive,
-          topNegative,
-          tukeyHSD: tukeyRows
-        });
-      } else {
-        result.date = localNoonAnchor;
-        result.anova = anovaPayload;
-        result.topPositive = topPositive;
-        result.topNegative = topNegative;
-        result.tukeyHSD = tukeyRows;
-      }
+          date: { $gte: targetDate, $lt: nextDate }
+        },
+        {
+          $set: {
+            date: localNoonAnchor,
+            anova: anovaPayload,
+            topPositive,
+            topNegative,
+            tukeyHSD: tukeyRows
+          }
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
 
-      await result.save();
       savedResults.push(result);
 
       // Frontend payload (strict)
@@ -494,6 +491,7 @@ exports.runAnovaForUser = async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error while running ANOVA', error: err.message });
   }
 };
+
 
 // Historical fetch: use local bounds and inclusive end by converting to next local midnight
 exports.getHistoricalAnova = async (req, res) => {
