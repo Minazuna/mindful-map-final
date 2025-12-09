@@ -7,6 +7,6 @@ gunicorn
 requests
 scipy
 statsmodels
-torch
-sentencepiece
 accelerate
+textblob
+vaderSentiment
