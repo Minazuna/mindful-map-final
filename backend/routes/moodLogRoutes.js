@@ -7,7 +7,8 @@ const {
   checkMoodLogs, 
   getTodaysLastMoodLog,
   getMoodLogsByCategory,
-  getTodaysSleepLog
+  getTodaysSleepLog,
+  getRecentMoodLogs
 } = require('../controllers/moodLogController');
 
 const router = express.Router();
@@ -15,6 +16,7 @@ const router = express.Router();
 router.post('/mood-log', authMiddleware, userMiddleware, saveMood);
 router.get('/mood-log', authMiddleware, userMiddleware, getAllMoodLogs);
 router.get('/mood-log/paginated', authMiddleware, userMiddleware, getPaginatedMoodLogs);
+router.get('/mood-log/recent', authMiddleware, userMiddleware, getRecentMoodLogs);
 router.get('/mood-log/category/:category', authMiddleware, userMiddleware, getMoodLogsByCategory);
 router.get('/mood-log/sleep/today', authMiddleware, userMiddleware, getTodaysSleepLog);
 

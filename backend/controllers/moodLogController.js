@@ -146,6 +146,22 @@ exports.getAllMoodLogs = async (req, res) => {
   }
 };
 
+exports.getRecentMoodLogs = async (req, res) => {
+  try {
+    const limit = parseInt(req.query.limit) || 5;
+    const moodLogs = await MoodLog.find({ user: req.user._id }).sort({ date: -1 }).limit(limit);
+    
+    if (!moodLogs.length) {
+      return res.status(200).json({ success: true, logs: [] });
+    }
+    
+    res.status(200).json({ success: true, logs: moodLogs });
+  } catch (error) {
+    console.error('Error fetching recent mood logs:', error);
+    res.status(500).json({ success: false, message: 'Server error while fetching recent mood logs.' });
+  }
+};
+
 exports.getTodaysLastMoodLog = async (req, res) => {
   try {
     if (!req.user) {
