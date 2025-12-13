@@ -92,7 +92,7 @@ const TeachersTable = () => {
       return 'Name cannot exceed 50 characters.';
     }
     if (!/^[a-zA-Z]+([a-zA-Z\s-]*[a-zA-Z])*$/.test(name)) {
-      return 'Name can only contain letters, spaces, and dashes.';
+      return 'Name can only contain letters, spaces, and hyphens.';
     }
     return '';
   };
@@ -113,9 +113,6 @@ const TeachersTable = () => {
   const validatePassword = (password) => {
     if (!password) return 'Password is required';
     if (password.length < 6) return 'Password must be at least 6 characters long.';
-    if (!/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])/.test(password)) {
-      return 'Password must include one uppercase letter, one number, and one special character.';
-    }
     return '';
   };
 
@@ -752,7 +749,7 @@ const TeachersTable = () => {
                     <p className="mt-1 text-sm text-red-600">{validationErrors.password}</p>
                   )}
                   {formData.password && !validationErrors.password && (
-                    <p className="mt-1 text-sm text-green-600">✓ Password meets requirements</p>
+                    <p className="mt-1 text-sm text-green-600">✓ Password set</p>
                   )}
                 </div>
 

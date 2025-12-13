@@ -97,7 +97,7 @@ const MentalHealthResources = () => {
               <p className="text-gray-600">
                 If you're in crisis, call the National Center for Mental Health hotline at{' '}
                 <a href="tel:021553" className="font-bold text-[#6fba94] hover:underline">(02) 1553</a>{' '}
-                (toll-free) - available 24/7
+                available 24/7
               </p>
             </div>
           </div>
