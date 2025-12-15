@@ -76,7 +76,23 @@ const BottomNav = ({ value, setValue }) => {
         value={value} 
         onChange={handleChange} 
         className="fixed bottom-0 left-0 right-0 bg-white shadow-md"
-        sx={{ zIndex: 50 }}
+        sx={{ 
+          zIndex: 50,
+          '& .MuiBottomNavigationAction-root': {
+            minWidth: 'auto',
+            padding: '8px 0',
+            color: '#b1b1b1',
+            '&.Mui-selected': {
+              color: '#6fba94'
+            }
+          },
+          '& .MuiBottomNavigationAction-label': {
+            fontSize: '0.75rem',
+            display: 'block',
+            marginTop: '4px'
+          }
+        }}
+        showLabels
       >
         <BottomNavigationAction
           label="Entries"

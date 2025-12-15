@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import ContinueTrackingModal from './ContinueTrackingModal';
+import ConsecutiveNegativeModal from './ConsecutiveNegativeModal';
 import { emotionImages } from '../../../../utils/moods';
 import { validateReason } from '../../../utils/reasonValidator';
 
@@ -13,6 +14,8 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState('');
   const [showContinueModal, setShowContinueModal] = useState(false);
+  const [showConsecutiveNegativeModal, setShowConsecutiveNegativeModal] = useState(false);
+  const [consecutiveNegativeCount, setConsecutiveNegativeCount] = useState(0);
 
     const emotions = [
       'bored',
@@ -53,6 +56,39 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
     }
   };
 
+  const checkConsecutiveNegativeEmotions = async (token) => {
+    try {
+      // Fetch the last 5 mood logs to check if afterValence is negative
+      const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log/recent?limit=5`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log('Consecutive negative check - API response:', response.data);
+
+      if (response.data.success && response.data.logs && response.data.logs.length >= 5) {
+        // Check if all last 5 have negative afterValence
+        const lastFiveLogs = response.data.logs.slice(0, 5);
+        console.log('Last 5 logs:', lastFiveLogs);
+        
+        const allNegative = lastFiveLogs.every(log => log.afterValence === 'negative');
+        console.log('All 5 negative?', allNegative);
+        
+        if (allNegative) {
+          console.log('5 consecutive negative emotions detected! Showing modal...');
+          setConsecutiveNegativeCount(5);
+          setShowConsecutiveNegativeModal(true);
+        }
+      } else {
+        console.log('Not enough logs yet. Total logs:', response.data.logs?.length || 0);
+      }
+    } catch (error) {
+      console.error('Error checking consecutive negative emotions:', error);
+      // Silently fail - don't interrupt user experience
+    }
+  };
+
   const handleFinishTracking = () => {
     setShowContinueModal(false);
     
@@ -61,7 +97,7 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
     
     if (isFromCalendar) {
       // For missed days, redirect back to calendar
-      navigate('/mood-entries');
+      navigate('/calendar-log');
     } else {
       // For normal flow, go to mood entries
       navigate('/mood-entries');
@@ -133,7 +169,10 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
             isEditing: false // Reset editing flag
           }));
           
-          // Always show the continue tracking modal
+          // Check for consecutive negative emotions (only after submitting a negative afterEmotion)
+          await checkConsecutiveNegativeEmotions(token);
+          
+          // Note: The consecutive negative check sets showConsecutiveNegativeModal if 5 consecutive negatives found
           setShowContinueModal(true);
         } else {
           toast.error('Failed to save mood log');
@@ -353,6 +392,13 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
         isOpen={showContinueModal}
         onContinue={handleContinueTracking}
         onFinish={handleFinishTracking}
+      />
+      
+      {/* Consecutive Negative Emotions Modal */}
+      <ConsecutiveNegativeModal 
+        isOpen={showConsecutiveNegativeModal} 
+        onClose={() => setShowConsecutiveNegativeModal(false)}
+        consecutiveCount={consecutiveNegativeCount}
       />
     </div>
   );

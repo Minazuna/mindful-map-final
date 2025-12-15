@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { jsPDF } from "jspdf";
-import "jspdf-autotable";
+import { generateStudentLogsPDF } from '../PDFTemplates/StudentLogsPDF';
 import TeacherSidebar from './Sidebar';
 
 const SectionStudents = () => {
@@ -90,7 +89,8 @@ const SectionStudents = () => {
       });
 
       if (response.data.success) {
-        generateStudentLogsPDF(student, response.data.data);
+        await generateStudentLogsPDF(student, response.data.data, section);
+        toast.success('Student logs downloaded successfully!');
       } else {
         toast.error('Failed to fetch student logs');
       }
@@ -98,104 +98,6 @@ const SectionStudents = () => {
       console.error('Error downloading student logs:', error);
       toast.error('Failed to download student logs');
     }
-  };
-
-  const generateStudentLogsPDF = (student, logs) => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 20;
-    
-    // Professional Header with Date and Time
-    doc.setFontSize(18);
-    doc.setFont('helvetica', 'bold');
-    doc.text('MINDFUL MAP', pageWidth / 2, 25, { align: 'center' });
-    
-    doc.setFontSize(14);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Student Mood Logs Report', pageWidth / 2, 35, { align: 'center' });
-    
-    // Date and Time
-    const now = new Date();
-    const dateTime = `Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.text(dateTime, pageWidth - margin, 15, { align: 'right' });
-    
-    // Line separator
-    doc.setLineWidth(0.5);
-    doc.setDrawColor(0, 0, 0);
-    doc.line(margin, 45, pageWidth - margin, 45);
-    
-    // Professional Student Information Layout
-    const leftColX = margin;
-    const rightColX = pageWidth / 2 + 10;
-    const startY = 60;
-    
-    doc.setFontSize(12);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Student Information', leftColX, startY);
-    
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(11);
-    doc.text(`Name: ${student.name}`, leftColX, startY + 15);
-    doc.text(`Email: ${student.email}`, leftColX, startY + 25);
-    
-    doc.text(`Section: ${decodeURIComponent(section)}`, rightColX, startY + 15);
-    doc.text(`Total Logs: ${logs.length}`, rightColX, startY + 25);
-
-    if (logs.length === 0) {
-      doc.setFontSize(12);
-      doc.text('No mood logs found for this student.', margin, startY + 50);
-    } else {
-      // Table data with date and time
-      const tableData = logs.map(log => {
-        const logDate = new Date(log.date);
-        const dateTimeStr = `${logDate.toLocaleDateString()} ${logDate.toLocaleTimeString()}`;
-        return [
-          dateTimeStr,
-          log.category,
-          log.category === 'sleep' ? `${log.hrs} hours` : log.activity || 'N/A',
-          log.beforeValence || 'N/A',
-          log.beforeEmotion || 'N/A',
-          log.beforeIntensity || 'N/A',
-          log.afterValence || 'N/A',
-          log.afterEmotion || 'N/A',
-          log.afterIntensity || 'N/A'
-        ];
-      });
-
-      doc.autoTable({
-        head: [['Date & Time', 'Category', 'Activity', 'Before Valence', 'Before Emotion', 'Before Intensity', 'After Valence', 'After Emotion', 'After Intensity']],
-        body: tableData,
-        startY: startY + 40,
-        margin: { left: 10, right: 10 },
-        styles: { 
-          fontSize: 7,
-          cellPadding: 2
-        },
-        headStyles: { 
-          fillColor: [34, 197, 94],
-          textColor: 255,
-          fontSize: 8,
-          fontStyle: 'bold'
-        },
-        columnStyles: {
-          0: { cellWidth: 25 },
-          1: { cellWidth: 20 },
-          2: { cellWidth: 28 },
-          3: { cellWidth: 20 },
-          4: { cellWidth: 20 },
-          5: { cellWidth: 18 },
-          6: { cellWidth: 20 },
-          7: { cellWidth: 20 },
-          8: { cellWidth: 18 }
-        }
-      });
-    }
-
-    // Save the PDF
-    doc.save(`${student.name.replace(/\s+/g, '_')}_mood_logs.pdf`);
-    toast.success('Student logs downloaded successfully!');
   };
 
   const getCategoryTotal = (student, category) => {

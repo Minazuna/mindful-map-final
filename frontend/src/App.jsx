@@ -4,6 +4,7 @@ import LandingPage from './components/LandingPage';
 import AboutUs from './components/AboutUs';
 import Signup from './components/Signup';
 import Signin from './components/Signin';
+import MentalHealthResources from './components/User/MentalHealthResources';
 import Home from './components/User/Home';
 import MoodEntries from './components/User/MoodEntries';
 import CalendarLog from './components/User/CalendarLog';
@@ -231,6 +232,7 @@ const App = () => {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<AboutUs />} />
+        <Route path="/mental-health-resources" element={<MentalHealthResources />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
         <Route

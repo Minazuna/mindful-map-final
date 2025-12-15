@@ -9,7 +9,7 @@ import {
   Legend,
 } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { generateActivitiesStatisticsPDF } from '../PDFTemplates/ActivitiesStatisticsPDF';
+import { generateActivitiesStatisticsPDF } from '../../../PDFTemplates/ActivitiesStatisticsPDF';
 import { Download } from 'lucide-react';
 ChartJS.register(ChartDataLabels);
 ChartJS.register(ArcElement, Tooltip, Legend);

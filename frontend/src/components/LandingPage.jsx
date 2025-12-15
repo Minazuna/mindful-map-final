@@ -93,6 +93,10 @@ const LandingPage = () => {
                 About
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F1F8E8] group-hover:w-full transition-all duration-300"></span>
               </Link>
+              <Link to="/mental-health-resources" className="text-[#F1F8E8] text-lg font-semibold hover:text-white transition-all duration-300 relative group">
+                Resources
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F1F8E8] group-hover:w-full transition-all duration-300"></span>
+              </Link>
               <Link to="/" className="text-[#F1F8E8] text-lg font-semibold hover:text-white transition-all duration-300 relative group">
                 Contact
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F1F8E8] group-hover:w-full transition-all duration-300"></span>
@@ -133,6 +137,7 @@ const LandingPage = () => {
               <div className="flex flex-col space-y-4 py-6 px-6">
                 <Link to="/" className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors">Home</Link>
                 <Link to="/about" className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors">About</Link>
+                <Link to="/mental-health-resources" className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors">Resources</Link>
                 <Link to="/signin" className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors">Login</Link>
                 <Link to="/signup" className="bg-[#F1F8E8] text-[#55AD9B] px-6 py-3 rounded-full text-center shadow-lg hover:bg-white">
                   Get Started
