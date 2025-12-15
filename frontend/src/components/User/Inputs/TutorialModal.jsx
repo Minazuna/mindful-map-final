@@ -5,7 +5,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
 
   const tutorialSteps = [
     {
-      title: '📋 Step 1: Choose a Category',
+      title: 'Step 1: Choose a Category',
       description: 'Select what activity, social interaction, health activity, or sleep you want to log. Each category helps us understand different aspects of your wellbeing.',
       details: [
         'Activities: Academic or leisure activities you engaged in',
@@ -15,7 +15,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '⏰ Step 2: Select Time',
+      title: 'Step 2: Select Time',
       description: 'Tell us when this activity or event happened. You have two options:',
       details: [
         'Yes, I remember: Enter the exact specific time',
@@ -24,7 +24,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '🎯 Step 3: Select Activity Details',
+      title: 'Step 3: Select Activity Details',
       description: 'Choose the specific activity or interaction from the available options. This provides context for your mood tracking.',
       details: [
         'Activities: Study, Exam, Project, Gaming, etc.',
@@ -34,7 +34,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '😊 Step 4: Before - Valence (Emotion Type)',
+      title: 'Step 4: Before - Valence (Emotion Type)',
       description: 'How did you feel BEFORE doing this activity? Choose the general type of emotion:',
       details: [
         'Positive: Happy, excited, pleased emotions',
@@ -43,7 +43,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '😄 Step 5: Before - Select Emotion',
+      title: 'Step 5: Before - Select Emotion',
       description: 'Pick the specific emotion that best describes how you felt BEFORE the activity:',
       details: [
         'Positive emotions: Calm, Excited, Happy, Pleased, Relaxed',
@@ -52,7 +52,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '📊 Step 6: Before - Rate Intensity & Reason',
+      title: 'Step 6: Before - Rate Intensity & Reason',
       description: 'Rate how strongly you felt that emotion (1-5 scale) and explain why:',
       details: [
         '1 = Low intensity (barely felt it)',
@@ -62,7 +62,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '😊 Step 7: After - Valence (Emotion Type)',
+      title: 'Step 7: After - Valence (Emotion Type)',
       description: 'How did you feel AFTER completing this activity? Choose the general type of emotion:',
       details: [
         'Positive: Did the activity make you feel better?',
@@ -71,7 +71,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '😄 Step 8: After - Select Emotion',
+      title: 'Step 8: After - Select Emotion',
       description: 'Pick the specific emotion that best describes how you felt AFTER the activity:',
       details: [
         'Your feeling after completing the activity',
@@ -80,7 +80,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       ]
     },
     {
-      title: '📊 Step 9: After - Rate Intensity & Reason',
+      title: 'Step 9: After - Rate Intensity & Reason',
       description: 'Rate how strongly you felt that emotion (1-5 scale) and explain why:',
       details: [
         '1 = Low intensity',
@@ -133,7 +133,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
           className="px-6 py-3 flex items-center justify-between flex-shrink-0"
           style={{ backgroundColor: '#55AD9B' }}
         >
-          <h2 className="text-lg font-bold text-white">📚 Data Logging Tutorial</h2>
+          <h2 className="text-lg font-bold text-white">Data Logging Tutorial</h2>
           <button
             onClick={handleClose}
             className="hover:scale-110 transition-transform focus:outline-none"

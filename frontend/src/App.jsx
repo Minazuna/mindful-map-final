@@ -127,7 +127,7 @@ const UserPrivateRoute = ({ children }) => {
   }, [location.pathname, prevLocation]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   if (!token) {
