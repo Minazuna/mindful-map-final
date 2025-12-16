@@ -8,7 +8,6 @@ import 'react-toastify/dist/ReactToastify.css';
 import MenuItem from '@mui/material/MenuItem';
 import Select from '@mui/material/Select';
 import FormControl from '@mui/material/FormControl';
-// Firebase imports
 import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 
@@ -28,7 +27,6 @@ const Signup = () => {
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
 
-  // Initialize Firebase
   useEffect(() => {
     const firebaseConfig = {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -42,7 +40,6 @@ const Signup = () => {
     initializeApp(firebaseConfig);
   }, []);
 
-  // Validation functions
   const validateEmail = (email) => {
     if (!email) return 'Email is required';
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -117,16 +114,13 @@ const Signup = () => {
     const { name, value, files } = e.target;
     let newValue = files ? files[0] : value;
     
-    // Auto-uppercase middle initial
     if (name === 'middleInitial') {
       newValue = newValue.toUpperCase();
     }
     
-    // Trim leading spaces and capitalize first letter of each word for name fields
     if (name === 'firstName' || name === 'lastName') {
-      newValue = newValue.replace(/^\s+/, ''); // Remove leading spaces
+      newValue = newValue.replace(/^\s+/, '');
       if (newValue.length > 0) {
-        // Capitalize first letter of each word (separated by spaces or hyphens)
         newValue = newValue.replace(/\b\w/g, (char) => char.toUpperCase());
       }
     }
@@ -136,8 +130,7 @@ const Signup = () => {
       [name]: newValue,
     });
 
-    // Real-time validation
-    if (!files) { // Don't validate file uploads
+    if (!files) {
       const error = validateField(name, newValue);
       setValidationErrors(prev => ({
         ...prev,
@@ -149,7 +142,6 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate all fields before submission
     const errors = {
       email: validateEmail(formData.email),
       firstName: validateFirstName(formData.firstName),
@@ -158,7 +150,6 @@ const Signup = () => {
       password: validatePassword(formData.password),
     };
 
-    // Check if there are any validation errors
     const hasErrors = Object.values(errors).some(error => error !== '');
     
     if (hasErrors) {
@@ -185,14 +176,14 @@ const Signup = () => {
           'Content-Type': 'multipart/form-data',
         },
       });
-    if (response.data.success) {
-      toast.success('Registration successful!');
-      setError('');
-      setValidationErrors({});
-      localStorage.setItem('token', response.data.token);
-      setTimeout(() => {
-        navigate('/choose-category');
-      }, 3000);
+      if (response.data.success) {
+        toast.success('Registration successful!');
+        setError('');
+        setValidationErrors({});
+        localStorage.setItem('token', response.data.token);
+        setTimeout(() => {
+          navigate('/choose-category');
+        }, 3000);
       } else {
         setError(response.data.message);
         toast.error(response.data.message);
@@ -204,7 +195,6 @@ const Signup = () => {
     }
   };
 
-  // Google sign-up handler
   const handleGoogleSignIn = async () => {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
@@ -213,7 +203,6 @@ const Signup = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      // Get user info from Google account
       const googleUserData = {
         email: user.email,
         firstName: user.displayName ? user.displayName.split(' ')[0] : '',
@@ -222,7 +211,6 @@ const Signup = () => {
         firebaseUid: user.uid,
       };
       
-      // Call our backend to register/login the user
       const response = await axios.post(
         `${import.meta.env.VITE_NODE_API}/api/auth/google-auth`,
         googleUserData
@@ -235,7 +223,6 @@ const Signup = () => {
         if (response.data.role === 'admin') {
           navigate('/admin/dashboard');
         } else {
-          // Check if the user has logged a mood for the day
           try {
             const moodLogResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/mood-log`, {
               headers: {
@@ -262,338 +249,234 @@ const Signup = () => {
     }
   };
 
-  // Updated input styling
-  const inputStyles = {
-    base: "w-full p-3 rounded-xl border-2 border-[#6fba94] outline-none focus:border-[#6fba94] text-black bg-[#F1F8E8]",
-  };
-
   return (
-    <div className="min-h-screen flex bg-[#F1F8E8]">
-      <ToastContainer />
-      <style jsx>{`
-        /* Fix for autofill visibility */
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 1000px #F1F8E8 inset !important;
-          -webkit-text-fill-color: #000000 !important;
-          background-color: #F1F8E8 !important;
-          color: #000000 !important;
-          transition: background-color 5000s ease-in-out 0s;
-        }
-        
-        /* Ensure all input text is visible */
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
-          color: #000000 !important;
-          background-color: #F1F8E8 !important;
-          font-size: 16px !important; /* Prevents zoom on iOS */
-          -webkit-appearance: none !important;
-          -moz-appearance: none !important;
-          appearance: none !important;
-        }
-        
-        /* Placeholder styling */
-        input::placeholder {
-          color: #666666 !important;
-          opacity: 1 !important;
-        }
-        
-        /* Focus state improvements */
-        input:focus {
-          background-color: #F1F8E8 !important;
-          color: #000000 !important;
-          border-color: #6fba94 !important;
-          box-shadow: 0 0 0 2px rgba(111, 186, 148, 0.2) !important;
-        }
-        
-        /* Validation error styles */
-        .border-red-500 {
-          border-color: #ef4444 !important;
-        }
-        
-        /* Flex layout for name fields */
-        .flex-2 {
-          flex: 2;
-        }
-      `}</style>
+    <div className="min-h-screen flex bg-white">
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       
       {/* Left Side - Form */}
       <div className="w-1/2 flex items-center justify-center p-8">
-        <form className="w-full max-w-md flex flex-col items-center" onSubmit={handleSubmit}>
-          <h1 className="w-full text-center text-5xl font-bold mb-8" style={{ color: '#3a3939' }}>
+        <form className="w-full max-w-lg flex flex-col" onSubmit={handleSubmit}>
+          <h1 className="text-5xl font-bold mb-2 text-[#3a3939] text-center">
             Create your account
           </h1>
-          
 
-          {/* First Name, Middle Initial, and Last Name */}
-          <div className="w-full flex gap-3 mb-2">
-            <div className="flex-2">
+          {/* Name Fields */}
+          <div className="flex gap-3 mb-6">
+            <div className="flex-1">
               <input
                 type="text"
                 name="firstName"
                 placeholder="First Name"
-                className={`${inputStyles.base} ${validationErrors.firstName ? 'border-red-500' : ''}`}
-                style={{ 
-                  color: '#000000',
-                  backgroundColor: '#ffffffff',
-                  fontSize: '16px'
-                }}
+                className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200
+                  ${validationErrors.firstName 
+                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                    : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
+                  }
+                  bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
                 value={formData.firstName}
                 onChange={handleChange}
               />
               {validationErrors.firstName && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors.firstName}</p>
+                <p className="text-red-500 text-sm mt-1.5 ml-1">{validationErrors.firstName}</p>
               )}
             </div>
-            <div className="w-16">
+            <div className="w-20">
               <input
                 type="text"
                 name="middleInitial"
                 placeholder="M.I."
-                className={`${inputStyles.base} ${validationErrors.middleInitial ? 'border-red-500' : ''}`}
                 maxLength="2"
-                style={{ 
-                  color: '#000000',
-                  backgroundColor: '#F1F8E8',
-                  fontSize: '16px'
-                }}
+                className={`w-full px-3 py-4 text-xl text-center rounded-xl border-2 transition-all duration-200
+                  ${validationErrors.middleInitial 
+                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                    : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
+                  }
+                  bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
                 value={formData.middleInitial}
                 onChange={handleChange}
               />
               {validationErrors.middleInitial && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors.middleInitial}</p>
+                <p className="text-red-500 text-xs mt-1.5">{validationErrors.middleInitial}</p>
               )}
             </div>
-            <div className="flex-2">
+            <div className="flex-1">
               <input
                 type="text"
                 name="lastName"
                 placeholder="Last Name"
-                className={`${inputStyles.base} ${validationErrors.lastName ? 'border-red-500' : ''}`}
-                style={{ 
-                  color: '#000000',
-                  backgroundColor: '#F1F8E8',
-                  fontSize: '16px'
-                }}
+                className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200
+                  ${validationErrors.lastName 
+                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                    : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
+                  }
+                  bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
                 value={formData.lastName}
                 onChange={handleChange}
               />
               {validationErrors.lastName && (
-                <p className="text-red-500 text-xs mt-1">{validationErrors.lastName}</p>
+                <p className="text-red-500 text-sm mt-1.5 ml-1">{validationErrors.lastName}</p>
               )}
             </div>
           </div>
-          <div className="mb-4"></div>
-          
-          {/* Gender and Section Dropdowns */}
-          <div className="w-full flex gap-3 mb-4">
-            <div className="w-1/2">
-              <FormControl fullWidth variant="outlined" sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '12px',
-                  backgroundColor: '#F1F8E8',
-                  fontFamily: 'Nunito, sans-serif',
-                  color: '#000000',
-                  '& fieldset': {
-                    borderColor: '#6fba94',
-                    borderWidth: '2px',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#6fba94',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#6fba94',
-                  },
-                },
-                '& .MuiSelect-select': {
-                  fontFamily: 'Nunito, sans-serif',
-                  color: '#000000',
-                  backgroundColor: '#F1F8E8',
-                },
-                '& .MuiMenuItem-root': {
-                  fontFamily: 'Nunito, sans-serif',
-                  color: '#000000',
-                }
-              }}>
+
+          {/* Gender and Section */}
+          <div className="flex gap-3 mb-6">
+            <div className="flex-1">
+              <FormControl fullWidth>
                 <Select
-                  id="gender"
                   name="gender"
                   value={formData.gender}
                   onChange={handleChange}
                   displayEmpty
-                  renderValue={(selected) => {
-                    if (!selected) {
-                      return <span style={{ color: '#666666' }}>Gender</span>;
-                    }
-                    return selected;
-                  }}
+                  className="rounded-xl"
                   sx={{
-                    color: '#000000',
-                    backgroundColor: '#F1F8E8',
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        fontFamily: 'Nunito, sans-serif',
-                        '& .MuiMenuItem-root': {
-                          fontFamily: 'Nunito, sans-serif',
-                          color: '#000000',
-                        },
-                        '& .MuiMenuItem-root:hover': {
-                          backgroundColor: 'rgba(111, 186, 148, 0.1)',
-                        },
-                        '& .MuiMenuItem-root.Mui-selected': {
-                          backgroundColor: 'rgba(111, 186, 148, 0.2)',
-                          fontFamily: 'Nunito, sans-serif',
-                          color: '#000000',
-                        },
-                        '& .MuiMenuItem-root.Mui-selected:hover': {
-                          backgroundColor: 'rgba(111, 186, 148, 0.3)',
-                        },
-                      },
+                    height: '60px',
+                    fontSize: '1.25rem',
+                    backgroundColor: 'white',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#D8EFD3',
+                      borderWidth: '2px',
+                      borderRadius: '12px',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#55AD9B',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#55AD9B',
+                      borderWidth: '2px',
+                    },
+                    '& .MuiSelect-select': {
+                      fontSize: '1.25rem',
+                      color: '#111827',
                     },
                   }}
                 >
-                  <MenuItem value="Male">Male</MenuItem>
-                  <MenuItem value="Female">Female</MenuItem>
-                  <MenuItem value="Rather not say">Rather not say</MenuItem>
+                  <MenuItem value="Male" sx={{ fontSize: '1.25rem' }}>Male</MenuItem>
+                  <MenuItem value="Female" sx={{ fontSize: '1.25rem' }}>Female</MenuItem>
+                  <MenuItem value="Rather not say" sx={{ fontSize: '1.25rem' }}>Rather not say</MenuItem>
                 </Select>
               </FormControl>
             </div>
-
-            <div className="w-1/2">
-              <FormControl fullWidth variant="outlined" sx={{ 
-                '& .MuiOutlinedInput-root': {
-                  borderRadius: '12px',
-                  backgroundColor: '#F1F8E8',
-                  fontFamily: 'Nunito, sans-serif',
-                  color: '#000000',
-                  '& fieldset': {
-                    borderColor: '#6fba94',
-                    borderWidth: '2px',
-                  },
-                  '&:hover fieldset': {
-                    borderColor: '#6fba94',
-                  },
-                  '&.Mui-focused fieldset': {
-                    borderColor: '#6fba94',
-                  },
-                },
-                '& .MuiSelect-select': {
-                  fontFamily: 'Nunito, sans-serif',
-                  color: '#000000',
-                  backgroundColor: '#F1F8E8',
-                },
-                '& .MuiMenuItem-root': {
-                  fontFamily: 'Nunito, sans-serif',
-                  color: '#000000',
-                }
-              }}>
+            <div className="flex-1">
+              <FormControl fullWidth>
                 <Select
-                  id="section"
                   name="section"
                   value={formData.section}
                   onChange={handleChange}
                   displayEmpty
+                  className="rounded-xl"
                   renderValue={(selected) => {
                     if (!selected) {
-                      return <span style={{ color: '#666666' }}>Section</span>;
+                      return <span className="text-gray-400">Section</span>;
                     }
                     return selected;
                   }}
                   sx={{
-                    color: '#000000',
-                    backgroundColor: '#F1F8E8',
-                  }}
-                  MenuProps={{
-                    PaperProps: {
-                      sx: {
-                        fontFamily: 'Nunito, sans-serif',
-                        '& .MuiMenuItem-root': {
-                          fontFamily: 'Nunito, sans-serif',
-                          color: '#000000',
-                        },
-                        '& .MuiMenuItem-root:hover': {
-                          backgroundColor: 'rgba(111, 186, 148, 0.1)',
-                        },
-                        '& .MuiMenuItem-root.Mui-selected': {
-                          backgroundColor: 'rgba(111, 186, 148, 0.2)',
-                          fontFamily: 'Nunito, sans-serif',
-                          color: '#000000',
-                        },
-                        '& .MuiMenuItem-root.Mui-selected:hover': {
-                          backgroundColor: 'rgba(111, 186, 148, 0.3)',
-                        },
-                      },
+                    height: '60px',
+                    fontSize: '1.25rem',
+                    backgroundColor: 'white',
+                    '& .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#D8EFD3',
+                      borderWidth: '2px',
+                      borderRadius: '12px',
+                    },
+                    '&:hover .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#55AD9B',
+                    },
+                    '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                      borderColor: '#55AD9B',
+                      borderWidth: '2px',
+                    },
+                    '& .MuiSelect-select': {
+                      fontSize: '1.25rem',
+                      color: '#111827',
                     },
                   }}
                 >
-                  <MenuItem value="St. John Paul II (STEM 1)">St. John Paul II (STEM 1)</MenuItem>
-                  <MenuItem value="St. Paul VI (STEM 2)">St. Paul VI (STEM 2)</MenuItem>
-                  <MenuItem value="St. John XXIII (STEM 3)">St. John XXIII (STEM 3)</MenuItem>
-                  <MenuItem value="St. Pius X (HUMSS)">St. Pius X (HUMSS)</MenuItem>
-                  <MenuItem value="St. Tarcisius (ABM)">St. Tarcisius (ABM)</MenuItem>
-                  <MenuItem value="St. Jose Sanchez Del Rio (ICT)">St. Jose Sanchez Del Rio (ICT)</MenuItem>
+                  <MenuItem value="St. John Paul II (STEM 1)" sx={{ fontSize: '1.125rem' }}>St. John Paul II (STEM 1)</MenuItem>
+                  <MenuItem value="St. Paul VI (STEM 2)" sx={{ fontSize: '1.125rem' }}>St. Paul VI (STEM 2)</MenuItem>
+                  <MenuItem value="St. John XXIII (STEM 3)" sx={{ fontSize: '1.125rem' }}>St. John XXIII (STEM 3)</MenuItem>
+                  <MenuItem value="St. Pius X (HUMSS)" sx={{ fontSize: '1.125rem' }}>St. Pius X (HUMSS)</MenuItem>
+                  <MenuItem value="St. Tarcisius (ABM)" sx={{ fontSize: '1.125rem' }}>St. Tarcisius (ABM)</MenuItem>
+                  <MenuItem value="St. Jose Sanchez Del Rio (ICT)" sx={{ fontSize: '1.125rem' }}>St. Jose Sanchez Del Rio (ICT)</MenuItem>
                 </Select>
               </FormControl>
             </div>
           </div>
 
-          <div className="w-full mb-4">
+          {/* Email */}
+          <div className="mb-6">
             <input
               type="email"
               name="email"
-              placeholder="Email"
-              className={`${inputStyles.base} ${validationErrors.email ? 'border-red-500' : ''}`}
+              placeholder="Email Address"
+              className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200
+                ${validationErrors.email 
+                  ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                  : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
+                }
+                bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
               value={formData.email}
               onChange={handleChange}
-              style={{ 
-                color: '#000000',
-                backgroundColor: '#F1F8E8',
-                fontSize: '16px'
-              }}
             />
             {validationErrors.email && (
-              <p className="text-red-500 text-xs mt-1">{validationErrors.email}</p>
+              <p className="text-red-500 text-sm mt-1.5 ml-1">{validationErrors.email}</p>
             )}
           </div>
 
-          <div className="w-full mb-6">
+          {/* Password */}
+          <div className="mb-6">
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
                 placeholder="Password"
-                className={`${inputStyles.base} ${validationErrors.password ? 'border-red-500' : ''}`}
+                className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200 pr-12
+                  ${validationErrors.password 
+                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                    : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
+                  }
+                  bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
                 value={formData.password}
                 onChange={handleChange}
-                style={{ 
-                  color: '#000000',
-                  backgroundColor: '#F1F8E8',
-                  fontSize: '16px'
-                }}
               />
               <div
-                className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#55AD9B] hover:text-[#3e8e7e] transition-colors cursor-pointer"
                 onClick={() => setShowPassword(!showPassword)}
               >
-                {showPassword ? <VisibilityOffIcon className="text-[#6fba94]"/> : <VisibilityIcon className="text-[#6fba94]"/>}
+                {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
               </div>
             </div>
             {validationErrors.password && (
-              <p className="text-red-500 text-xs mt-1">{validationErrors.password}</p>
+              <p className="text-red-500 text-sm mt-1.5 ml-1">{validationErrors.password}</p>
             )}
             {formData.password && !validationErrors.password && (
-              <p className="text-green-600 text-xs mt-1">✓ Password meets requirements</p>
+              <p className="text-green-600 text-sm mt-1.5 ml-1">✓ Password meets requirements</p>
             )}
           </div>
 
-          <div className="w-full flex flex-col items-center mb-6">
-            <label htmlFor="avatar" className="text-lg w-3/4 p-3 rounded-xl bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] text-center cursor-pointer transition-colors">
-              Upload Avatar
+          {/* Avatar Upload */}
+          <div className="mb-6">
+            <label 
+              htmlFor="avatar" 
+              className="flex items-center justify-center px-6 py-4 text-lg rounded-xl border-2 border-dashed border-[#55AD9B] 
+                bg-[#55AD9B]/5 text-[#55AD9B] font-semibold hover:bg-[#55AD9B]/10 cursor-pointer transition-all duration-200"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+              {formData.avatar ? formData.avatar.name : 'Upload Avatar (Optional)'}
             </label>
             <input
               type="file"
@@ -601,28 +484,46 @@ const Signup = () => {
               name="avatar"
               className="hidden"
               onChange={handleChange}
+              accept="image/*"
             />
-            {formData.avatar && (
-              <p className="mt-2 text-sm text-gray-600">File selected: {formData.avatar.name}</p>
-            )}
           </div>
 
-          {error && <p className="text-red-500 mb-4">{error}</p>}
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
 
+          {/* Submit Button */}
           <button
             type="submit"
-            className="text-lg w-full p-3 rounded-xl bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] mb-4 transition-colors"
+            className="w-full py-4 text-lg font-bold rounded-xl bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] 
+              text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] 
+              transition-all duration-200 mb-4"
           >
             Create Account
           </button>
           
+          {/* Divider */}
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500">or continue with</span>
+            </div>
+          </div>
+
           {/* Google Sign In Button */}
           <button 
             type="button"
             onClick={handleGoogleSignIn}
-            className="text-lg w-full p-3 rounded-xl bg-white border-2 border-[#6fba94] font-medium flex items-center justify-center gap-2 hover:bg-gray-50 mb-4 transition-colors"
+            className="w-full py-4 text-lg font-semibold rounded-xl border-2 border-[#D8EFD3] 
+              bg-white text-gray-700 flex items-center justify-center gap-3 
+              hover:bg-gray-50 hover:border-[#55AD9B] hover:scale-[1.02] active:scale-[0.98]
+              transition-all duration-200 mb-6 shadow-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M21.8 12.2c0-.7-.06-1.41-.17-2.08H12v3.93h5.5a4.7 4.7 0 01-2.04 3.09v2.57h3.3c1.94-1.78 3.04-4.4 3.04-7.5z"/>
               <path fill="#34A853" d="M12 22c2.75 0 5.07-.91 6.76-2.46l-3.3-2.57a6.45 6.45 0 01-3.46.96c-2.65 0-4.9-1.8-5.7-4.2H2.9v2.65A9.98 9.98 0 0012 22z"/>
               <path fill="#FBBC05" d="M6.3 13.73a6.1 6.1 0 01-.32-1.91c0-.66.12-1.3.32-1.91V7.27H2.9A9.96 9.96 0 002 12c0 1.61.39 3.14 1.07 4.49l3.23-2.76z"/>
@@ -631,20 +532,19 @@ const Signup = () => {
             Sign up with Google
           </button>
           
-          <p className="mt-2 text-base text-center">
-            <span style={{ color: '#3a3939' }}>Already have an account? </span>
+          {/* Sign In Link */}
+          <p className="text-center text-base text-gray-600">
+            Already have an account?{' '}
             <span
-              style={{ color: '#6fba94', cursor: 'pointer' }}
               onClick={() => navigate('/signin')}
-              className="hover:underline font-semibold"
+              className="text-[#55AD9B] font-semibold hover:text-[#3e8e7e] hover:underline transition-colors cursor-pointer"
             >
-              Sign in.
+              Sign in
             </span>
           </p>
         </form>
       </div>
-
-      {/* Right Side - Logo Container */}
+    {/* Right Side - Logo Container */}
       <div className="w-1/2 flex items-center justify-center">
         <div className="bg-[#95D2B3] rounded-3xl shadow-lg p-24 flex items-center justify-center w-200 h-200">
           <img
@@ -658,5 +558,4 @@ const Signup = () => {
     </div>
   );
 };
-
 export default Signup;

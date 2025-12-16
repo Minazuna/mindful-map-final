@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { toast } from 'react-toastify';
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
-// Import Firebase
 import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 
@@ -15,6 +15,7 @@ const Signin = () => {
     password: '',
   });
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
   
   useEffect(() => {
@@ -30,16 +31,57 @@ const Signin = () => {
     initializeApp(firebaseConfig);
   }, []);
 
+  const validateEmail = (email) => {
+    if (!email) return 'Email is required';
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) return 'Please enter a valid email address';
+    return '';
+  };
+
+  const validatePassword = (password) => {
+    if (!password) return 'Password is required';
+    if (password.length < 6) return 'Password must be at least 6 characters long';
+    return '';
+  };
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData({
       ...formData,
       [name]: value,
     });
+
+    // Real-time validation
+    let error = '';
+    if (name === 'email') {
+      error = validateEmail(value);
+    } else if (name === 'password') {
+      error = validatePassword(value);
+    }
+    
+    setValidationErrors(prev => ({
+      ...prev,
+      [name]: error
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Validate all fields
+    const errors = {
+      email: validateEmail(formData.email),
+      password: validatePassword(formData.password),
+    };
+
+    const hasErrors = Object.values(errors).some(error => error !== '');
+    
+    if (hasErrors) {
+      setValidationErrors(errors);
+      toast.error('Please fix the validation errors before submitting.');
+      return;
+    }
+
     const data = {
       email: formData.email,
       password: formData.password,
@@ -64,7 +106,6 @@ const Signin = () => {
         } else if (userResponse.data.role === 'teacher') {
           navigate('/teacher/dashboard');
         } else if (userResponse.data.role === 'user') {
-          // Navigate to choose category without date parameter for normal logging (today's date)
           navigate('/choose-category');
         } else {
           toast.error("Unknown user role.");
@@ -91,7 +132,6 @@ const Signin = () => {
     }
   };
 
-  // Google sign-in handler
   const handleGoogleSignIn = async () => {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
@@ -100,7 +140,6 @@ const Signin = () => {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      // Get user info from Google account
       const googleUserData = {
         email: user.email,
         firstName: user.displayName ? user.displayName.split(' ')[0] : '',
@@ -109,7 +148,6 @@ const Signin = () => {
         firebaseUid: user.uid,
       };
       
-      // Call our backend to register/login the user
       const response = await axios.post(
         `${import.meta.env.VITE_NODE_API}/api/auth/google-auth`,
         googleUserData
@@ -124,7 +162,6 @@ const Signin = () => {
         } else if (response.data.role === 'teacher') {
           navigate('/teacher/dashboard');
         } else {
-          // Navigate to choose category without date parameter for normal logging (today's date)
           navigate('/choose-category');
         }
       }
@@ -134,114 +171,112 @@ const Signin = () => {
     }
   };
 
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
-  // Updated input styling
-  const inputStyles = {
-    base: "w-full p-3 rounded-xl border-2 border-[#6fba94] outline-none focus:border-[#6fba94] text-black bg-[#F1F8E8]",
-  };
-
   return (
-    <div className="min-h-screen flex bg-[#F1F8E8]">
-      <style jsx>{`
-        /* Fix for autofill visibility */
-        input:-webkit-autofill,
-        input:-webkit-autofill:hover,
-        input:-webkit-autofill:focus,
-        input:-webkit-autofill:active {
-          -webkit-box-shadow: 0 0 0 1000px #F1F8E8 inset !important;
-          -webkit-text-fill-color: #000000 !important;
-          background-color: #F1F8E8 !important;
-          color: #000000 !important;
-          transition: background-color 5000s ease-in-out 0s;
-        }
-        
-        /* Ensure all input text is visible */
-        input[type="text"],
-        input[type="email"],
-        input[type="password"] {
-          color: #000000 !important;
-          background-color: #F1F8E8 !important;
-          font-size: 16px !important; /* Prevents zoom on iOS */
-          -webkit-appearance: none !important;
-          -moz-appearance: none !important;
-          appearance: none !important;
-        }
-        
-        /* Placeholder styling */
-        input::placeholder {
-          color: #666666 !important;
-          opacity: 1 !important;
-        }
-        
-        /* Focus state improvements */
-        input:focus {
-          background-color: #F1F8E8 !important;
-          color: #000000 !important;
-          border-color: #6fba94 !important;
-          box-shadow: 0 0 0 2px rgba(111, 186, 148, 0.2) !important;
-        }
-      `}</style>
+    <div className="min-h-screen flex bg-white">
+      <ToastContainer 
+        position="top-right"
+        autoClose={3000}
+        hideProgressBar={false}
+        newestOnTop={false}
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        pauseOnHover
+        theme="light"
+      />
       
       {/* Left Side - Form */}
       <div className="w-1/2 flex items-center justify-center p-8">
-        <form className="w-full max-w-md flex flex-col items-center" onSubmit={handleSubmit}>
-          <h1 className="w-full text-center text-5xl font-bold mb-8" style={{ color: '#3a3939' }}>
+        <form className="w-full max-w-lg flex flex-col" onSubmit={handleSubmit}>
+          <h1 className="text-5xl font-bold mb-2 text-[#3a3939] text-center">
             Welcome back!
           </h1>
           
-          <input
-            type="email"
-            name="email"
-            placeholder="Email"
-            className={inputStyles.base + " mb-4"}
-            onChange={handleChange}
-            style={{ 
-              color: '#000000',
-              backgroundColor: '#F1F8E8',
-              fontSize: '16px'
-            }}
-          />
-
-          <div className="w-full relative mb-6">
+          {/* Email */}
+          <div className="mb-6">
             <input
-              type={showPassword ? 'text' : 'password'}
-              name="password"
-              placeholder="Password"
-              className={inputStyles.base}
+              type="email"
+              name="email"
+              placeholder="Email Address"
+              className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200
+                ${validationErrors.email 
+                  ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                  : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
+                }
+                bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
+              value={formData.email}
               onChange={handleChange}
-              style={{ 
-                color: '#000000',
-                backgroundColor: '#F1F8E8',
-                fontSize: '16px'
-              }}
             />
-            <div
-              className="absolute inset-y-0 right-0 pr-3 flex items-center cursor-pointer"
-              onClick={togglePasswordVisibility}
-            >
-              {showPassword ? <VisibilityOffIcon className="text-[#6fba94]"/> : <VisibilityIcon className="text-[#6fba94]"/>}
-            </div>
+            {validationErrors.email && (
+              <p className="text-red-500 text-sm mt-1.5 ml-1">{validationErrors.email}</p>
+            )}
           </div>
 
-          {error && <p className="text-red-500 mb-4">{error}</p>}
+          {/* Password */}
+          <div className="mb-6">
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                name="password"
+                placeholder="Password"
+                className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200 pr-12
+                  ${validationErrors.password 
+                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                    : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
+                  }
+                  bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
+                value={formData.password}
+                onChange={handleChange}
+              />
+              <div
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#55AD9B] hover:text-[#3e8e7e] transition-colors cursor-pointer"
+                onClick={() => setShowPassword(!showPassword)}
+              >
+                {showPassword ? <VisibilityOffIcon /> : <VisibilityIcon />}
+              </div>
+            </div>
+            {validationErrors.password && (
+              <p className="text-red-500 text-sm mt-1.5 ml-1">{validationErrors.password}</p>
+            )}
+          </div>
 
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
+              <p className="text-red-600 text-sm">{error}</p>
+            </div>
+          )}
+
+          {/* Submit Button */}
           <button
             type="submit"
-            className="text-lg w-full p-3 rounded-xl bg-[#6fba94] text-white font-bold hover:bg-[#5aa88f] mb-4 transition-colors"
+            className="w-full py-4 text-lg font-bold rounded-xl bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] 
+              text-white shadow-lg hover:shadow-xl hover:scale-[1.02] active:scale-[0.98] 
+              transition-all duration-200 mb-4"
           >
             Sign In
           </button>
           
+          {/* Divider */}
+          <div className="relative mb-4">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-gray-500">or continue with</span>
+            </div>
+          </div>
+
           {/* Google Sign In Button */}
           <button 
             type="button"
             onClick={handleGoogleSignIn}
-            className="text-lg w-full p-3 rounded-xl bg-white border-2 border-[#6fba94] font-medium flex items-center justify-center gap-2 hover:bg-gray-50 mb-4 transition-colors"
+            className="w-full py-4 text-lg font-semibold rounded-xl border-2 border-[#D8EFD3] 
+              bg-white text-gray-700 flex items-center justify-center gap-3 
+              hover:bg-gray-50 hover:border-[#55AD9B] hover:scale-[1.02] active:scale-[0.98]
+              transition-all duration-200 mb-6 shadow-sm"
           >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24">
               <path fill="#4285F4" d="M21.8 12.2c0-.7-.06-1.41-.17-2.08H12v3.93h5.5a4.7 4.7 0 01-2.04 3.09v2.57h3.3c1.94-1.78 3.04-4.4 3.04-7.5z"/>
               <path fill="#34A853" d="M12 22c2.75 0 5.07-.91 6.76-2.46l-3.3-2.57a6.45 6.45 0 01-3.46.96c-2.65 0-4.9-1.8-5.7-4.2H2.9v2.65A9.98 9.98 0 0012 22z"/>
               <path fill="#FBBC05" d="M6.3 13.73a6.1 6.1 0 01-.32-1.91c0-.66.12-1.3.32-1.91V7.27H2.9A9.96 9.96 0 002 12c0 1.61.39 3.14 1.07 4.49l3.23-2.76z"/>
@@ -250,20 +285,20 @@ const Signin = () => {
             Sign in with Google
           </button>
           
-          <p className="mt-2 text-base text-center">
-            <span style={{ color: '#3a3939' }}>Don't have an account? </span>
+          {/* Sign Up Link */}
+          <p className="text-center text-base text-gray-600">
+            Don't have an account?{' '}
             <span
-              style={{ color: '#6fba94', cursor: 'pointer' }}
               onClick={() => navigate('/signup')}
-              className="hover:underline font-semibold"
+              className="text-[#55AD9B] font-semibold hover:text-[#3e8e7e] hover:underline transition-colors cursor-pointer"
             >
-              Sign up.
+              Sign up
             </span>
           </p>
         </form>
       </div>
 
-      {/* Right Side - Logo Container */}
+    {/* Right Side - Logo Container */}
       <div className="w-1/2 flex items-center justify-center">
         <div className="bg-[#95D2B3] rounded-3xl shadow-lg p-24 flex items-center justify-center w-200 h-200">
           <img
