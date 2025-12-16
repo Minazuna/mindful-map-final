@@ -338,7 +338,7 @@ const Signup = () => {
                 className={`${inputStyles.base} ${validationErrors.firstName ? 'border-red-500' : ''}`}
                 style={{ 
                   color: '#000000',
-                  backgroundColor: '#F1F8E8',
+                  backgroundColor: '#ffffffff',
                   fontSize: '16px'
                 }}
                 value={formData.firstName}

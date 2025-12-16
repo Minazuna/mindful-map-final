@@ -33,20 +33,56 @@ exports.generateAndSaveRecommendation = async (req, res) => {
     const { _id, user, date, category, activity, moodScore, sleepHours } = moodScoreDoc;
     const moodType = moodScore >= 0 ? 'positive' : 'negative';
 
-    // Idempotency per (user, date, category, activity)
     const keyQuery = { user: user._id, date, category, activity };
     const existingForKey = await Recommendation.find(keyQuery).sort({ createdAt: 1 }).lean();
     if (existingForKey.length > 0) {
-      // fall through to enrichment to always return up to 3 for UI
     }
 
+    const ineffectiveAgg = await RecommendationEffectiveness.aggregate([
+      { 
+        $match: { 
+          user: user._id,
+          effective: false 
+        } 
+      },
+      {
+        $group: {
+          _id: '$recommendation',
+          ineffectiveCount: { $sum: 1 }
+        }
+      },
+      {
+        $match: {
+          ineffectiveCount: { $gte: 2 }
+        }
+      }
+    ]);
+    
+    const ineffectiveRecIds = ineffectiveAgg.map(a => a._id);
+
+    const ineffectiveRecs = await Recommendation.find({
+      _id: { $in: ineffectiveRecIds },
+      user: user._id,
+      category,
+      activity
+    }).select('recommendation').lean();
+    
+    const blockedTexts = new Set(ineffectiveRecs.map(r => String(r.recommendation).trim().toLowerCase()));
+
     // Generate up to 3 unique recommendation texts
-    const texts = getRecommendations({ category, activity, moodType, sleepHours, n: 3 }) || [];
+    let texts = getRecommendations({ category, activity, moodType, sleepHours, n: 10 }) || []; 
+    
+    // Filter out blocked (ineffective) recommendations
+    texts = texts
+      .map(t => String(t).trim())
+      .filter(t => t && !blockedTexts.has(t.toLowerCase()))
+      .slice(0, 3); 
+
     if (texts.length === 0 && existingForKey.length === 0) {
       return res.json({ recommendations: [] });
     }
 
-    // Insert unique recommendations for the key; ignore duplicate errors
+    
     const toInsert = texts
       .map(t => String(t).trim())
       .filter(Boolean)
@@ -84,7 +120,10 @@ exports.generateAndSaveRecommendation = async (req, res) => {
           _id: '$recommendation',
           count: { $sum: 1 },
           avgCombined: { $avg: '$combinedScore' },
-          anyEffective: { $max: { $cond: ['$effective', 1, 0] } }
+          anyEffective: { $max: { $cond: ['$effective', 1, 0] } },
+          ineffectiveCount: { 
+            $sum: { $cond: [{ $eq: ['$effective', false] }, 1, 0] } 
+          }
         }
       }
     ]);
@@ -95,7 +134,8 @@ exports.generateAndSaveRecommendation = async (req, res) => {
         ...r,
         effectivenessCount: a ? a.count : 0,
         effectivenessAvg: a ? a.avgCombined : 0,
-        effective: a ? a.anyEffective === 1 : false
+        effective: a ? a.anyEffective === 1 : false,
+        ineffectiveCount: a ? a.ineffectiveCount : 0
       };
     });
 

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import axios from 'axios';
 import BottomNav from '../BottomNav';
-import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Tooltip, IconButton, Dialog, DialogContent } from '@mui/material';
+import { Menu, MenuItem, FormControlLabel, Checkbox, Button, Tooltip, IconButton, Dialog, DialogContent, Divider } from '@mui/material';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
@@ -387,7 +387,7 @@ const MoodEntries = () => {
               className="flex items-center space-x-3"
             >
               <div>
-                <h1 className="font-bold text-3xl" style={{ color: '#1b5f52' }}>Mood Insights</h1>
+                <h1 className="font-bold text-4xl" style={{ color: '#1b5f52' }}>Mood Insights</h1>
               </div>
             </motion.div>
             <div className="flex items-center space-x-2">
@@ -414,7 +414,7 @@ const MoodEntries = () => {
               <Tooltip title="Sort entries" arrow>
                 <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                   <IconButton size="small" onClick={handleSortClick}>
-                    <SortIcon style={{ color: '#6b7280', fontSize: 22 }} />
+                    <SortIcon style={{ color: '#6b7280', fontSize: 25 }} />
                   </IconButton>
                 </motion.div>
               </Tooltip>
@@ -427,7 +427,7 @@ const MoodEntries = () => {
                   style={{ background: 'linear-gradient(135deg, #55AD9B 0%, #3e8e7e 100%)' }}
                 >
                   <AddCircleIcon style={{ fontSize: 20 }} />
-                  <span className="font-semibold text-sm">New Entry</span>
+                  <span className="font-semibold text-md">New Entry</span>
                 </motion.button>
               </Tooltip>
             </div>
@@ -445,7 +445,7 @@ const MoodEntries = () => {
                 placeholder="Search by category, activity, or emotion..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-12 pr-4 py-3 text-sm rounded-2xl border-2 bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#55AD9B]/50 transition-all shadow-sm"
+                className="w-full pl-12 pr-4 py-3 text-lg rounded-2xl border-2 bg-white/90 focus:outline-none focus:ring-2 focus:ring-[#55AD9B]/50 transition-all shadow-sm"
                 style={{ borderColor: '#D8EFD3' }}
               />
             </motion.div>
@@ -477,7 +477,7 @@ const MoodEntries = () => {
                         <span>All Entries</span>
                       </div>
                     }
-                    className={`text-sm py-2 px-5 ${activeTab === 'all' ? 'text-[#55AD9B]' : 'text-gray-500'}`}
+                    className={`text-md py-2 px-5 ${activeTab === 'all' ? 'text-[#55AD9B]' : 'text-gray-500'}`}
                     style={{ minHeight: '42px', textTransform: 'none', fontWeight: 600 }}
                   />
                   <Tab
@@ -646,7 +646,7 @@ const MoodEntries = () => {
                             ></motion.span>
                             {formattedDate}
                           </h2>
-                          <span className="ml-4 text-sm font-semibold px-5 py-2 rounded-full shadow-sm" style={{ background: 'linear-gradient(135deg, #D8EFD3 0%, #95D2B3 100%)', color: '#1b5f52' }}>
+                          <span className="ml-4 text-xl font-semibold px-5 py-2 rounded-full shadow-sm" style={{ background: '#55AD9B', color: '#ffffffff' }}>
                             {logs.length} {logs.length === 1 ? 'entry' : 'entries'}
                           </span>
                         </div>
@@ -667,21 +667,21 @@ const MoodEntries = () => {
                                 <motion.div 
                                   whileHover={{ rotate: 360, scale: 1.1 }}
                                   transition={{ duration: 0.5 }}
-                                  className="w-14 h-14 flex items-center justify-center rounded-2xl shadow-md" 
-                                  style={{ background: 'linear-gradient(135deg, #ffffff 0%, #F7FBF9 100%)' }}
+                                  className="w-14 h-14 flex items-center justify-center " 
+                                  
                                 >
                                   {getActivityIcon(log.activity, log.category)}
                                 </motion.div>
                                 <div>
-                                  <h3 className="font-bold text-xl mb-1" style={{ color: '#1b5f52' }}>
+                                  <h3 className="font-bold text-2xl mb-1" style={{ color: '#1b5f52' }}>
                                     {CATEGORY_LABELS[log.category] || formatText(log.category)}
                                   </h3>
-                                  <p className="text-base font-semibold mb-1" style={{ color: '#55AD9B' }}>
+                                  <p className="text-md font-semibold mb-1" style={{ color: '#55AD9B' }}>
                                     {formatText(log.activity)} {log.hrs && `• ${log.hrs} hrs`}
                                   </p>
                                   <div className="flex items-center">
-                                    <AccessTimeIcon style={{ fontSize: 14, color: '#6b7280', marginRight: '4px' }} />
-                                    <span className="text-sm" style={{ color: '#6b7280' }}>
+                                    <AccessTimeIcon style={{ fontSize: 17, color: '#6b7280', marginRight: '4px' }} />
+                                    <span className="text-md" style={{ color: '#6b7280' }}>
                                       {formatTimestamp(log.date)}
                                     </span>
                                   </div>
@@ -712,10 +712,9 @@ const MoodEntries = () => {
                                 className="p-6 rounded-2xl shadow-md border-2" 
                                 style={{ background: 'linear-gradient(135deg, #95D2B3 0%, #7bc4a8 100%)', borderColor: '#55AD9B' }}
                               >
-                                <h1 className="font-bold mb-4 text-md flex items-center" style={{ color: '#ffffff' }}>
-                                  <span className="w-2 h-2 rounded-full bg-white mr-2"></span>
+                                <div className="font-bold mb-4 text-xl flex items-center" style={{ color: '#ffffff' }}>
                                   Before Activity
-                                </h1>
+                                </div>
                                 <div className="flex items-center space-x-3 mb-4">
                                   <motion.span 
                                     whileHover={{ scale: 1.2, rotate: 10 }}
@@ -724,10 +723,10 @@ const MoodEntries = () => {
                                     {getEmotionImage(log.beforeEmotion)}
                                   </motion.span>
                                   <div>
-                                    <p className="font-bold text-lg" style={{ color: '#1b5f52' }}>
+                                    <p className="font-bold text-xl" style={{ color: '#1b5f52' }}>
                                       {formatText(log.beforeEmotion)}
                                     </p>
-                                    <p className="text-sm" style={{ color: '#272829' }}>
+                                    <p className="text-md" style={{ color: '#272829' }}>
                                       {formatText(log.beforeValence)} • Intensity: {log.beforeIntensity}/5
                                     </p>
                                   </div>
@@ -748,10 +747,10 @@ const MoodEntries = () => {
                                 </div>
                                 {log.beforeReason && (
                                   <div className="mt-4 pt-4 border-t-2" style={{ borderColor: '#55AD9B' }}>
-                                    <p className="text-sm font-semibold mb-2" style={{ color: '#1b5f52' }}>Reason:</p>
-                                    <p className="text-sm leading-relaxed" style={{ color: '#272829' }}>
+                                    <div className="text-lg font-semibold mb-2" style={{ color: '#1b5f52' }}>Reason:</div>
+                                    <div className="text-lg leading-relaxed" style={{ color: '#272829' }}>
                                       {log.beforeReason}
-                                    </p>
+                                    </div>
                                   </div>
                                 )}
                               </motion.div>
@@ -760,10 +759,9 @@ const MoodEntries = () => {
                                 className="p-6 rounded-2xl shadow-md border-2" 
                                 style={{ background: 'linear-gradient(135deg, #95D2B3 0%, #7bc4a8 100%)', borderColor: '#55AD9B' }}
                               >
-                                <h1 className="font-bold mb-4 text-md flex items-center" style={{ color: '#ffffff' }}>
-                                  <span className="w-2 h-2 rounded-full bg-white mr-2"></span>
+                                <div className="font-bold mb-4 text-xl flex items-center" style={{ color: '#ffffff' }}>
                                   After Activity
-                                </h1>
+                                </div>
                                 <div className="flex items-center space-x-3 mb-4">
                                   <motion.span 
                                     whileHover={{ scale: 1.2, rotate: -10 }}
@@ -772,10 +770,10 @@ const MoodEntries = () => {
                                     {getEmotionImage(log.afterEmotion)}
                                   </motion.span>
                                   <div>
-                                    <p className="font-bold text-lg" style={{ color: '#1b5f52' }}>
+                                    <p className="font-bold text-xl" style={{ color: '#1b5f52' }}>
                                       {formatText(log.afterEmotion)}
                                     </p>
-                                    <p className="text-sm" style={{ color: '#272829' }}>
+                                    <p className="text-md" style={{ color: '#272829' }}>
                                       {formatText(log.afterValence)} • Intensity: {log.afterIntensity}/5
                                     </p>
                                   </div>
@@ -796,10 +794,10 @@ const MoodEntries = () => {
                                 </div>
                                 {log.afterReason && (
                                   <div className="mt-4 pt-4 border-t-2" style={{ borderColor: '#55AD9B' }}>
-                                    <p className="text-sm font-semibold mb-2" style={{ color: '#1b5f52' }}>Reason:</p>
-                                    <p className="text-sm leading-relaxed" style={{ color: '#272829' }}>
+                                    <div className="text-lg font-semibold mb-2" style={{ color: '#1b5f52' }}>Reason:</div>
+                                    <div className="text-lg leading-relaxed" style={{ color: '#272829' }}>
                                       {log.afterReason}
-                                    </p>
+                                    </div>
                                   </div>
                                 )}
                               </motion.div>
