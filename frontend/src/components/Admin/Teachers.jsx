@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import Navbar from './Navbar';
 
-const TeachersTable = () => {
+const Teachers = () => {
   const [teachers, setTeachers] = useState([]);
   const [teacherStats, setTeacherStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -915,4 +915,4 @@ const TeachersTable = () => {
   );
 };
 
-export default TeachersTable;
+export default Teachers;

@@ -41,18 +41,18 @@ import MoodAnalysis from './components/User/Statistics/StatisticsComponents/Mood
 import SleepAnalysis from './components/User/Statistics/StatisticsComponents/SleepAnalysis';
 
 import Dashboard from './components/Admin/Dashboard';
-import UsersTable from './components/Admin/UsersTable';
+import Users from './components/Admin/Users';
 import PromptsTable from './components/Admin/PromptsTable';
 import StatisticsTable from './components/Admin/StatisticsTable';
-import TeachersTable from './components/Admin/TeachersTable';
+import Teachers from './components/Admin/Teachers';
 import AdminStudentLogs from './components/Admin/StudentLogs';
-import MoodPredictionComparison from './components/Admin/MoodPredictionComparison';
+import PredictionComparison from './components/Admin/PredictionComparison';
 
 // Teacher Components
 import TeacherDashboard from './components/Teachers/Dashboard';
 import StudentLogs from './components/Teachers/StudentLogs';
 import SectionStudents from './components/Teachers/SectionStudents';
-import TeacherEditProfile from './components/Teachers/EditProfile';
+import TeacherProfile from './components/Teachers/Profile';
 
 //Student's Inputs 
 import ChooseCategory from './components/User/Inputs/ChooseCategory';
@@ -665,7 +665,7 @@ const App = () => {
           path="/admin/users"
           element={
             <AdminPrivateRoute>
-              <UsersTable />
+              <Users />
             </AdminPrivateRoute>
           }
         />
@@ -689,7 +689,7 @@ const App = () => {
           path="/admin/teachers"
           element={
             <AdminPrivateRoute>
-              <TeachersTable />
+              <Teachers />
             </AdminPrivateRoute>
           }
         />
@@ -697,7 +697,7 @@ const App = () => {
           path="/admin/mood-predictions"
           element={
             <AdminPrivateRoute>
-              <MoodPredictionComparison />
+              <PredictionComparison />
             </AdminPrivateRoute>
           }
         />
@@ -755,7 +755,7 @@ const App = () => {
           path="/teacher/edit-profile"
           element={
             <TeacherPrivateRoute>
-              <TeacherEditProfile />
+              <TeacherProfile />
             </TeacherPrivateRoute>
           }
         />

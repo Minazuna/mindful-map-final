@@ -23,7 +23,7 @@ ChartJS.register(
   Legend
 );
 
-const MoodPredictionComparison = () => {
+const PredictionComparison = () => {
   const [comparisonData, setComparisonData] = useState(null);
   const [weekInfo, setWeekInfo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -478,4 +478,4 @@ const MoodPredictionComparison = () => {
   );
 };
 
-export default MoodPredictionComparison;
+export default PredictionComparison;
