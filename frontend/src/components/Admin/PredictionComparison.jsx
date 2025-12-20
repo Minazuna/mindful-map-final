@@ -25,10 +25,12 @@ ChartJS.register(
 
 const PredictionComparison = () => {
   const [comparisonData, setComparisonData] = useState(null);
+  const [dailyComparisonData, setDailyComparisonData] = useState(null);
   const [weekInfo, setWeekInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [selectedWeek, setSelectedWeek] = useState(null);
+  const [selectedDay, setSelectedDay] = useState('Monday');
   const [availableWeeks, setAvailableWeeks] = useState([]);
 
   const categories = [
@@ -59,8 +61,9 @@ const PredictionComparison = () => {
   useEffect(() => {
     if (selectedWeek) {
       fetchComparisonData();
+      fetchDailyComparisonData();
     }
-  }, [selectedWeek]);
+  }, [selectedWeek, selectedDay]);
 
   const fetchAvailableWeeks = async () => {
     try {
@@ -86,6 +89,34 @@ const PredictionComparison = () => {
     } catch (err) {
       console.error('Error fetching available weeks:', err);
       setAvailableWeeks([]);
+    }
+  };
+
+  const fetchDailyComparisonData = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      
+      if (!selectedWeek) {
+        return;
+      }
+      
+      const url = `${import.meta.env.VITE_NODE_API}/api/admin/daily-mood-comparison?weekStartDate=${encodeURIComponent(selectedWeek)}${selectedDay ? `&selectedDay=${selectedDay}` : ''}`;
+      
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        setDailyComparisonData(result.data);
+      } else {
+        console.error('Failed to fetch daily comparison data');
+      }
+    } catch (err) {
+      console.error('Error fetching daily comparison data:', err);
     }
   };
 
@@ -194,55 +225,55 @@ const PredictionComparison = () => {
     }
   };
 
-  const createComparisonChart = (category) => {
-    if (!comparisonData || !comparisonData[category.key]) return null;
+  const createCategoryComparisonChart = (categoryKey, categoryData, categoryName) => {
+    if (!categoryData) return null;
 
-    const data = comparisonData[category.key];
-    
     const chartData = {
-      labels: data.days,
+      labels: ['Top 1 Matches', 'Top 2 Matches', 'Top 3 Matches', 'Missed'],
       datasets: [
         {
-          label: 'Matches',
-          data: data.matches,
-          backgroundColor: '#10B981',
-          borderColor: '#059669',
-          borderWidth: 2,
-        },
-        {
-          label: 'Not Matches',
-          data: data.notMatches,
-          backgroundColor: '#EF4444',
-          borderColor: '#DC2626',
-          borderWidth: 2,
+          label: `${categoryName} - ${selectedDay}`,
+          data: [
+            categoryData.top1Matches,
+            categoryData.top2Matches,
+            categoryData.top3Matches,
+            categoryData.missedPredictions
+          ],
+          backgroundColor: [
+            '#10B981', // Green for Top 1
+            '#F59E0B', // Yellow for Top 2
+            '#3B82F6', // Blue for Top 3
+            '#EF4444'  // Red for Missed
+          ],
+          borderColor: [
+            '#059669',
+            '#D97706',
+            '#2563EB',
+            '#DC2626'
+          ],
+          borderWidth: 1,
         }
       ]
     };
 
     const options = {
       responsive: true,
-      interaction: {
-        mode: 'index',
-        intersect: false,
-      },
       plugins: {
         title: {
           display: true,
-          text: `${category.name} - Prediction Match Analysis`,
+          text: `${categoryName} - ${selectedDay}`,
           font: { size: 16, weight: 'bold' }
         },
         legend: {
-          position: 'top',
+          display: false
         },
         tooltip: {
           callbacks: {
             label: function(context) {
-              const datasetLabel = context.dataset.label;
               const value = context.parsed.y;
-              const dayIndex = context.dataIndex;
-              const totalPredictions = data.matches[dayIndex] + data.notMatches[dayIndex];
-              const percentage = totalPredictions > 0 ? ((value / totalPredictions) * 100).toFixed(1) : 0;
-              return `${datasetLabel}: ${value} (${percentage}%)`;
+              const total = categoryData.totalPredictions;
+              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
+              return `${context.label}: ${value} users (${percentage}%)`;
             }
           }
         }
@@ -251,12 +282,10 @@ const PredictionComparison = () => {
         x: {
           title: {
             display: true,
-            text: 'Days of Week'
+            text: 'Match Type'
           }
         },
         y: {
-          type: 'linear',
-          display: true,
           beginAtZero: true,
           title: {
             display: true,
@@ -269,101 +298,70 @@ const PredictionComparison = () => {
     return <Bar data={chartData} options={options} />;
   };
 
-  const createMoodDistributionChart = (category) => {
-    if (!comparisonData || !comparisonData[category.key]) return null;
-
-    const data = comparisonData[category.key];
-    const predictedCounts = {};
-    const actualCounts = {};
-
-    // Flatten all predicted moods from all days and count occurrences
-    data.predictedMoods.flat().forEach(mood => {
-      if (mood && mood !== 'No data' && mood !== 'No valid data') {
-        predictedCounts[mood] = (predictedCounts[mood] || 0) + 1;
-      }
-    });
-
-    // Flatten all actual moods from all days and count occurrences
-    data.actualMoods.flat().forEach(mood => {
-      if (mood && mood !== 'No data') {
-        actualCounts[mood] = (actualCounts[mood] || 0) + 1;
-      }
-    });
-
-    const allMoods = [...new Set([...Object.keys(predictedCounts), ...Object.keys(actualCounts)])];
-
-    if (allMoods.length === 0) {
-      return (
-        <div className="flex items-center justify-center h-40 text-gray-500">
-          <p>No mood data available for {category.name}</p>
-        </div>
-      );
+  const renderStatisticsCards = () => {
+    if (!dailyComparisonData || !dailyComparisonData.dailyComparison || !dailyComparisonData.dailyComparison[selectedDay]) {
+      return <div className="text-gray-500 text-center">No data available for {selectedDay}</div>;
     }
 
-    const chartData = {
-      labels: allMoods,
-      datasets: [
-        {
-          label: 'Predicted',
-          data: allMoods.map(mood => predictedCounts[mood] || 0),
-          backgroundColor: `${category.color}80`,
-          borderColor: category.color,
-          borderWidth: 1
-        },
-        {
-          label: 'Actual',
-          data: allMoods.map(mood => actualCounts[mood] || 0),
-          backgroundColor: `${category.color}40`,
-          borderColor: category.color,
-          borderWidth: 1
-        }
-      ]
-    };
+    const dayData = dailyComparisonData.dailyComparison[selectedDay];
+    
+    // Calculate totals across all categories
+    let totalTop1 = 0, totalTop2 = 0, totalTop3 = 0, totalMissed = 0, totalPredictions = 0;
+    
+    Object.values(dayData.categories || {}).forEach(categoryData => {
+      totalTop1 += categoryData.top1Matches || 0;
+      totalTop2 += categoryData.top2Matches || 0;
+      totalTop3 += categoryData.top3Matches || 0;
+      totalMissed += categoryData.missedPredictions || 0;
+      totalPredictions += categoryData.totalPredictions || 0;
+    });
 
-    const options = {
-      responsive: true,
-      plugins: {
-        title: {
-          display: true,
-          text: `${category.name} - Mood Distribution`,
-          font: { size: 14, weight: 'bold' }
-        },
-        legend: {
-          position: 'top',
-        },
-        tooltip: {
-          callbacks: {
-            label: function(context) {
-              const mood = context.label;
-              const datasetLabel = context.dataset.label;
-              const value = context.parsed.y;
-              const totalPredicted = Object.values(predictedCounts).reduce((sum, count) => sum + count, 0);
-              const totalActual = Object.values(actualCounts).reduce((sum, count) => sum + count, 0);
-              const total = datasetLabel === 'Predicted' ? totalPredicted : totalActual;
-              const percentage = total > 0 ? ((value / total) * 100).toFixed(1) : 0;
-              return `${datasetLabel} ${mood}: ${value} (${percentage}%)`;
-            }
-          }
-        }
+    const statistics = [
+      {
+        title: 'Top 1 Matches',
+        value: totalTop1,
+        percentage: totalPredictions > 0 ? ((totalTop1 / totalPredictions) * 100).toFixed(1) : 0,
+        bgColor: 'bg-green-50',
+        textColor: 'text-green-800',
+        borderColor: 'border-green-200'
       },
-      scales: {
-        y: {
-          beginAtZero: true,
-          title: {
-            display: true,
-            text: 'Frequency'
-          }
-        },
-        x: {
-          title: {
-            display: true,
-            text: 'Mood Types'
-          }
-        }
+      {
+        title: 'Top 2 Matches',
+        value: totalTop2,
+        percentage: totalPredictions > 0 ? ((totalTop2 / totalPredictions) * 100).toFixed(1) : 0,
+        bgColor: 'bg-yellow-50',
+        textColor: 'text-yellow-800',
+        borderColor: 'border-yellow-200'
+      },
+      {
+        title: 'Top 3 Matches',
+        value: totalTop3,
+        percentage: totalPredictions > 0 ? ((totalTop3 / totalPredictions) * 100).toFixed(1) : 0,
+        bgColor: 'bg-blue-50',
+        textColor: 'text-blue-800',
+        borderColor: 'border-blue-200'
+      },
+      {
+        title: 'Missed Predictions',
+        value: totalMissed,
+        percentage: totalPredictions > 0 ? ((totalMissed / totalPredictions) * 100).toFixed(1) : 0,
+        bgColor: 'bg-red-50',
+        textColor: 'text-red-800',
+        borderColor: 'border-red-200'
       }
-    };
+    ];
 
-    return <Bar data={chartData} options={options} />;
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        {statistics.map((stat, index) => (
+          <div key={index} className={`${stat.bgColor} ${stat.borderColor} border rounded-xl p-6 text-center`}>
+            <h3 className={`${stat.textColor} font-semibold text-lg mb-2`}>{stat.title}</h3>
+            <p className={`${stat.textColor} text-3xl font-bold mb-1`}>{stat.value}</p>
+            <p className={`${stat.textColor} text-sm opacity-75`}>{stat.percentage}%</p>
+          </div>
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -438,6 +436,9 @@ const PredictionComparison = () => {
                 );
               })}
             </select>
+            
+            <label className="text-gray-700 font-medium ml-4">Show predictions for selected week</label>
+            
             {availableWeeks.length > 0 && (
               <p className="text-sm text-gray-500">
                 Available weeks: {availableWeeks.length}
@@ -463,30 +464,60 @@ const PredictionComparison = () => {
           </div>
         )}
 
-        {comparisonData && (
+        {dailyComparisonData && (
           <div className="space-y-8">
-            {/* Main Comparison Charts */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {categories.map(category => (
-                <div key={category.key} className="bg-white rounded-lg shadow-md p-6">
-                  {createComparisonChart(category)}
-                </div>
-              ))}
-            </div>
-
-            {/* Mood Distribution Charts */}
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Mood Distribution by Category</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {categories.map(category => (
-                  <div key={`dist-${category.key}`} className="border border-gray-200 rounded-lg p-4">
-                    {createMoodDistributionChart(category)}
-                  </div>
+            {/* Day Selection Buttons */}
+            <div className="mb-8">
+              <label className="block text-sm font-medium mb-4 text-gray-700">
+                Select Day of the Week:
+              </label>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
+                  <button
+                    key={day}
+                    onClick={() => setSelectedDay(day)}
+                    className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${
+                      selectedDay === day
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {day}
+                  </button>
                 ))}
               </div>
             </div>
 
+            {/* Statistics Cards for selected day */}
+            {dailyComparisonData && dailyComparisonData.dailyComparison && dailyComparisonData.dailyComparison[selectedDay] && renderStatisticsCards()}
+            
+            {/* Category Comparison Charts */}
+            {dailyComparisonData && dailyComparisonData.dailyComparison && dailyComparisonData.dailyComparison[selectedDay] && (
+              <div className="space-y-8">
+                <h2 className="text-2xl font-bold text-gray-900 text-center">
+                  {selectedDay} - Category-wise Mood Prediction Analysis
+                </h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                  {categories.map(category => (
+                    <div key={category.key} className="bg-white p-6 rounded-xl shadow-lg">
+                      <div className="h-96">
+                        {createCategoryComparisonChart(
+                          category.key, 
+                          dailyComparisonData.dailyComparison[selectedDay].categories[category.key],
+                          category.name
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
+        {comparisonData && (
+          <div className="space-y-8">
+            {/* Charts removed */}
           </div>
         )}
       </div>
