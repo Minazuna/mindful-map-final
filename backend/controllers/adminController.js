@@ -712,11 +712,13 @@ const calculateAndSavePredictionsForUser = async (userId) => {
     
     const currentDate = new Date();
     const currentWeekStart = new Date(currentDate);
-    currentWeekStart.setDate(currentDate.getDate() - currentDate.getDay()); // Sunday
+    // Calculate Monday of current week (0=Sunday, 1=Monday, etc.)
+    const daysFromMonday = (currentDate.getDay() + 6) % 7;
+    currentWeekStart.setDate(currentDate.getDate() - daysFromMonday);
     currentWeekStart.setHours(0, 0, 0, 0);
     
     const currentWeekEnd = new Date(currentWeekStart);
-    currentWeekEnd.setDate(currentWeekStart.getDate() + 6);
+    currentWeekEnd.setDate(currentWeekStart.getDate() + 6); // Sunday
     currentWeekEnd.setHours(23, 59, 59, 999);
 
     const year = currentDate.getFullYear();
@@ -751,7 +753,7 @@ const calculateAndSavePredictionsForUser = async (userId) => {
     console.log(`User ${userId} mood log counts:`, categoryCounts);
 
     const categories = ['activity', 'social', 'health', 'sleep'];
-    const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
     const predictions = {
       activity: {},
       social: {},
@@ -1140,7 +1142,7 @@ const calculateDayPrediction = (categoryLogs, targetDay, currentWeekStart) => {
 const getActualMoodForDay = (actualMoodLogs, category, targetDay, weekStart) => {
   // Get the specific date for the target day
   const targetDate = new Date(weekStart);
-  const dayIndex = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'].indexOf(targetDay);
+  const dayIndex = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].indexOf(targetDay);
   targetDate.setDate(weekStart.getDate() + dayIndex);
 
   // Filter logs for this specific day and category
@@ -1212,17 +1214,19 @@ const getWeekNumber = (date) => {
 
 exports.getPredictionComparisons = async (req, res) => {
   try {
-    const { weekOffset = 0 } = req.query; // 0 = current week, 1 = last week, etc.
+    const { weekStartDate } = req.query;
     
-    const targetDate = new Date();
-    targetDate.setDate(targetDate.getDate() - (weekOffset * 7));
+    if (!weekStartDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'weekStartDate parameter is required'
+      });
+    }
     
-    const year = targetDate.getFullYear();
-    const weekNumber = getWeekNumber(targetDate);
-
+    // Find predictions by weekStartDate
+    const weekStart = new Date(weekStartDate);
     const predictions = await PredictedMood.find({
-      year: year,
-      weekNumber: weekNumber
+      weekStartDate: weekStart
     }).populate('user', 'firstName lastName');
 
     if (predictions.length === 0) {
@@ -1231,6 +1235,19 @@ exports.getPredictionComparisons = async (req, res) => {
         message: 'No prediction data found for the specified week'
       });
     }
+
+    // Calculate week info with Philippine timezone (+8 hours)
+    const weekStartPH = new Date(weekStart.getTime() + (8 * 60 * 60 * 1000));
+    const weekEndPH = new Date(weekStartPH);
+    weekEndPH.setDate(weekStartPH.getDate() + 6);
+    
+    const formatOptions = { month: 'short', day: 'numeric', timeZone: 'UTC' };
+    const startFormatted = weekStartPH.toLocaleDateString('en-US', formatOptions);
+    const endFormatted = weekEndPH.toLocaleDateString('en-US', formatOptions);
+    
+    // Calculate week number for the selected week
+    const weekNumber = getWeekNumber(weekStart);
+    const year = weekStart.getFullYear();
 
     // Process data for comparison graphs
     const categories = ['activity', 'social', 'health', 'sleep'];
@@ -1279,9 +1296,12 @@ exports.getPredictionComparisons = async (req, res) => {
       success: true,
       data: comparisonData,
       weekInfo: {
-        year: year,
+        weekStartDate: weekStartDate,
         weekNumber: weekNumber,
-        weekOffset: weekOffset,
+        year: year,
+        displayName: `${startFormatted} - ${endFormatted}`,
+        weekStartPH: weekStartPH.toISOString(),
+        weekEndPH: weekEndPH.toISOString(),
         totalUsers: predictions.length
       }
     });
@@ -1340,7 +1360,7 @@ exports.updateActualMoods = async (req, res) => {
       });
 
       const categories = ['activity', 'social', 'health', 'sleep'];
-      const daysOfWeek = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
       let hasUpdates = false;
 
       // Update actual moods and probability to reflect actual mood percentage
@@ -1381,32 +1401,44 @@ exports.updateActualMoods = async (req, res) => {
 
 exports.getAvailableWeeks = async (req, res) => {
   try {
-    // Calculate which weekOffsets have data
-    const currentDate = new Date();
-    const availableOffsets = [];
+    // Get all distinct weeks from PredictedMood collection
+    const availableWeeks = await PredictedMood.distinct('weekStartDate');
     
-    // Check offsets 0-4 (current week to 4 weeks ago)
-    for (let offset = 0; offset <= 4; offset++) {
-      const targetDate = new Date();
-      targetDate.setDate(targetDate.getDate() - (offset * 7));
-      
-      const year = targetDate.getFullYear();
-      const weekNumber = getWeekNumber(targetDate);
-      
-      // Check if data exists for this week
-      const dataExists = await PredictedMood.exists({
-        year: year,
-        weekNumber: weekNumber
+    if (!availableWeeks || availableWeeks.length === 0) {
+      return res.status(200).json({
+        success: true,
+        availableWeeks: []
       });
-      
-      if (dataExists) {
-        availableOffsets.push(offset);
-      }
     }
+    
+    // Sort weeks in descending order (most recent first)
+    availableWeeks.sort((a, b) => new Date(b) - new Date(a));
+    
+    // Format each week as date range with Philippine timezone (+8 hours)
+    const formattedWeeks = availableWeeks.map(weekStartUTC => {
+      // Convert UTC to Philippine time (+8 hours)
+      const weekStartPH = new Date(weekStartUTC.getTime() + (8 * 60 * 60 * 1000));
+      
+      // Calculate week end (Sunday) - weekStart should already be Monday from database
+      const weekEndPH = new Date(weekStartPH);
+      weekEndPH.setDate(weekStartPH.getDate() + 6);
+      
+      // Format dates as "MMM DD - MMM DD"
+      const formatOptions = { month: 'short', day: 'numeric', timeZone: 'UTC' };
+      const startFormatted = weekStartPH.toLocaleDateString('en-US', formatOptions);
+      const endFormatted = weekEndPH.toLocaleDateString('en-US', formatOptions);
+      
+      return {
+        weekStartDate: weekStartUTC.toISOString(),
+        displayName: `${startFormatted} - ${endFormatted}`,
+        weekStartPH: weekStartPH.toISOString(),
+        weekEndPH: weekEndPH.toISOString()
+      };
+    });
     
     res.status(200).json({
       success: true,
-      availableOffsets: availableOffsets
+      availableWeeks: formattedWeeks
     });
   } catch (error) {
     console.error('Error getting available weeks:', error);

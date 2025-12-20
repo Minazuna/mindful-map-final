@@ -277,14 +277,13 @@ exports.getUserPredictionComparison = async (req, res) => {
                     let moodToLookup = null;
                     
                     if (actual && actual !== 'No data') {
-                        moodToLookup = actual.toLowerCase();
+                        moodToLookup = actual.charAt(0).toUpperCase() + actual.slice(1).toLowerCase();
                     } else if (predicted && predicted !== 'No data' && predicted !== 'No data available') {
-                        moodToLookup = predicted.toLowerCase();
+                        moodToLookup = predicted.charAt(0).toUpperCase() + predicted.slice(1).toLowerCase();
                     }
                     
                     if (moodToLookup) {
-                        // The allMoodProbabilities keys are in lowercase (from Python service)
-                        // so we convert the mood to lowercase for lookup
+                        // The allMoodProbabilities keys are capitalized 
                         probability = dayData.allMoodProbabilities[moodToLookup] || 0;
                     }
                 } else {
@@ -377,7 +376,7 @@ exports.getMoodLogsForUser = async (userId) => {
     try {
         const moodLogs = await MoodLog.find({ 
             user: userId,
-            date: { $gte: new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) } // Last 60 days
+            date: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
         }).select('category activity hrs afterEmotion afterValence afterIntensity afterReason date -_id');
 
         return moodLogs.map(log => ({

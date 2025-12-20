@@ -188,7 +188,7 @@ class CategoryMoodPredictor:
                 for mood, prob in mood_probabilities.items():
                     # Convert to percentage and cap at 90%
                     percentage = min(prob * 100, 90.0)
-                    all_mood_probabilities[mood] = round(percentage, 1)
+                    all_mood_probabilities[mood.capitalize()] = round(percentage, 1)
                 
                 # Update predicted probability with capped value
                 predicted_probability_capped = min(predicted_probability * 100, 90.0)

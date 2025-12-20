@@ -28,8 +28,8 @@ const PredictionComparison = () => {
   const [weekInfo, setWeekInfo] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [availableOffsets, setAvailableOffsets] = useState([]);
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const [availableWeeks, setAvailableWeeks] = useState([]);
 
   const categories = [
     { key: 'activity', name: 'Activity', color: '#3B82F6' },
@@ -54,8 +54,13 @@ const PredictionComparison = () => {
 
   useEffect(() => {
     fetchAvailableWeeks();
-    fetchComparisonData();
-  }, [weekOffset]);
+  }, []);
+
+  useEffect(() => {
+    if (selectedWeek) {
+      fetchComparisonData();
+    }
+  }, [selectedWeek]);
 
   const fetchAvailableWeeks = async () => {
     try {
@@ -70,12 +75,17 @@ const PredictionComparison = () => {
 
       if (response.ok) {
         const result = await response.json();
-        setAvailableOffsets(result.availableOffsets || []);
+        const weeks = result.availableWeeks || [];
+        setAvailableWeeks(weeks);
+        
+        // Auto-select the first (most recent) week
+        if (weeks.length > 0 && !selectedWeek) {
+          setSelectedWeek(weeks[0].weekStartDate);
+        }
       }
     } catch (err) {
       console.error('Error fetching available weeks:', err);
-      // If fetching available weeks fails, allow all options as fallback
-      setAvailableOffsets([0, 1, 2, 3, 4]);
+      setAvailableWeeks([]);
     }
   };
 
@@ -84,7 +94,12 @@ const PredictionComparison = () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       
-      const response = await fetch(`${import.meta.env.VITE_NODE_API}/api/admin/prediction-comparisons?weekOffset=${weekOffset}`, {
+      if (!selectedWeek) {
+        setLoading(false);
+        return;
+      }
+      
+      const response = await fetch(`${import.meta.env.VITE_NODE_API}/api/admin/prediction-comparisons?weekStartDate=${encodeURIComponent(selectedWeek)}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -374,9 +389,8 @@ const PredictionComparison = () => {
               </h1>
               {weekInfo && (
                 <p className="text-gray-600 mt-2">
-                  Week {weekInfo.weekNumber}, {weekInfo.year} | 
-                  Total Users: {weekInfo.totalUsers} |
-                  {weekOffset === 0 ? ' Current Week' : ` ${weekOffset} week(s) ago`}
+                  Week: {weekInfo.weekNumber}, {weekInfo.year} | 
+                  Total Users: {weekInfo.totalUsers}
                 </p>
               )}
             </div>
@@ -402,29 +416,31 @@ const PredictionComparison = () => {
           <div className="flex items-center space-x-4">
             <label className="text-gray-700 font-medium">Select Week:</label>
             <select
-              value={weekOffset}
-              onChange={(e) => setWeekOffset(parseInt(e.target.value))}
+              value={selectedWeek || ''}
+              onChange={(e) => setSelectedWeek(e.target.value)}
               className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={availableWeeks.length === 0}
             >
-              <option value={0} disabled={!availableOffsets.includes(0)}>
-                Current Week {!availableOffsets.includes(0) }
-              </option>
-              <option value={1} disabled={!availableOffsets.includes(1)}>
-                1 Week Ago {!availableOffsets.includes(1) }
-              </option>
-              <option value={2} disabled={!availableOffsets.includes(2)}>
-                2 Weeks Ago {!availableOffsets.includes(2) }
-              </option>
-              <option value={3} disabled={!availableOffsets.includes(3)}>
-                3 Weeks Ago {!availableOffsets.includes(3) }
-              </option>
-              <option value={4} disabled={!availableOffsets.includes(4)}>
-                4 Weeks Ago {!availableOffsets.includes(4) }
-              </option>
+              {availableWeeks.length === 0 && (
+                <option value="">No weeks available</option>
+              )}
+              {availableWeeks.map((week) => {
+                const weekStart = new Date(week.weekStartDate);
+                const weekEnd = new Date(weekStart);
+                weekEnd.setDate(weekStart.getDate() + 6);
+                const today = new Date();
+                const isCurrentWeek = today >= weekStart && today <= weekEnd;
+                
+                return (
+                  <option key={week.weekStartDate} value={week.weekStartDate}>
+                    {week.displayName} {isCurrentWeek ? '(Current week)' : ''}
+                  </option>
+                );
+              })}
             </select>
-            {availableOffsets.length > 0 && (
+            {availableWeeks.length > 0 && (
               <p className="text-sm text-gray-500">
-                Available weeks: {availableOffsets.length} of 5
+                Available weeks: {availableWeeks.length}
               </p>
             )}
           </div>
