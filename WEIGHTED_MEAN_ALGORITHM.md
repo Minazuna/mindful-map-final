@@ -1,17 +1,15 @@
 # Weighted Mean Mood Prediction Algorithm
 
 ## Overview
-The mood prediction system now uses a weighted mean algorithm that considers both **temporal weighting** (recent data is more important) and **mood intensity** to generate more accurate predictions.
+The mood prediction system uses a weighted mean algorithm that considers **temporal weighting** (recent data is more important) to generate predictions based on occurrence frequency.
 
 ## Formula
 ```
-Weighted Mean = Σ(wi × xi) / Σ(wi)
+Weighted Mean = Σ(wi × xi) / Σ(wi × xi)
 
 Where:
-- wi = week weight × mood intensity
-- xi = 1 (occurrence indicator)  
-- Week weights: [1, 2, 3, 4] (oldest to newest)
-- Mood intensity: 1-5 scale from afterIntensity field
+- wi = week weight (1, 2, 3, 4 for oldest to newest week)
+- xi = frequency/count of mood occurrences in that week
 - Maximum probability cap: 90%
 ```
 
@@ -26,68 +24,96 @@ Where:
 ### Calculation Steps
 
 1. **Data Collection**: Gather mood logs for the past 4 weeks (excluding current week)
-2. **Daily Intensity Averaging**: For multiple same moods on the same day:
+2. **Count Mood Frequency**: For each mood per day, count total occurrences across all weeks
+3. **Calculate Weighted Sum**: For each mood:
    ```
-   Average Intensity = Sum of intensities / Number of entries
-   Example: Happy on Nov 18 with intensities [2, 8] → Average = 5.0
+   Weighted Sum = Σ(week_weight × frequency_in_that_week)
    ```
-3. **Weighted Intensity Calculation**: For each averaged mood per day:
-   ```
-   Weighted Intensity = Week Weight × Average Daily Intensity
-   ```
-4. **Mood Aggregation**: Sum weighted intensities for each mood type across all days
+   Example: Happy mood on Monday
+   - Week 1: 2 occurrences → 1 × 2 = 2
+   - Week 2: 3 occurrences → 2 × 3 = 6
+   - Week 3: 4 occurrences → 3 × 4 = 12
+   - Week 4: 5 occurrences → 4 × 5 = 20
+   - **Total Weighted Sum = 2 + 6 + 12 + 20 = 40**
+
+4. **Calculate Total Weighted Occurrences**: Sum weighted occurrences for all moods
 5. **Probability Calculation**: 
    ```
-   Mood Probability = (Sum of Weighted Intensities for Mood) / (Total Weighted Intensities)
+   Mood Probability = (Weighted Sum for Mood) / (Total Weighted Sum for all Moods)
    ```
 6. **Percentage Conversion**: Convert to percentage with 90% maximum cap
-7. **Prediction Selection**: Choose mood with highest probability
+7. **Prediction Selection**: Choose mood with highest probability (if tie, use latest/most recent entry)
 
 ### Example Calculation
 
-Assuming data for Monday:
+**Monday Activity Category Prediction:**
 
-**Nov 18 (Monday) - Week 4:**
-- **Happy entries**: intensities [2, 8] → Average = 5.0 → WIS = 4 × 5.0 = 20.0
-- **Neutral entries**: intensities [5] → Average = 5.0 → WIS = 4 × 5.0 = 20.0
+**Happy Mood:**
+- Week 1: 2 occurrences → 1 × 2 = 2
+- Week 2: 3 occurrences → 2 × 3 = 6
+- Week 3: 4 occurrences → 3 × 4 = 12
+- Week 4: 5 occurrences → 4 × 5 = **20**
+- **Weighted Sum = 40**
 
-**Total WIS = 20.0 + 20.0 = 40.0**
+**Calm Mood:**
+- Week 1: 1 occurrence → 1 × 1 = 1
+- Week 2: 2 occurrences → 2 × 2 = 4
+- Week 3: 3 occurrences → 3 × 3 = 9
+- Week 4: 4 occurrences → 4 × 4 = **16**
+- **Weighted Sum = 30**
+
+**Total Weighted Sum = 40 + 30 = 70**
 
 **Probabilities:**
-- Happy: (20.0/40.0) × 100 = 50.0%
-- Neutral: (20.0/40.0) × 100 = 50.0%
+- Happy: (40/70) × 100 = 57.1%
+- Calm: (30/70) × 100 = 42.9%
 
-**Predicted Mood: Tied at 50% (system would select first alphabetically or use tiebreaker)**
-
-**Comparison with Old Aggregation Method:**
-- Old: Happy WIS = 4 × (2+8) = 40, Neutral WIS = 4 × 5 = 20 → Happy 66.7%
-- New: Happy WIS = 4 × 5.0 = 20, Neutral WIS = 4 × 5.0 = 20 → Happy 50.0%
-- **Result**: More balanced predictions, less bias toward frequent entries
+**Predicted Mood: Happy at 57.1%**
 
 ## Benefits
 
 1. **Recency Weighting**: More recent mood patterns have greater influence
-2. **Intensity Consideration**: Higher intensity moods are weighted more heavily
-3. **Balanced Daily Representation**: Multiple entries per day are averaged, preventing over-influence
+2. **Frequency-Based**: Simple occurrence counting prevents bias from intensity variations
+3. **Daily Representation**: Each occurrence is weighted equally per day
 4. **Realistic Confidence**: 90% maximum cap prevents overconfidence
-5. **Pattern Recognition**: Better identifies significant mood trends without frequency bias
-6. **Personalized**: Based entirely on individual user data
+5. **Pattern Recognition**: Better identifies dominant mood trends across weeks
+6. **Tie-Breaking**: Uses latest mood entry when there's a tie
+7. **Personalized**: Based entirely on individual user data
+
+## Actual Mood Determination
+
+Actual moods are updated manually by admins via the admin dashboard:
+
+1. **Dominant Mood Selection**: For each day and category, the system finds the mood with highest occurrence count
+2. **Tie-Breaking**: If multiple moods have the same highest occurrence, the **latest/most recent mood** is selected
+3. **Manual Trigger**: Admins navigate to a specific week using the dropdown in the Prediction Comparison page and click "Update Actual Moods" button to update all `PredictedMood` records for that week
+
+### Example Actual Mood Update
+
+**Monday Activity Category - Manual Update:**
+- Logs: Happy (3 times), Calm (3 times), Relaxed (1 time)
+- Dominant count: 3 (tied between Happy and Calm)
+- Tie-breaker: Latest entry is Calm (recorded at 21:45)
+- **Actual Mood: Calm**
 
 ## Files Modified
 
 ### Backend (Python):
-- `backend/app.py`: Updated `prepare_category_data()` method
+- `backend/prediction.py`: Updated to use occurrence-based weighted mean (no intensity)
 
 ### Backend (JavaScript):  
-- `backend/controllers/adminController.js`: Updated `calculateDayPredictionPythonLogic()` and `calculateDayPrediction()`
+- `backend/controllers/adminController.js`: Added `getConfusionMatrix()` endpoint
+- `backend/routes/adminRoutes.js`: Added confusion matrix route
+- `backend/server.js`: No scheduler initialization (manual updates only)
 
 ### Frontend:
-- `frontend/src/components/User/Prediction/Prediction.jsx`: Updated descriptions and disclaimers
+- `frontend/src/components/Admin/PredictionComparison.jsx`: Added Daily Confusion Matrix visualization with colored heatmap (distinct colors for diagonal cells indicating correct predictions)
 
 ## Technical Notes
 
 - The algorithm excludes current week data to prevent bias
 - Minimum 2 weeks of data required for predictions
 - Unknown emotions are filtered out
-- Default intensity of 0 used if afterIntensity field is missing
 - All probabilities are capped at 90% maximum confidence
+- Actual mood determination uses dominant (highest occurrence) mood, with latest entry as tie-breaker
+- Confusion matrix visualizes predicted vs actual moods with distinct colors for diagonal (correct predictions)

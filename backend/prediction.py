@@ -114,31 +114,29 @@ class CategoryMoodPredictor:
                         else:
                             activity_mood_mapping[after_emotion].append(row.get('activity', 'Unknown activity'))
 
-                # Second pass: calculate average intensity per mood per day, then apply week weight
-                mood_week_weighted_intensities = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # 4 weeks
+                # Second pass: count occurrences per mood per week and apply week weight
+                mood_week_occurrences = defaultdict(lambda: [0.0, 0.0, 0.0, 0.0])  # 4 weeks
                 
                 for mood, daily_data in mood_daily_intensities.items():
                     for date_str, intensity_records in daily_data.items():
-                        # Calculate average intensity for this mood on this specific date
-                        avg_intensity = sum(record['intensity'] for record in intensity_records) / len(intensity_records)
                         week_idx = intensity_records[0]['week_idx']  # All records on same date have same week
                         
-                        # Apply weighted mean: weight (per week) * average_intensity
+                        # Weighted Mean = Σ(wi × xi) / Σ(wi)
+                        # wi = week weight, xi = 1 (occurrence indicator)
                         week_weight = self.week_weights[week_idx]
-                        weighted_intensity = week_weight * avg_intensity
-                        mood_week_weighted_intensities[mood][week_idx] += weighted_intensity
+                        mood_week_occurrences[mood][week_idx] += week_weight
 
-                # Calculate total weighted intensities using weighted mean formula
-                mood_total_weighted_intensities = {}
-                total_weighted_intensity = 0.0
+                # Calculate total weighted occurrences using weighted mean formula
+                mood_total_weighted_occurrences = {}
+                total_weighted_occurrence = 0.0
                 
-                for mood, week_weighted_intensities in mood_week_weighted_intensities.items():
-                    # Sum all weighted intensities for this mood across all weeks
-                    mood_weighted_sum = sum(week_weighted_intensities)
-                    mood_total_weighted_intensities[mood] = mood_weighted_sum
-                    total_weighted_intensity += mood_weighted_sum
+                for mood, week_weighted_occurrences in mood_week_occurrences.items():
+                    # Sum all weighted occurrences for this mood across all weeks
+                    mood_weighted_sum = sum(week_weighted_occurrences)
+                    mood_total_weighted_occurrences[mood] = mood_weighted_sum
+                    total_weighted_occurrence += mood_weighted_sum
 
-                if total_weighted_intensity == 0:
+                if total_weighted_occurrence == 0:
                     day_predictions[day] = {
                         'predicted_mood': 'No valid data',
                         'probability': 0.0,
@@ -148,9 +146,10 @@ class CategoryMoodPredictor:
 
                 # Calculate probabilities using weighted mean formula
                 mood_probabilities = {}
-                for mood, weighted_intensity_sum in mood_total_weighted_intensities.items():
+                for mood, weighted_occurrence_sum in mood_total_weighted_occurrences.items():
                     # Weighted Mean = Σ(wi × xi) / Σ(wi)
-                    probability = weighted_intensity_sum / total_weighted_intensity
+                    # wi = week weight, xi = 1 (occurrence indicator)
+                    probability = weighted_occurrence_sum / total_weighted_occurrence
                     mood_probabilities[mood] = probability
 
                 # Get the mood with highest probability (if tie, select most recent)

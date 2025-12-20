@@ -18,7 +18,6 @@ import CorrelationStatistics from './components/User/Statistics/CorrelationStati
 import Correlation from './components/User/Statistics/Correlation';
 import Prediction from './components/User/Prediction/Prediction';
 import CategoryPrediction from './components/User/Prediction/CategoryPrediction';
-import PredictionComparison from './components/User/Prediction/PredictionComparison';
 import Recommendations from './components/User/Statistics/Recommendations';
 import Pomodoro from './components/User/Activities/Pomodoro';
 import Affirmation from './components/User/Activities/Affirmation';
