@@ -7,15 +7,13 @@ from datetime import datetime, timedelta, time
 import json
 import sys
 import logging
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Blueprint, request, jsonify
 from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-CORS(app)
+bp = Blueprint('prediction', __name__)
 
 class CategoryMoodPredictor:
     def __init__(self):
@@ -249,7 +247,7 @@ def check_data_availability(mood_logs):
         logger.error(f"Error in check_data_availability: {str(e)}")
         return {'error': str(e)}
    
-@app.route('/api/predict-category-mood', methods=['GET'])
+@bp.route('/api/predict-category-mood', methods=['GET'])
 def get_category_prediction():
     try:
         token = request.headers.get('Authorization')
@@ -310,7 +308,7 @@ def get_category_prediction():
             'message': f'Server error: {str(e)}'
         }), 500
 
-@app.route('/api/check-category-data', methods=['GET'])
+@bp.route('/api/check-category-data', methods=['GET'])
 def check_category_data():
     try:
         token = request.headers.get('Authorization')
@@ -362,7 +360,7 @@ def check_category_data():
             'message': f'Server error: {str(e)}'
         }), 500
 
-@app.route('/api/predict-mood', methods=['GET'])
+@bp.route('/api/predict-mood', methods=['GET'])
 def get_prediction_from_node():
     try:
         token = request.headers.get('Authorization')
@@ -385,7 +383,7 @@ def get_prediction_from_node():
             'message': f'Server error: {str(e)}'
         }), 500
 
-@app.route('/api/predict-category-mood-internal', methods=['POST'])
+@bp.route('/api/predict-category-mood-internal', methods=['POST'])
 def predict_category_mood_internal():
     """
     Internal endpoint for admin to get predictions by passing mood logs directly
@@ -436,6 +434,3 @@ def predict_category_mood_internal():
             'success': False,
             'message': f'Server error: {str(e)}'
         }), 500
-
-if __name__ == "__main__":
-    app.run(debug=True, host='0.0.0.0', port=5001)

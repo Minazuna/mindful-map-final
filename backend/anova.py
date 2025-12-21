@@ -1,11 +1,9 @@
 import numpy as np
 from scipy.stats import f_oneway
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from flask import Blueprint, request, jsonify
 from statsmodels.stats.multicomp import pairwise_tukeyhsd
 
-app = Flask(__name__)
-CORS(app)
+bp = Blueprint('anova', __name__)
 
 def safe_number(val):
     if isinstance(val, (float, np.floating)) and (np.isnan(val) or np.isinf(val)):
@@ -93,7 +91,7 @@ def compute_anova(original_groups):
         "tukeyInfo": tukey_info
     }
 
-@app.route('/api/run-anova', methods=['POST'])
+@bp.route('/api/run-anova', methods=['POST'])
 def run_anova():
     body = request.get_json()
     if "data" not in body:
@@ -134,6 +132,3 @@ def run_anova():
         })
 
     return jsonify({"success": True, "results": results})
-
-if __name__ == '__main__':
-    app.run(port=5001, host='0.0.0.0')

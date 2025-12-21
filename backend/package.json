@@ -1,7 +1,9 @@
 {
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "nodemon server.js"
+    "start": "concurrently \"nodemon server.js\" \"python main.py\"",
+    "start:node": "nodemon server.js",
+    "start:python": "python main.py"
   },
   "dependencies": {
     "@react-spring/web": "^9.7.5",
@@ -28,5 +30,8 @@
     "nodemon": "^3.1.9",
     "react-chartjs-2": "^5.3.0",
     "react-toastify": "^11.0.3"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
   }
 }
