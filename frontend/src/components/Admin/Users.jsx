@@ -18,7 +18,7 @@ import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { useNavigate } from "react-router-dom";
 
-const UsersTable = () => {
+const Users = () => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
@@ -498,4 +498,4 @@ const UsersTable = () => {
    );
 };
 
-export default UsersTable;
+export default Users;
