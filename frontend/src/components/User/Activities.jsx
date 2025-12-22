@@ -97,10 +97,10 @@ const Activities = () => {
     {
       id: 'meditation',
       title: 'Guided Meditation',
-      description: 'Experience deep relaxation with guided beach-setting meditation. Let the soothing sounds of waves wash away stress and restore inner calm.',
+      description: 'Find your inner peace with a collection of guided meditations. Choose from different types and durations to suit your needs.',
       image: '/images/meditation.gif',
-      color: '#e3a857',
-      onClick: () => navigate('/meditation')
+      color: '#b084c8',
+      onClick: () => navigate('/guided-meditation')
     },
     {
       id: 'affirmation',
