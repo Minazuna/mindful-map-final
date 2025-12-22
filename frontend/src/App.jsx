@@ -24,7 +24,7 @@ import Affirmation from './components/User/Activities/Affirmation';
 import ListTask from './components/User/Activities/ListTask';
 import CalmingMusic from './components/User/Activities/CalmingMusic';
 import Activities from './components/User/Activities';
-import Meditation from './components/User/Activities/Meditation';
+import GuidedMeditation from './components/User/Activities/GuidedMeditation';
 import ForumDiscussion from './components/User/Forum';
 import PersonalJournal from './components/User/Journal/PersonalJournal';
 import Profile from './components/User/Profile';
@@ -611,10 +611,10 @@ const App = () => {
           }
         />
          <Route
-          path="/meditation"
+          path="/guided-meditation"
           element={
             <UserPrivateRoute>
-              <Meditation />
+              <GuidedMeditation />
             </UserPrivateRoute>
           }
         />

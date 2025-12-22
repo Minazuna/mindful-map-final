@@ -11,7 +11,7 @@ import FavoriteIcon from '@mui/icons-material/Favorite';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import RepeatIcon from '@mui/icons-material/Repeat';
 import ShuffleIcon from '@mui/icons-material/Shuffle';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import { getCategoryIcon } from '../../../utils/musicUtils';
 
 // Helper function to format time
@@ -59,6 +59,14 @@ const CalmingMusic = () => {
       audio.crossOrigin = 'anonymous';
       audio.preload = 'auto';
     }
+    
+    // Cleanup on unmount
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.src = '';
+      }
+    };
   }, []);
 
   useEffect(() => {
@@ -383,10 +391,10 @@ const CalmingMusic = () => {
         const centerY = canvas.height / 2;
         const radius = Math.min(centerX, centerY) - 50;
         
-        // Draw base circle with gradient (soft green theme)
+        // Draw base circle with gradient (Indigo/Violet theme)
         const baseGradient = ctx.createRadialGradient(centerX, centerY, radius/3, centerX, centerY, radius);
-        baseGradient.addColorStop(0, 'rgba(34, 197, 94, 0.1)'); // emerald-500
-        baseGradient.addColorStop(1, 'rgba(16, 185, 129, 0.05)'); // emerald-600
+        baseGradient.addColorStop(0, 'rgba(99, 102, 241, 0.1)'); // indigo-500
+        baseGradient.addColorStop(1, 'rgba(139, 92, 246, 0.05)'); // violet-500
         
         ctx.beginPath();
         ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
@@ -412,10 +420,10 @@ const CalmingMusic = () => {
             const x2 = centerX + outerRadius * Math.cos(angle);
             const y2 = centerY + outerRadius * Math.sin(angle);
             
-            // Create gradient for each bar (soft green theme)
+            // Create gradient for each bar (Indigo/Violet theme)
             const gradient = ctx.createLinearGradient(x1, y1, x2, y2);
-            gradient.addColorStop(0, `rgba(34, 197, 94, ${0.7 - (layerIndex * 0.2)})`); // emerald-500
-            gradient.addColorStop(1, `rgba(16, 185, 129, ${0.7 - (layerIndex * 0.2)})`); // emerald-600
+            gradient.addColorStop(0, `rgba(99, 102, 241, ${0.7 - (layerIndex * 0.2)})`); // indigo-500
+            gradient.addColorStop(1, `rgba(139, 92, 246, ${0.7 - (layerIndex * 0.2)})`); // violet-500
             
             // Draw the line
             ctx.beginPath();
@@ -428,7 +436,7 @@ const CalmingMusic = () => {
             // Add glow effect only on the outer layer for performance
             if (layerIndex === 0) {
               ctx.shadowBlur = 10;
-              ctx.shadowColor = '#10b981'; // emerald-600
+              ctx.shadowColor = '#6366f1'; // indigo-500
             }
           }
           
@@ -461,12 +469,14 @@ const CalmingMusic = () => {
     }
     
     if (music && music._id !== currentPlaying?._id) {
-      // Play new song
+      // Play new song - this will stop the current one
       playSound(music);
-    } else if (isPlaying) {
+    } else if (currentPlaying && isPlaying) {
+      // Pause current song
       audioRef.current.pause();
       setIsPlaying(false);
-    } else {
+    } else if (currentPlaying && !isPlaying) {
+      // Resume current song
       const playPromise = audioRef.current.play();
       
       if (playPromise !== undefined) {
@@ -484,7 +494,9 @@ const CalmingMusic = () => {
 
   const playSound = (music, playlistToUse = null) => {
     if (audioRef.current) {
+      // Completely stop the current audio
       audioRef.current.pause();
+      audioRef.current.currentTime = 0;
     }
     
     // When a new song is selected, save the current musicList as the playlist for navigation
@@ -495,34 +507,45 @@ const CalmingMusic = () => {
     
     setTimeout(() => {
       if (audioRef.current) {
+        // Reset audio element completely
+        audioRef.current.src = '';
+        audioRef.current.currentTime = 0;
         audioRef.current.src = music.cloudinaryUrl;
-        audioRef.current.crossOrigin = 'anonymous'; // Handle CORS
+        audioRef.current.crossOrigin = 'anonymous';
         
         setProgress(0);
         setCurrentTime(0);
         
         const loadHandler = () => {
-          const playPromise = audioRef.current.play();
-          if (playPromise !== undefined) {
-            playPromise
-              .then(() => {
-                setIsPlaying(true);
-                audioRef.current.removeEventListener('loadeddata', loadHandler);
-                
-                // Increment play count
-                incrementPlayCount(music._id);
-              })
-              .catch(error => {
-                console.error("Error playing track:", error);
-                setIsPlaying(false);
-                audioRef.current.removeEventListener('loadeddata', loadHandler);
-              });
+          if (audioRef.current) {
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+              playPromise
+                .then(() => {
+                  setIsPlaying(true);
+                  if (audioRef.current) {
+                    audioRef.current.removeEventListener('loadeddata', loadHandler);
+                  }
+                  
+                  // Increment play count
+                  incrementPlayCount(music._id);
+                })
+                .catch(error => {
+                  console.error("Error playing track:", error);
+                  setIsPlaying(false);
+                  if (audioRef.current) {
+                    audioRef.current.removeEventListener('loadeddata', loadHandler);
+                  }
+                });
+            }
           }
         };
         
         const errorHandler = (error) => {
-          audioRef.current.removeEventListener('loadeddata', loadHandler);
-          audioRef.current.removeEventListener('error', errorHandler);
+          if (audioRef.current) {
+            audioRef.current.removeEventListener('loadeddata', loadHandler);
+            audioRef.current.removeEventListener('error', errorHandler);
+          }
           setIsPlaying(false);
         };
         
@@ -532,10 +555,15 @@ const CalmingMusic = () => {
         // Load the audio
         audioRef.current.load();
         
-        setTimeout(() => {
-          audioRef.current.removeEventListener('loadeddata', loadHandler);
-          audioRef.current.removeEventListener('error', errorHandler);
+        const timeoutId = setTimeout(() => {
+          if (audioRef.current) {
+            audioRef.current.removeEventListener('loadeddata', loadHandler);
+            audioRef.current.removeEventListener('error', errorHandler);
+          }
         }, 5000);
+        
+        // Store timeout ID for cleanup
+        audioRef.current.timeoutId = timeoutId;
       }
     }, 50);
   };
@@ -713,353 +741,406 @@ const CalmingMusic = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-emerald-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#0f172a]">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-emerald-600 mx-auto mb-4"></div>
-          <p className="text-emerald-600 font-medium">Loading music...</p>
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <p className="text-indigo-400 font-medium">Loading music...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100">
-      {/* Header */}
-      <div className="bg-white/80 backdrop-blur-sm shadow-sm border-b border-emerald-100">
-        <div className="flex items-center justify-between p-4 max-w-6xl mx-auto">
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="flex items-center justify-center w-10 h-10 bg-emerald-100 hover:bg-emerald-200 rounded-full transition-colors"
-            onClick={() => window.history.back()}
-          >
-            <ArrowBackIcon className="text-emerald-600" />
-          </motion.button>
-          
-          <h1 className="text-xl font-bold text-emerald-800">Calming Music</h1>
+    <div className="min-h-screen bg-[#0f172a] text-white font-sans selection:bg-indigo-500/30">
+      {/* Header Section */}
+      <div className="max-w-7xl mx-auto px-6 pt-12 pb-8">
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
+          <div>
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-5xl md:text-6xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-violet-400 to-purple-400"
+            >
+              Calming Music
+            </motion.h1>
+            <motion.p 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="text-lg text-slate-400 mt-3 max-w-2xl"
+            >
+              Immerse yourself in a curated collection of soothing melodies designed to help you relax, focus, and find your inner peace.
+            </motion.p>
+          </div>
           
           {isAuthenticated && (
             <motion.button
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowFavorites(!showFavorites)}
-              className={`flex items-center justify-center w-10 h-10 rounded-full transition-colors ${
+              className={`flex items-center gap-2 px-6 py-3 rounded-2xl font-bold transition-all duration-300 shadow-lg ${
                 showFavorites 
-                  ? 'bg-emerald-100 hover:bg-emerald-200' 
-                  : 'bg-rose-100 hover:bg-rose-200'
+                  ? 'bg-indigo-500 text-white shadow-indigo-500/20' 
+                  : 'bg-slate-800 text-slate-300 hover:bg-slate-700 border border-slate-700'
               }`}
-              title={showFavorites ? 'Show All Songs' : 'Show Favorites'}
             >
               {showFavorites ? (
-                <span className="text-emerald-600 text-xl">🎵</span>
+                <>
+                  <span className="text-xl">🎵</span>
+                  <span>Show All Tracks</span>
+                </>
               ) : (
-                <FavoriteIcon className="text-rose-600" />
+                <>
+                  <FavoriteIcon className="text-rose-500" />
+                  <span>Your Favorites</span>
+                </>
               )}
             </motion.button>
           )}
-          
-          {!isAuthenticated && <div className="w-10" />}
         </div>
       </div>
 
-      {/* Categories */}
+      {/* Categories Navigation */}
       {!showFavorites && (
-        <div
-          className="flex gap-3 sm:gap-4 md:gap-6 overflow-x-auto scrollbar-thin scrollbar-thumb-emerald-200 scrollbar-track-transparent px-1 bg-white/60 backdrop-blur-sm border-b border-emerald-100 mx-4 rounded-lg mt-4 mb-4 p-4 max-w-6xl mx-auto"
-          style={{ WebkitOverflowScrolling: 'touch' }}
-        >
-          {categories.map((category) => (
-            <motion.button
-              key={category._id}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setSelectedCategory(category._id)}
-              className={`flex items-center gap-2 px-3 py-3 rounded-full text-sm font-medium whitespace-nowrap transition-all ${
-                selectedCategory === category._id
-                  ? 'bg-emerald-500 text-white shadow-lg'
-                  : 'bg-white/80 text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
-              }`}
-              style={{ margin: '3px 0', flex: '0 0 auto' }}
-            >
-              <span className="text-sm">{getCategoryIcon(category._id)}</span>
-              <span className="capitalize">{category._id}</span>
-              <span className={`px-2 py-0.5 rounded-full text-xs ${
-                selectedCategory === category._id
-                  ? 'bg-white/20 text-white'
-                  : 'bg-emerald-100 text-emerald-600'
-              }`}>
-                {category.count}
-              </span>
-            </motion.button>
-          ))}
+        <div className="max-w-7xl mx-auto mb-6">
+          <div className="flex gap-3 overflow-x-auto pb-2 pt-2 scrollbar-hide px-8">
+            {categories.map((category, index) => (
+              <motion.button
+                key={category._id}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.05 }}
+                whileHover={{ y: -2 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setSelectedCategory(category._id)}
+                className={`flex items-center gap-3 px-5 py-3 rounded-2xl text-sm font-bold whitespace-nowrap transition-all duration-300 border ${
+                  selectedCategory === category._id
+                    ? 'bg-indigo-500 border-indigo-400 text-white shadow-xl shadow-indigo-500/20'
+                    : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <span className="text-lg">{getCategoryIcon(category._id)}</span>
+                <span className="capitalize">{category._id}</span>
+                <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black ${
+                  selectedCategory === category._id
+                    ? 'bg-white/20 text-white'
+                    : 'bg-slate-700 text-slate-400'
+                }`}>
+                  {category.count}
+                </span>
+              </motion.button>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Main Content */}
-      <div className="flex flex-col lg:flex-row max-w-7xl mx-auto p-4 sm:p-6 gap-6 lg:gap-8 min-h-[400px]">
-        {/* Music Player - Top on mobile, left on desktop */}
-        <div className="w-full lg:w-1/3 lg:min-w-[340px] mb-6 lg:mb-0">
-          {currentPlaying ? (
-            <motion.div 
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white/90 backdrop-blur-sm rounded-xl p-6 border border-emerald-100 shadow-lg h-fit max-h-[calc(100vh-200px)] overflow-y-auto relative"
-            >
-              {/* Heart button - Upper Right */}
-              <div className="absolute top-3 right-3 z-10">
-                {isAuthenticated && (
-                  <motion.button 
-                    whileHover={{ scale: 1.1 }}
-                    whileTap={{ scale: 0.9 }}
-                    onClick={() => toggleFavoriteAPI(currentPlaying)}
-                    className="transition-colors"
-                    title="Add to Favorites"
-                  >
-                    {currentPlaying.isFavorite ? 
-                      <FavoriteIcon sx={{ fontSize: 20, color: '#f43f5e' }} /> : 
-                      <FavoriteBorderIcon sx={{ fontSize: 20, color: '#10b981' }} />
-                    }
-                  </motion.button>
-                )}
-              </div>
-              
-              {/* Album Art / Visualizer */}
-              <div className="relative mt-6 mb-4">
-                <div className="w-32 h-32 mx-auto bg-gradient-to-br from-emerald-100 to-green-200 rounded-lg overflow-hidden mb-4">
-                  <canvas ref={canvasRef} className="w-full h-full"></canvas>
-                </div>
-              </div>
+      {/* Main Content Grid */}
+      <div className="max-w-7xl mx-auto px-6 pb-24">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          
+          {/* Left Column: Now Playing Player */}
+          <div className="lg:col-span-5 order-1 lg:order-1">
+            <div className="sticky top-8">
+              {currentPlaying ? (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="relative overflow-hidden bg-gradient-to-b from-slate-800/80 to-slate-900/90 rounded-[2rem] border border-slate-700/50 shadow-2xl shadow-black/50 backdrop-blur-sm"
+                >
+                  {/* Background Glow */}
+                  <div className="absolute -top-24 -right-24 w-64 h-64 bg-indigo-500/10 blur-[100px] rounded-full" />
+                  <div className="absolute -bottom-24 -left-24 w-64 h-64 bg-violet-500/10 blur-[100px] rounded-full" />
 
-              {/* Song Info */}
-              <div className="text-center mb-6">
-                <h3 className="font-bold text-emerald-800 text-lg mb-2 truncate">{currentPlaying.title}</h3>
-                <p className="text-emerald-600 text-base truncate">{currentPlaying.artist}</p>
-              </div>
-              
-              {/* Progress Bar - Clickable */}
-              <div className="mb-6">
-                <div className="flex justify-between text-sm text-emerald-600 mb-2">
-                  <span>{formatTime(currentTime)}</span>
-                  <span>{formatTime(duration)}</span>
-                </div>
-                <div 
-                  className="relative h-3 bg-emerald-100 rounded-full cursor-pointer group"
-                  onClick={handleProgressSeek}
-                >
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full transition-all" 
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                  <div 
-                    className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-emerald-600 rounded-full shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ left: `calc(${progress}% - 8px)` }}
-                  ></div>
-                </div>
-              </div>
-              
-              {/* Audio Element - Created programmatically */}
-              
-              {/* Main Controls */}
-              <div className="flex items-center justify-center gap-2 mb-4">
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => handleDownload(currentPlaying)}
-                  disabled={musicList.length === 0}
-                  className="p-2 text-emerald-600 hover:text-emerald-700 disabled:text-emerald-300"
-                  title="Download"
-                >
-                  <DownloadIcon fontSize="medium" />
-                </motion.button>
-                
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={handlePrevious}
-                  disabled={musicList.length === 0}
-                  className="p-2 text-emerald-600 hover:text-emerald-700 disabled:text-emerald-300"
-                >
-                  <SkipPreviousIcon fontSize="medium" />
-                </motion.button>
-                
-                <motion.button 
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handlePlayPause()}
-                  className="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white rounded-full flex items-center justify-center shadow-lg transition-colors mx-2"
-                >
-                  {isPlaying ? 
-                    <PauseIcon fontSize="small" /> : 
-                    <PlayArrowIcon fontSize="medium" />
-                  }
-                </motion.button>
-                
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={handleNext}
-                  disabled={musicList.length === 0}
-                  className="p-2 text-emerald-600 hover:text-emerald-700 disabled:text-emerald-300"
-                >
-                  <SkipNextIcon fontSize="medium" />
-                </motion.button>
-                
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={() => setIsRepeatActive(!isRepeatActive)}
-                  disabled={musicList.length === 0}
-                  className={`p-2 transition-colors ${
-                    isRepeatActive 
-                      ? 'text-amber-500 hover:text-amber-600' 
-                      : 'text-emerald-600 hover:text-emerald-700'
-                  } disabled:text-emerald-300`}
-                  title={isRepeatActive ? 'Repeat: ON' : 'Repeat: OFF'}
-                >
-                  <RepeatIcon fontSize="medium" />
-                </motion.button>
-              </div>
-              
-              {/* Volume Control */}
-              <div className="flex items-center gap-3">
-                <motion.button 
-                  whileHover={{ scale: 1.1 }}
-                  whileTap={{ scale: 0.9 }}
-                  onClick={toggleMute}
-                  className="text-emerald-600 hover:text-emerald-700 p-1"
-                >
-                  {isMuted ? <VolumeOffIcon fontSize="small" /> : <VolumeUpIcon fontSize="small" />}
-                </motion.button>
-                
-                <div className="flex-1 relative h-2 bg-emerald-100 rounded-full">
-                  <div 
-                    className="absolute top-0 left-0 h-full bg-emerald-500 rounded-full" 
-                    style={{ width: `${volume * 100}%` }}
-                  ></div>
-                  <input 
-                    type="range"
-                    min="0"
-                    max="1"
-                    step="0.01"
-                    value={volume}
-                    onChange={handleVolumeChange}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                  />
-                </div>
-                <span className="text-sm text-emerald-600 min-w-[30px]">{Math.round(volume * 100)}</span>
-              </div>
-            </motion.div>
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="bg-white/60 backdrop-blur-sm rounded-xl p-8 border border-emerald-100 text-center h-fit"
-            >
-              <div className="text-6xl mb-4">🎵</div>
-              <h3 className="text-lg font-semibold text-emerald-800 mb-2">Select a song to play</h3>
-              <p className="text-emerald-600">Choose from {musicList.length} tracks in the {selectedCategory} category</p>
-            </motion.div>
-          )}
-        </div>
-
-        {/* Music List - Below on mobile, right on desktop */}
-        <div className="w-full flex-1 overflow-visible lg:overflow-hidden">
-          {refreshing ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto mb-2"></div>
-              <p className="text-emerald-600">Loading...</p>
-            </div>
-          ) : musicList.length === 0 ? (
-            <div className="text-center py-12">
-              <div className="text-6xl mb-4">🎵</div>
-              <h3 className="text-lg font-semibold text-emerald-800 mb-2">
-                {showFavorites ? 'No favorites yet' : 'No music found'}
-              </h3>
-              <p className="text-emerald-600 mb-4">
-                {showFavorites 
-                  ? 'Heart songs to add them to your favorites!' 
-                  : `No music found in "${selectedCategory}" category`}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3 overflow-y-auto max-h-[60vh] pr-2 pl-0 sm:pl-1 py-1">
-              {musicList.map((music, index) => (
-                <motion.div
-                  key={music._id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.05 }}
-                  className={`bg-white/80 backdrop-blur-sm rounded-xl p-4 border border-emerald-100 hover:shadow-md transition-all cursor-pointer group ${
-                    currentPlaying?._id === music._id ? 'ring-2 ring-emerald-400 bg-emerald-50/80' : 'hover:bg-emerald-50/50'
-                  }`}
-                  onClick={() => handlePlayPause(music)}
-                >
-                  <div className="flex items-center gap-4">
-                    <motion.div
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => handlePlayPause(music)}
-                      className={`flex items-center justify-center w-12 h-12 rounded-full transition-all ${
-                        currentPlaying?._id === music._id && isPlaying
-                          ? 'bg-emerald-500 text-white shadow-lg'
-                          : 'bg-emerald-100 text-emerald-600 group-hover:bg-emerald-200'
-                      }`}
-                    >
-                      {currentPlaying?._id === music._id && isPlaying ? (
-                        <PauseIcon />
-                      ) : (
-                        <PlayArrowIcon />
-                      )}
-                    </motion.div>
-
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-semibold text-emerald-800 truncate">{music.title}</h4>
-                      <p className="text-sm text-emerald-600 truncate">{music.artist}</p>
-                    </div>
-                    
-                    <div className="flex items-center text-sm text-emerald-500 mr-4">
-                      <span>{formatTime(music.duration)}</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
+                  <div className="relative p-6">
+                    {/* Visualizer Header */}
+                    <div className="flex items-center justify-between mb-4">
+                      <span className="px-3 py-1 bg-indigo-500/10 text-indigo-400 text-[9px] font-black uppercase tracking-widest rounded-full border border-indigo-500/20">
+                        Now Playing
+                      </span>
                       {isAuthenticated && (
-                        <motion.button
+                        <motion.button 
                           whileHover={{ scale: 1.1 }}
                           whileTap={{ scale: 0.9 }}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            toggleFavoriteAPI(music);
-                          }}
-                          className={`p-1 flex items-center justify-center transition-colors ${
-                            music.isFavorite
-                              ? 'text-rose-600 hover:text-rose-700'
-                              : 'text-emerald-600 hover:text-rose-500'
-                          }`}
+                          onClick={() => toggleFavoriteAPI(currentPlaying)}
+                          className={`p-2 rounded-xl transition-colors ${currentPlaying.isFavorite ? 'bg-rose-500/10 text-rose-500' : 'bg-slate-800/50 text-slate-400 hover:bg-slate-700'}`}
                         >
-                          {music.isFavorite ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+                          {currentPlaying.isFavorite ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
                         </motion.button>
                       )}
-                      
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDownload(music);
-                        }}
-                        className="p-1 text-emerald-600 hover:text-emerald-700 flex items-center justify-center transition-colors"
+                    </div>
+
+                    {/* Visualizer Canvas */}
+                    <div className="relative aspect-square w-full max-w-[220px] mx-auto mb-6 group">
+                      <div className="absolute inset-0 bg-indigo-500/5 rounded-full blur-2xl group-hover:bg-indigo-500/10 transition-all duration-700" />
+                      <canvas 
+                        ref={canvasRef} 
+                        className="relative w-full h-full drop-shadow-[0_0_20px_rgba(99,102,241,0.2)]"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <div className="w-16 h-16 bg-slate-900/80 backdrop-blur-md rounded-full border border-slate-700 flex items-center justify-center shadow-2xl">
+                          <div className="text-indigo-400">
+                            <MusicNoteIcon fontSize="medium" />
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Song Info */}
+                    <div className="text-center mb-6">
+                      <motion.h3 
+                        key={currentPlaying.title}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="text-xl font-black text-white mb-1 truncate px-4"
                       >
-                        <DownloadIcon fontSize="small" />
-                      </motion.button>
+                        {currentPlaying.title}
+                      </motion.h3>
+                      <motion.p 
+                        key={currentPlaying.artist}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 }}
+                        className="text-indigo-400 text-sm font-bold tracking-wide"
+                      >
+                        {currentPlaying.artist}
+                      </motion.p>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="mb-6 px-2">
+                      <div className="flex justify-between text-[9px] font-black text-slate-500 mb-2 uppercase tracking-widest">
+                        <span>{formatTime(currentTime)}</span>
+                        <span>{formatTime(duration)}</span>
+                      </div>
+                      <div 
+                        className="relative h-1.5 bg-slate-700/50 rounded-full cursor-pointer group"
+                        onClick={handleProgressSeek}
+                      >
+                        <motion.div 
+                          className="absolute top-0 left-0 h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" 
+                          style={{ width: `${progress}%` }}
+                        />
+                        <div 
+                          className="absolute top-1/2 -translate-y-1/2 w-3 h-3 bg-white rounded-full shadow-[0_0_10px_rgba(255,255,255,0.5)] opacity-0 group-hover:opacity-100 transition-opacity"
+                          style={{ left: `calc(${progress}% - 6px)` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Controls */}
+                    <div className="flex flex-col gap-6 px-2">
+                      <div className="flex items-center justify-between">
+                        <motion.button 
+                          whileHover={{ scale: 1.1, backgroundColor: 'rgba(99, 102, 241, 0.2)' }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => setIsRepeatActive(!isRepeatActive)}
+                          className={`p-2.5 rounded-xl transition-all ${isRepeatActive ? 'bg-indigo-500/30 text-indigo-400' : 'bg-indigo-500/10 text-indigo-400/70 hover:text-indigo-400'}`}
+                        >
+                          {isRepeatActive ? <ShuffleIcon fontSize="small" /> : <RepeatIcon fontSize="small" />}
+                        </motion.button>
+
+                        <div className="flex items-center gap-4">
+                          <motion.button 
+                            whileHover={{ scale: 1.1, color: '#fff', bg: 'rgba(30, 41, 59, 0.8)' }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={handlePrevious}
+                            className="p-2.5 rounded-xl bg-slate-800/40 text-slate-400 transition-all"
+                          >
+                            <SkipPreviousIcon fontSize="small" />
+                          </motion.button>
+
+                          <motion.button 
+                            whileHover={{ scale: 1.05, shadow: '0 0 20px rgba(99,102,241,0.4)' }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={() => handlePlayPause()}
+                            className="w-14 h-14 bg-indigo-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-indigo-500/20 transition-all"
+                          >
+                            {isPlaying ? 
+                              <PauseIcon sx={{ fontSize: 28 }} /> : 
+                              <PlayArrowIcon sx={{ fontSize: 32, ml: 0.5 }} />
+                            }
+                          </motion.button>
+
+                          <motion.button 
+                            whileHover={{ scale: 1.1, color: '#fff', bg: 'rgba(30, 41, 59, 0.8)' }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={handleNext}
+                            className="p-2.5 rounded-xl bg-slate-800/40 text-slate-400 transition-all"
+                          >
+                            <SkipNextIcon fontSize="small" />
+                          </motion.button>
+                        </div>
+
+                        <motion.button 
+                          whileHover={{ scale: 1.1, backgroundColor: 'rgba(99, 102, 241, 0.2)', color: '#818cf8' }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={() => handleDownload(currentPlaying)}
+                          className="p-2.5 rounded-xl bg-indigo-500/10 text-indigo-400/70 transition-all"
+                        >
+                          <DownloadIcon fontSize="small" />
+                        </motion.button>
+                      </div>
+
+                      {/* Volume */}
+                      <div className="flex items-center gap-3 py-2.5 px-4 bg-slate-900/40 rounded-xl border border-slate-800/50">
+                        <motion.button 
+                          whileHover={{ scale: 1.1 }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={toggleMute}
+                          className="p-1.5 rounded-lg bg-slate-800/40 text-slate-400 hover:text-indigo-400 transition-colors"
+                        >
+                          {isMuted ? <VolumeOffIcon sx={{ fontSize: 16 }} /> : <VolumeUpIcon sx={{ fontSize: 16 }} />}
+                        </motion.button>
+                        
+                        <div className="flex-1 relative h-1 bg-slate-700/50 rounded-full">
+                          <div 
+                            className="absolute top-0 left-0 h-full bg-indigo-500 rounded-full" 
+                            style={{ width: `${volume * 100}%` }}
+                          />
+                          <input 
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={volume}
+                            onChange={handleVolumeChange}
+                            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                          />
+                        </div>
+                        <span className="text-[9px] font-black text-slate-500 w-7">{Math.round(volume * 100)}%</span>
+                      </div>
                     </div>
                   </div>
                 </motion.div>
-              ))}
+              ) : (
+                <motion.div 
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="bg-slate-800/20 backdrop-blur-sm rounded-[2rem] p-10 border border-slate-800/50 text-center border-dashed"
+                >
+                  <div className="w-20 h-20 bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl shadow-inner">
+                    🎧
+                  </div>
+                  <h3 className="text-lg font-bold text-slate-300 mb-2">Ready to Relax?</h3>
+                  <p className="text-slate-500 text-xs leading-relaxed">
+                    Select a track from the library to start your journey into calm.
+                  </p>
+                </motion.div>
+              )}
             </div>
-          )}
+          </div>
+
+          {/* Right Column: Music List */}
+          <div className="lg:col-span-7 order-2 lg:order-2">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-bold text-slate-200">
+                {showFavorites ? 'Your Favorite Tracks' : `${selectedCategory.charAt(0).toUpperCase() + selectedCategory.slice(1)} Collection`}
+              </h2>
+              <span className="text-sm text-slate-500 font-medium">{musicList.length} tracks found</span>
+            </div>
+
+            {refreshing ? (
+              <div className="flex flex-col items-center justify-center py-20 bg-slate-800/20 rounded-3xl border border-slate-800/50">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-indigo-500 mb-4"></div>
+                <p className="text-slate-400">Refreshing library...</p>
+              </div>
+            ) : musicList.length === 0 ? (
+              <div className="text-center py-20 bg-slate-800/20 rounded-3xl border border-slate-800/50">
+                <div className="text-6xl mb-6 opacity-20">🎵</div>
+                <h3 className="text-xl font-bold text-slate-300 mb-2">
+                  {showFavorites ? 'No favorites yet' : 'No music found'}
+                </h3>
+                <p className="text-slate-500 max-w-xs mx-auto">
+                  {showFavorites 
+                    ? 'Start adding songs to your favorites to see them here!' 
+                    : `We couldn't find any tracks in the "${selectedCategory}" category.`}
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {musicList.map((music, index) => (
+                  <motion.div
+                    key={music._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.03 }}
+                    onClick={() => handlePlayPause(music)}
+                    className={`group relative flex items-center gap-4 p-4 rounded-2xl transition-all duration-300 cursor-pointer border ${
+                      currentPlaying?._id === music._id 
+                        ? 'bg-indigo-500/10 border-indigo-500/30 shadow-lg shadow-indigo-500/5' 
+                        : 'bg-slate-800/30 border-transparent hover:bg-slate-800/60 hover:border-slate-700'
+                    }`}
+                  >
+                    {/* Play Indicator */}
+                    <div className="relative flex-shrink-0 w-12 h-12 rounded-xl overflow-hidden bg-slate-700 flex items-center justify-center group-hover:shadow-lg transition-all">
+                      {currentPlaying?._id === music._id && isPlaying ? (
+                        <div className="absolute inset-0 bg-indigo-500 flex items-center justify-center">
+                          <div className="flex gap-1 items-end h-4">
+                            <motion.div animate={{ height: [4, 12, 6, 14, 4] }} transition={{ repeat: Infinity, duration: 0.6 }} className="w-1 bg-white rounded-full" />
+                            <motion.div animate={{ height: [6, 4, 14, 8, 6] }} transition={{ repeat: Infinity, duration: 0.7 }} className="w-1 bg-white rounded-full" />
+                            <motion.div animate={{ height: [10, 6, 4, 12, 10] }} transition={{ repeat: Infinity, duration: 0.5 }} className="w-1 bg-white rounded-full" />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-slate-400 group-hover:text-white transition-colors">
+                          <PlayArrowIcon />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Track Info */}
+                    <div className="flex-1 min-w-0">
+                      <h4 className={`font-bold truncate transition-colors ${currentPlaying?._id === music._id ? 'text-indigo-400' : 'text-slate-200 group-hover:text-white'}`}>
+                        {music.title}
+                      </h4>
+                      <p className="text-sm text-slate-500 truncate group-hover:text-slate-400 transition-colors">{music.artist}</p>
+                    </div>
+                    
+                    {/* Duration & Actions */}
+                    <div className="flex items-center gap-4">
+                      <span className="hidden sm:block text-xs font-mono text-slate-500 group-hover:text-slate-400">{formatTime(music.duration)}</span>
+                      
+                      <div className="flex items-center gap-2 transition-opacity">
+                        {isAuthenticated && (
+                          <motion.button
+                            whileHover={{ scale: 1.1, backgroundColor: 'rgba(30, 41, 59, 0.8)' }}
+                            whileTap={{ scale: 0.9 }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              toggleFavoriteAPI(music);
+                            }}
+                            className={`p-2 rounded-xl transition-all border border-transparent ${
+                              music.isFavorite 
+                                ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' 
+                                : 'bg-slate-800/40 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {music.isFavorite ? <FavoriteIcon fontSize="small" /> : <FavoriteBorderIcon fontSize="small" />}
+                          </motion.button>
+                        )}
+                        
+                        <motion.button
+                          whileHover={{ scale: 1.1, backgroundColor: 'rgba(30, 41, 59, 0.8)', color: '#818cf8' }}
+                          whileTap={{ scale: 0.9 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDownload(music);
+                          }}
+                          className="p-2 rounded-xl bg-slate-800/40 text-slate-400 transition-all"
+                        >
+                          <DownloadIcon fontSize="small" />
+                        </motion.button>
+                      </div>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+
         </div>
-
-
       </div>
     </div>
   );

@@ -344,28 +344,6 @@ const MainPredictions = () => {
                   </Typography>
                 </Paper>
                 
-                {/* Prediction Comparison Button */}
-                <Box sx={{ textAlign: 'center', mb: 2 }}>
-                  <Button
-                    variant="outlined"
-                    onClick={() => navigate('/prediction-comparison')}
-                    sx={{
-                      borderColor: '#6fba94',
-                      color: '#6fba94',
-                      fontFamily: 'Nunito, sans-serif',
-                      fontWeight: 600,
-                      borderWidth: 2,
-                      '&:hover': {
-                        backgroundColor: '#6fba94',
-                        color: 'white',
-                        borderColor: '#6fba94'
-                      }
-                    }}
-                  >
-                    View Insights
-                  </Button>
-                </Box>
-
                 <Box sx={{ textAlign: 'center', mt: 2 }}>
                   <Typography 
                     variant="body2" 
