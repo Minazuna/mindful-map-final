@@ -5,11 +5,12 @@ The mood prediction system uses a weighted mean algorithm that considers **tempo
 
 ## Formula
 ```
-Weighted Mean = Σ(wi × xi) / Σ(wi × xi)
+Weighted Mean = Σ(wi × xi) / Σ(wi)
 
 Where:
 - wi = week weight (1, 2, 3, 4 for oldest to newest week)
 - xi = frequency/count of mood occurrences in that week
+- Σ(wi) = sum of all weights = 1 + 2 + 3 + 4 = 10
 - Maximum probability cap: 90%
 ```
 
@@ -36,37 +37,53 @@ Where:
    - Week 4: 5 occurrences → 4 × 5 = 20
    - **Total Weighted Sum = 2 + 6 + 12 + 20 = 40**
 
-4. **Calculate Total Weighted Occurrences**: Sum weighted occurrences for all moods
-5. **Probability Calculation**: 
+4. **Calculate Weighted Mean**: For each mood, apply the weighted mean formula:
    ```
-   Mood Probability = (Weighted Sum for Mood) / (Total Weighted Sum for all Moods)
+   Weighted Mean = Weighted Sum / Σ(wi)
+   Σ(wi) = 1 + 2 + 3 + 4 = 10
    ```
-6. **Percentage Conversion**: Convert to percentage with 90% maximum cap
-7. **Prediction Selection**: Choose mood with highest probability (if tie, use latest/most recent entry)
+
+5. **Calculate Total Weighted Mean**: Sum weighted means for all moods
+
+6. **Probability Calculation**: 
+   ```
+   Mood Probability = (Weighted Mean for Mood) / (Total Weighted Mean for all Moods)
+   ```
+
+7. **Percentage Conversion**: Convert to percentage with 90% maximum cap
+
+8. **Prediction Selection**: Choose mood with highest probability (if tie, use latest/most recent entry)
 
 ### Example Calculation
 
 **Monday Activity Category Prediction:**
 
+**Sum of Weights:**
+```
+Σ(wi) = 1 + 2 + 3 + 4 = 10
+```
+
 **Happy Mood:**
 - Week 1: 2 occurrences → 1 × 2 = 2
 - Week 2: 3 occurrences → 2 × 3 = 6
 - Week 3: 4 occurrences → 3 × 4 = 12
-- Week 4: 5 occurrences → 4 × 5 = **20**
+- Week 4: 5 occurrences → 4 × 5 = 20
 - **Weighted Sum = 40**
+- **Weighted Mean = 40 / 10 = 4.0**
 
 **Calm Mood:**
 - Week 1: 1 occurrence → 1 × 1 = 1
 - Week 2: 2 occurrences → 2 × 2 = 4
 - Week 3: 3 occurrences → 3 × 3 = 9
-- Week 4: 4 occurrences → 4 × 4 = **16**
+- Week 4: 4 occurrences → 4 × 4 = 16
 - **Weighted Sum = 30**
+- **Weighted Mean = 30 / 10 = 3.0**
 
-**Total Weighted Sum = 40 + 30 = 70**
+**Total Weighted Mean = 4.0 + 3.0 = 7.0**
 
 **Probabilities:**
-- Happy: (40/70) × 100 = 57.1%
-- Calm: (30/70) × 100 = 42.9%
+- Happy: (4.0/7.0) × 100 = 57.1%
+- Calm: (3.0/7.0) × 100 = 42.9%
 
 **Predicted Mood: Happy at 57.1%**
 

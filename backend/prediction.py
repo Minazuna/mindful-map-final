@@ -142,12 +142,32 @@ class CategoryMoodPredictor:
                     }
                     continue
 
-                # Calculate probabilities using weighted mean formula
-                mood_probabilities = {}
+                # Calculate weighted means using correct formula: Σ(wi × xi) / Σ(wi)
+                # Sum of weights: 1 + 2 + 3 + 4 = 10
+                sum_of_weights = sum(self.week_weights)
+                
+                mood_weighted_means = {}
                 for mood, weighted_occurrence_sum in mood_total_weighted_occurrences.items():
                     # Weighted Mean = Σ(wi × xi) / Σ(wi)
-                    # wi = week weight, xi = 1 (occurrence indicator)
-                    probability = weighted_occurrence_sum / total_weighted_occurrence
+                    weighted_mean = weighted_occurrence_sum / sum_of_weights
+                    mood_weighted_means[mood] = weighted_mean
+
+                # Calculate total weighted mean
+                total_weighted_mean = sum(mood_weighted_means.values())
+
+                if total_weighted_mean == 0:
+                    day_predictions[day] = {
+                        'predicted_mood': 'no data available',
+                        'probability': 0.0,
+                        'cause': 'No emotions recorded'
+                    }
+                    continue
+
+                # Calculate probabilities from weighted means
+                mood_probabilities = {}
+                for mood, weighted_mean in mood_weighted_means.items():
+                    # Probability = (Weighted Mean for Mood) / (Total Weighted Mean for all Moods)
+                    probability = weighted_mean / total_weighted_mean
                     mood_probabilities[mood] = probability
 
                 # Get the mood with highest probability (if tie, select most recent)
@@ -186,13 +206,13 @@ class CategoryMoodPredictor:
                 for mood, prob in mood_probabilities.items():
                     # Convert to percentage and cap at 90%
                     percentage = min(prob * 100, 90.0)
-                    all_mood_probabilities[mood.capitalize()] = round(percentage, 1)
+                    all_mood_probabilities[mood.lower()] = round(percentage, 1)
                 
                 # Update predicted probability with capped value
                 predicted_probability_capped = min(predicted_probability * 100, 90.0)
 
                 day_predictions[day] = {
-                    'predicted_mood': predicted_emotion.capitalize(),
+                    'predicted_mood': predicted_emotion.lower(),
                     'probability': round(predicted_probability_capped, 1),
                     'cause': most_common_cause,
                     'all_mood_probabilities': all_mood_probabilities

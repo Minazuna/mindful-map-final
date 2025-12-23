@@ -33,6 +33,8 @@ const PredictionComparison = () => {
   const [selectedDay, setSelectedDay] = useState('Monday');
   const [availableWeeks, setAvailableWeeks] = useState([]);
 
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
   const categories = [
     { key: 'activity', name: 'Activity', color: '#3B82F6' },
     { key: 'social', name: 'Social', color: '#10B981' },
@@ -56,6 +58,16 @@ const PredictionComparison = () => {
 
   useEffect(() => {
     fetchAvailableWeeks();
+    
+    // Close dropdown when clicking outside
+    const handleClickOutside = (event) => {
+      if (!event.target.closest('.custom-dropdown')) {
+        setIsDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   useEffect(() => {
@@ -385,12 +397,6 @@ const PredictionComparison = () => {
               <h1 className="text-3xl font-bold text-gray-900">
                 Mood Prediction Comparison
               </h1>
-              {weekInfo && (
-                <p className="text-gray-600 mt-2">
-                  Week: {weekInfo.weekNumber}, {weekInfo.year} | 
-                  Total Users: {weekInfo.totalUsers}
-                </p>
-              )}
             </div>
             <div className="flex space-x-4">
               <button
@@ -398,52 +404,101 @@ const PredictionComparison = () => {
                 className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
                 disabled={loading}
               >
-                Calculate Predictions
+                Calculate Prediction
               </button>
               <button
                 onClick={updateActualMoods}
                 className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
                 disabled={loading}
               >
-                Update Actual Moods
+                Update Actual
               </button>
             </div>
           </div>
 
           {/* Week Navigation */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
             <label className="text-gray-700 font-medium">Select Week:</label>
-            <select
-              value={selectedWeek || ''}
-              onChange={(e) => setSelectedWeek(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              disabled={availableWeeks.length === 0}
-            >
-              {availableWeeks.length === 0 && (
-                <option value="">No weeks available</option>
+            <div className="relative min-w-[300px] custom-dropdown">
+              {/* Custom Dropdown */}
+              <div 
+                className="border border-gray-300 rounded-md px-3 py-3 bg-white cursor-pointer focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500"
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+              >
+                {selectedWeek && availableWeeks.length > 0 ? (
+                  <div>
+                    {(() => {
+                      const selectedWeekData = availableWeeks.find(w => w.weekStartDate === selectedWeek);
+                      if (!selectedWeekData) return 'Select a week';
+                      
+                      const weekStart = new Date(selectedWeekData.weekStartDate);
+                      const weekEnd = new Date(weekStart);
+                      weekEnd.setDate(weekStart.getDate() + 6);
+                      const today = new Date();
+                      const isCurrentWeek = today >= weekStart && today <= weekEnd;
+                      
+                      return (
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {selectedWeekData.displayName}, {selectedWeekData.year} {isCurrentWeek ? '(Current Week)' : ''}
+                          </div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            Week {selectedWeekData.weekNumber} • {selectedWeekData.totalUsers} user{selectedWeekData.totalUsers !== 1 ? 's' : ''}
+                          </div>
+                        </div>
+                      );
+                    })()}
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                      <svg className={`w-5 h-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500">
+                      {availableWeeks.length === 0 ? 'No weeks available' : 'Select a week'}
+                    </span>
+                    <svg className={`w-5 h-5 text-gray-400 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+
+              {/* Dropdown Options */}
+              {isDropdownOpen && availableWeeks.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-300 rounded-md shadow-lg z-10 max-h-60 overflow-y-auto">
+                  {availableWeeks.map((week) => {
+                    const weekStart = new Date(week.weekStartDate);
+                    const weekEnd = new Date(weekStart);
+                    weekEnd.setDate(weekStart.getDate() + 6);
+                    const today = new Date();
+                    const isCurrentWeek = today >= weekStart && today <= weekEnd;
+                    const isSelected = selectedWeek === week.weekStartDate;
+                    
+                    return (
+                      <div
+                        key={week.weekStartDate}
+                        className={`px-3 py-3 cursor-pointer hover:bg-blue-50 border-b border-gray-100 last:border-b-0 ${isSelected ? 'bg-blue-100' : ''}`}
+                        onClick={() => {
+                          setSelectedWeek(week.weekStartDate);
+                          setIsDropdownOpen(false);
+                        }}
+                      >
+                        <div className="text-sm font-medium text-gray-900">
+                          {week.displayName}, {week.year} {isCurrentWeek ? '(Current Week)' : ''}
+                          {isSelected && <span className="text-blue-600 float-right">✓</span>}
+                        </div>
+                        <div className="text-xs text-gray-500 mt-1">
+                          Week {week.weekNumber} • {week.totalUsers} user{week.totalUsers !== 1 ? 's' : ''}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               )}
-              {availableWeeks.map((week) => {
-                const weekStart = new Date(week.weekStartDate);
-                const weekEnd = new Date(weekStart);
-                weekEnd.setDate(weekStart.getDate() + 6);
-                const today = new Date();
-                const isCurrentWeek = today >= weekStart && today <= weekEnd;
-                
-                return (
-                  <option key={week.weekStartDate} value={week.weekStartDate}>
-                    {week.displayName} {isCurrentWeek ? '(Current week)' : ''}
-                  </option>
-                );
-              })}
-            </select>
-            
-            <label className="text-gray-700 font-medium ml-4">Show predictions for selected week</label>
-            
-            {availableWeeks.length > 0 && (
-              <p className="text-sm text-gray-500">
-                Available weeks: {availableWeeks.length}
-              </p>
-            )}
+            </div>
           </div>
         </div>
 
@@ -468,9 +523,6 @@ const PredictionComparison = () => {
           <div className="space-y-8">
             {/* Day Selection Buttons */}
             <div className="mb-8">
-              <label className="block text-sm font-medium mb-4 text-gray-700">
-                Select Day of the Week:
-              </label>
               <div className="flex flex-wrap gap-2 justify-center">
                 {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => (
                   <button

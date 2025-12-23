@@ -276,14 +276,14 @@ exports.getUserPredictionComparison = async (req, res) => {
                 if (dayData?.allMoodProbabilities && Object.keys(dayData.allMoodProbabilities).length > 0) {
                     let moodToLookup = null;
                     
-                    if (actual && actual !== 'No data') {
-                        moodToLookup = actual.charAt(0).toUpperCase() + actual.slice(1).toLowerCase();
-                    } else if (predicted && predicted !== 'No data' && predicted !== 'No data available') {
-                        moodToLookup = predicted.charAt(0).toUpperCase() + predicted.slice(1).toLowerCase();
+                    if (actual && actual !== 'No data' && actual !== 'no data') {
+                        moodToLookup = actual.toLowerCase();
+                    } else if (predicted && predicted !== 'No data' && predicted !== 'No data available' && predicted !== 'no data available') {
+                        moodToLookup = predicted.toLowerCase();
                     }
                     
                     if (moodToLookup) {
-                        // The allMoodProbabilities keys are capitalized 
+                        // The allMoodProbabilities keys are now lowercase
                         probability = dayData.allMoodProbabilities[moodToLookup] || 0;
                     }
                 } else {

@@ -776,13 +776,13 @@ const calculateAndSavePredictionsForUser = async (userId) => {
           for (const day of daysOfWeek) {
             if (pythonPredictions[day]) {
               predictions[category][day] = {
-                predictedMood: pythonPredictions[day].predicted_mood || 'No data available',
+                predictedMood: pythonPredictions[day].predicted_mood || 'no data available',
                 actualMood: null, // Will be filled later
                 allMoodProbabilities: pythonPredictions[day].all_mood_probabilities || {}
               };
             } else {
               predictions[category][day] = {
-                predictedMood: 'No data available',
+                predictedMood: 'no data available',
                 actualMood: null,
                 allMoodProbabilities: {}
               };
@@ -793,9 +793,9 @@ const calculateAndSavePredictionsForUser = async (userId) => {
           // Fallback: set no data for all days in this category
           for (const day of daysOfWeek) {
             predictions[category][day] = {
-              predictedMood: 'No data available',
-              probability: 0.0,
-              actualMood: null
+              predictedMood: 'no data available',
+              actualMood: null,
+              allMoodProbabilities: {}
             };
           }
         }
@@ -809,9 +809,9 @@ const calculateAndSavePredictionsForUser = async (userId) => {
         // Fallback: set no data for all days in this category
         for (const day of daysOfWeek) {
           predictions[category][day] = {
-            predictedMood: pythonError.code === 'ECONNREFUSED' ? 'Python service unavailable' : 'No data available',
-            probability: 0.0,
-            actualMood: null
+            predictedMood: pythonError.code === 'ECONNREFUSED' ? 'python service unavailable' : 'no data available',
+            actualMood: null,
+            allMoodProbabilities: {}
           };
         }
       }
@@ -902,14 +902,14 @@ const getActualMoodForDay = (actualMoodLogs, category, targetDay, weekStart) => 
 
   // If there's a clear dominant mood, return it
   if (dominantMoods.length === 1) {
-    return dominantMoods[0].charAt(0).toUpperCase() + dominantMoods[0].slice(1);
+    return dominantMoods[0].toLowerCase();
   }
 
   // If no clear dominant mood (tie or all moods appear once), return the latest mood
   if (dominantMoods.length > 1 || maxCount === 1) {
     const latestLog = dayLogs[0]; // Already sorted by latest first
     const latestMood = latestLog.afterEmotion ? latestLog.afterEmotion.toLowerCase() : null;
-    return latestMood ? latestMood.charAt(0).toUpperCase() + latestMood.slice(1) : null;
+    return latestMood ? latestMood.toLowerCase() : null;
   }
 
   return null;
@@ -991,7 +991,7 @@ exports.getPredictionComparisons = async (req, res) => {
 
         predictions.forEach(prediction => {
           const dayData = prediction.predictions[category][day];
-          if (dayData && dayData.predictedMood && dayData.predictedMood !== 'No data' && dayData.predictedMood !== 'No valid data') {
+          if (dayData && dayData.predictedMood && dayData.predictedMood !== 'no data available') {
             predictedMoods.push(dayData.predictedMood);
             
             if (dayData.actualMood) {
@@ -1080,7 +1080,7 @@ exports.getDailyMoodComparison = async (req, res) => {
 
       predictions.forEach(prediction => {
         const dayData = prediction.predictions[category][selectedDay];
-        if (dayData && dayData.allMoodProbabilities && dayData.actualMood && dayData.actualMood !== 'No data') {
+        if (dayData && dayData.allMoodProbabilities && dayData.actualMood && dayData.actualMood !== 'no data available') {
           
           // Get top 3 moods by probability
           const moodProbabilities = dayData.allMoodProbabilities;
@@ -1263,7 +1263,9 @@ exports.getAvailableWeeks = async (req, res) => {
     availableWeeks.sort((a, b) => new Date(b) - new Date(a));
     
     // Format each week as date range with Philippine timezone (+8 hours)
-    const formattedWeeks = availableWeeks.map(weekStartUTC => {
+    const formattedWeeks = [];
+    
+    for (const weekStartUTC of availableWeeks) {
       // Convert UTC to Philippine time (+8 hours)
       const weekStartPH = new Date(weekStartUTC.getTime() + (8 * 60 * 60 * 1000));
       
@@ -1276,13 +1278,25 @@ exports.getAvailableWeeks = async (req, res) => {
       const startFormatted = weekStartPH.toLocaleDateString('en-US', formatOptions);
       const endFormatted = weekEndPH.toLocaleDateString('en-US', formatOptions);
       
-      return {
+      // Get week number and year
+      const weekNumber = getWeekNumber(weekStartUTC);
+      const year = weekStartUTC.getFullYear();
+      
+      // Count total users for this week
+      const totalUsers = await PredictedMood.countDocuments({
+        weekStartDate: weekStartUTC
+      });
+      
+      formattedWeeks.push({
         weekStartDate: weekStartUTC.toISOString(),
         displayName: `${startFormatted} - ${endFormatted}`,
         weekStartPH: weekStartPH.toISOString(),
-        weekEndPH: weekEndPH.toISOString()
-      };
-    });
+        weekEndPH: weekEndPH.toISOString(),
+        weekNumber: weekNumber,
+        year: year,
+        totalUsers: totalUsers
+      });
+    }
     
     res.status(200).json({
       success: true,

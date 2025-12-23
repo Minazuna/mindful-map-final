@@ -171,9 +171,14 @@ const CategoryPrediction = () => {
   const getActivityDisplayName = (activityId) => {
     const activityMap = {
       // Activity category
+      'commute': 'Commute',
+      'exam': 'Exam',
+      'homework': 'Homework',
       'study': 'Study',
+      'project': 'Project',
       'read': 'Read',
       'extracurricular': 'Extracurricular Activities',
+      'household-chores': 'Household Chores',
       'relax': 'Relax',
       'watch-movie': 'Watch Movie',
       'listen-music': 'Listen to Music',
@@ -195,6 +200,7 @@ const CategoryPrediction = () => {
       'jog': 'Jog',
       'walk': 'Walk',
       'exercise': 'Exercise',
+      'sports': 'Sports',
       'meditate': 'Meditate',
       'eat-healthy': 'Eat Healthy',
       'no-physical': 'No Physical Activity',
