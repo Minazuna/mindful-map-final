@@ -9,11 +9,7 @@ import Home from './components/User/Home';
 import MoodEntries from './components/User/MoodEntries';
 import CalendarLog from './components/User/CalendarLog';
 import DailyRecommendations from './components/User/DailyRecommendations';
-import JournalLogs from './components/User/Journal/JournalLogs';
-import JournalEntry from './components/User/Journal/JournalEntry';
-import ViewJournal from './components/User/Journal/ViewJournal';
-import EditJournal from './components/User/Journal/EditJournal';
-import JournalPrompt from './components/User/Journal/JournalPrompt';
+
 import CorrelationStatistics from './components/User/Statistics/CorrelationStatistics';
 import Correlation from './components/User/Statistics/Correlation';
 import Prediction from './components/User/Prediction/Prediction';
@@ -26,7 +22,6 @@ import CalmingMusic from './components/User/Activities/CalmingMusic';
 import Activities from './components/User/Activities';
 import GuidedMeditation from './components/User/Activities/GuidedMeditation';
 import ForumDiscussion from './components/User/Forum';
-import PersonalJournal from './components/User/Journal/PersonalJournal';
 import Profile from './components/User/Profile';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -86,7 +81,11 @@ import RecommendationRating from './components/User/Statistics/Daily/Recommendat
 import ViewRecommendation from './components/User/Statistics/Daily/ViewRecommendation';
 import EditRecommendationRating from './components/User/Statistics/Daily/EditRecommendation';
 
-
+import JournalLogs from './components/User/Journal/JournalLogs';
+import JournalChallenge from './components/User/Journal/JournalChallenge';
+import CreateJournalEntry from './components/User/Journal/CreateJournalEntry';
+import ViewJournal from './components/User/Journal/ViewJournal';
+import EditJournal from './components/User/Journal/EditJournal';
 const useAuth = () => {
   const token = localStorage.getItem('token');
   const [userRole, setUserRole] = useState(null);
@@ -442,15 +441,23 @@ const App = () => {
             </UserPrivateRoute>
           }
         />
-        <Route
-          path="/journal-entry"
+         <Route
+          path="/journal-challenge"
           element={
             <UserPrivateRoute>
-              <JournalEntry />
+              <JournalChallenge />
             </UserPrivateRoute>
           }
         />
         <Route
+          path="/create-journal-entry"
+          element={
+            <UserPrivateRoute>
+              <CreateJournalEntry />
+            </UserPrivateRoute>
+          }
+        />
+       <Route
           path="/view-journal/:id"
           element={
             <UserPrivateRoute>
@@ -463,14 +470,6 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <EditJournal />
-            </UserPrivateRoute>
-          }
-        />
-        <Route
-          path="/journal-prompt"
-          element={
-            <UserPrivateRoute>
-              <JournalPrompt />
             </UserPrivateRoute>
           }
         />
@@ -631,14 +630,6 @@ const App = () => {
           element={
             <UserPrivateRoute>
               <ForumDiscussion />
-            </UserPrivateRoute>
-          }
-        />
-        <Route
-          path="/personal-journal"
-          element={
-            <UserPrivateRoute>
-              <PersonalJournal />
             </UserPrivateRoute>
           }
         />

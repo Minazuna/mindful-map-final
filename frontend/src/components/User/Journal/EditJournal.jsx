@@ -1,85 +1,190 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import BottomNav from '../../BottomNav';
-import ImageIcon from '@mui/icons-material/Image';
-import CloseIcon from '@mui/icons-material/Close';
+import { motion } from 'framer-motion';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import Modal from '@mui/material/Modal';
-import Box from '@mui/material/Box';
+import SaveIcon from '@mui/icons-material/Save';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import FlagIcon from '@mui/icons-material/Flag';
+import PsychologyIcon from '@mui/icons-material/Psychology';
+import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import HighlightAltIcon from '@mui/icons-material/HighlightAlt';
+import BugReportIcon from '@mui/icons-material/BugReport';
+import CreateIcon from '@mui/icons-material/Create';
+import BottomNav from '../../BottomNav';
+
+// Challenge definitions (same as in CreateJournalEntry)
+const CHALLENGES = [
+  {
+    key: "gratitude",
+    title: "Gratitude",
+    description: "Reflect on and list things you are thankful for today.",
+    icon: <FavoriteBorderIcon fontSize="inherit" />,
+    suggestions: [
+      "I'm grateful for...",
+      "Today I appreciated...",
+      "A small thing that made me smile was...",
+    ],
+  },
+  {
+    key: "goal",
+    title: "Goal Setting",
+    description: "Set a meaningful goal you want to achieve soon.",
+    icon: <FlagIcon fontSize="inherit" />,
+    suggestions: [
+      "My goal for today is...",
+      "One thing I want to accomplish is...",
+      "Steps I can take to reach my goal...",
+    ],
+  },
+  {
+    key: "reflection",
+    title: "Self Reflection",
+    description: "Look back on your experiences and what you learned.",
+    icon: <PsychologyIcon fontSize="inherit" />,
+    suggestions: [
+      "Today I learned...",
+      "I noticed that...",
+      "Something I could improve on is...",
+    ],
+  },
+  {
+    key: "affirmation",
+    title: "Positive Affirmation",
+    description: "Write a positive statement to encourage yourself.",
+    icon: <CheckCircleOutlineIcon fontSize="inherit" />,
+    suggestions: [
+      "I am capable of...",
+      "I believe in myself because...",
+      "Today I will remind myself...",
+    ],
+  },
+  {
+    key: "highlight",
+    title: "Daily Highlights",
+    description: "Share the best moments of your day.",
+    icon: <HighlightAltIcon fontSize="inherit" />,
+    suggestions: [
+      "The best part of my day was...",
+      "A moment that made me happy was...",
+      "Something unexpected and good happened...",
+    ],
+  },
+  {
+    key: "problem",
+    title: "Problem Solving",
+    description: "Describe a challenge you faced and how you handled it.",
+    icon: <BugReportIcon fontSize="inherit" />,
+    suggestions: [
+      "A challenge I faced today was...",
+      "I handled it by...",
+      "Next time, I might try...",
+    ],
+  },
+  {
+    key: "free",
+    title: "Free Write",
+    description: "Express anything on your mind, no prompt needed.",
+    icon: <CreateIcon fontSize="inherit" />,
+    suggestions: [
+      "Today I feel...",
+      "What's on my mind is...",
+      "I want to talk about...",
+    ],
+  },
+];
+
+function getChallengeObjByTitle(title) {
+  // Try to match by title (case-insensitive)
+  return (
+    CHALLENGES.find(
+      (c) => c.title.toLowerCase() === title.toLowerCase()
+    ) || null
+  );
+}
 
 const EditJournal = () => {
-  const [entry, setEntry] = useState('');
-  const [images, setImages] = useState([]);
-  const [selectedImage, setSelectedImage] = useState(null);
+  const [challengeTitle, setChallengeTitle] = useState('');
+  const [challengeObj, setChallengeObj] = useState(null);
+  const [content, setContent] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
   const navigate = useNavigate();
   const { id } = useParams();
 
+  // Fetch previous journal entry data
   useEffect(() => {
     const fetchJournalEntry = async () => {
+      setLoading(true);
+      setError('');
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/journal/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setEntry(response.data.content);
-        setImages(response.data.images);
-      } catch (error) {
-        console.error('Error fetching journal entry:', error);
-        toast.error('Failed to load journal entry.');
+        const response = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/entry/${id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
+        );
+        const entry = response.data.entry;
+        // Use the first challenge as the type (since only one type is allowed)
+        const firstChallenge = Array.isArray(entry.challenges) && entry.challenges.length > 0
+          ? entry.challenges[0]
+          : '';
+        setChallengeTitle(firstChallenge);
+        setChallengeObj(getChallengeObjByTitle(firstChallenge));
+        setContent(entry.content || '');
+      } catch (err) {
+        setError('Failed to load journal entry.');
+      } finally {
+        setLoading(false);
       }
     };
-
     fetchJournalEntry();
   }, [id]);
 
+  // Handle suggestion bubble click
+  const handleSuggestionClick = (suggestion) => {
+    setContent((prev) =>
+      prev
+        ? prev.trim().endsWith(".")
+          ? prev + " " + suggestion
+          : prev + ". " + suggestion
+        : suggestion
+    );
+  };
+
+  // Save updated journal entry
   const handleSave = async () => {
+    if (!content.trim()) {
+      setError('Content is required.');
+      return;
+    }
+    setSaving(true);
+    setError('');
     try {
-      const formData = new FormData();
-      formData.append('content', entry);
-      images.forEach((image) => {
-        if (typeof image === 'string') {
-          formData.append('existingImages', image);
-        } else {
-          formData.append('images', image);
-        }
-      });
-
       const token = localStorage.getItem('token');
-      await axios.put(`${import.meta.env.VITE_NODE_API}/api/journal/${id}`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-          Authorization: `Bearer ${token}`,
+      await axios.put(
+        `${import.meta.env.VITE_NODE_API}/api/journal/${id}`,
+        {
+          challenges: [challengeTitle],
+          content,
         },
-      });
-
-      toast.success('Journal entry updated successfully.');
-      navigate('/journal-logs');
-    } catch (error) {
-      console.error('Error updating journal entry:', error);
-      toast.error('Failed to update journal entry.');
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      navigate(`/view-journal/${id}`);
+    } catch (err) {
+      setError('Failed to update journal entry.');
+    } finally {
+      setSaving(false);
     }
-  };
-
-  const handleImageUpload = (event) => {
-    const files = Array.from(event.target.files);
-    setImages((prevImages) => [...prevImages, ...files]);
-  };
-
-  const handleImageClick = (image) => {
-    if (typeof image === 'string') {
-      setSelectedImage(image);
-    } else {
-      setSelectedImage(URL.createObjectURL(image));
-    }
-  };
-
-  const handleCloseModal = () => {
-    setSelectedImage(null);
   };
 
   const handleBackClick = () => {
@@ -93,68 +198,140 @@ const EditJournal = () => {
   });
 
   return (
-    <div className="bg-[#eef0ee] min-h-screen flex flex-col justify-between">
-      <nav className="bg-white py-4 shadow-md">
-        <div className="container mx-auto flex justify-between items-center px-4">
-          <ArrowBackIcon className="cursor-pointer" onClick={handleBackClick} />
-          <h1 className="text-xl font-bold">{currentDate}</h1>
-          <div></div> {/* Placeholder for alignment */}
-        </div>
-      </nav>
-      <div className="relative flex-grow flex items-center justify-center p-4">
-        <div className="relative w-full max-w-2xl"> {/* Adjusted width */}
+    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3] flex flex-col">
+      {/* Header */}
+      <div className="py-8 border-b-2 border-[#CBE7DC] bg-white backdrop-blur-sm">
+        <div className="max-w-3xl mx-auto px-6 flex items-center justify-between">
           <button
-            onClick={handleSave}
-            className="absolute top-[-3rem] right-0 bg-[#64aa86] text-white font-bold py-2 px-10 rounded-full"
+            onClick={handleBackClick}
+            className="p-3 rounded-full hover:bg-white/80 shadow-md hover:shadow-lg transition-all duration-300"
+            aria-label="Back"
           >
-            Save
+            <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
           </button>
-          <div className="bg-white p-6 rounded-lg shadow-md h-[30rem]"> {/* Increased height */}
-            <textarea
-              className="w-full h-full p-4 border-none outline-none resize-none"
-              placeholder="Journal entry..."
-              value={entry}
-              onChange={(e) => setEntry(e.target.value)}
-            />
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center gap-3 text-[#1b5f52] text-3xl font-bold mb-2">
+              <span>Edit Journal Entry</span>
+            </div>
+            <div className="text-[#40916c] font-semibold">{currentDate}</div>
           </div>
-          <input
-            type="file"
-            id="image-upload"
-            multiple
-            accept="image/*"
-            onChange={handleImageUpload}
-            style={{ display: 'none' }}
-          />
-          <label htmlFor="image-upload">
-            <ImageIcon
-              className="absolute bottom-4 right-4 text-[#64aa86] cursor-pointer"
-              style={{ fontSize: 40 }}
-            />
-          </label>
-          <div className="absolute bottom-4 left-4 flex space-x-2">
-            {images.map((image, index) => (
-              <img
-                key={index}
-                src={typeof image === 'string' ? image : URL.createObjectURL(image)}
-                alt={`upload-${index}`}
-                className="w-20 h-20 object-cover rounded-lg cursor-pointer"
-                onClick={() => handleImageClick(image)}
-              />
-            ))}
-          </div>
+          <div className="w-[52px]"></div>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 flex flex-col items-center py-10 px-4">
+        <div className="w-full max-w-3xl space-y-8">
+          {loading ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="animate-pulse bg-white rounded-2xl p-8 border-2 border-[#E6F4EA] shadow-sm"
+            >
+              <div className="h-6 w-3/4 bg-[#E6F4EA] rounded mb-4" />
+              <div className="h-6 w-1/2 bg-[#F7FBF9] rounded" />
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-8"
+            >
+              {/* Challenge Info Card */}
+              <div className="bg-white rounded-2xl p-7 border-2 border-[#D8EFD3] shadow-md flex items-start gap-5">
+                <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-4xl"
+                  style={{ background: "linear-gradient(135deg, #F1F8E8 60%, #95D2B3 100%)" }}>
+                  {challengeObj?.icon}
+                </div>
+                <div>
+                  <h3 className="text-[#1b5f52] font-bold text-xl mb-1">{challengeObj?.title || challengeTitle}</h3>
+                  <p className="text-[#272829] text-base">{challengeObj?.description}</p>
+                </div>
+              </div>
+
+              {/* Suggestion Bubbles */}
+              {challengeObj && challengeObj.suggestions && (
+                <div>
+                  <div className="mb-2 text-[#1b5f52] font-semibold">Suggestions</div>
+                  <div className="flex flex-wrap gap-2">
+                    {challengeObj.suggestions.map((suggestion, idx) => (
+                      <button
+                        type="button"
+                        key={idx}
+                        className="px-4 py-2 rounded-full bg-gradient-to-r from-[#F1F8E8] to-[#EAF7F3] border border-[#D8EFD3] text-[#3e8e7e] font-medium text-sm hover:bg-[#EAF7F3] transition"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        {suggestion}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Journal Content */}
+              <div>
+                <label className="block font-semibold mb-2 text-[#1b5f52]">
+                  Journal Content
+                </label>
+                <textarea
+                  className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-base bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none min-h-[120px]"
+                  value={content}
+                  onChange={(e) => setContent(e.target.value)}
+                  placeholder="Write your thoughts here..."
+                />
+                <div className="mt-2 flex items-start gap-2 text-sm text-[#6b7280]">
+                  <InfoOutlinedIcon style={{ fontSize: 18, color: "#6b7280" }} />
+                  <span>
+                    You can use the suggestions above or write anything that comes to mind.
+                  </span>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-[#ffeded] border border-[#ff5252]/30 text-[#ff5252] rounded-xl px-6 py-3 text-center font-semibold">
+                  {error}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+                <button
+                  onClick={handleBackClick}
+                  className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
+                  type="button"
+                  disabled={saving}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
+                    saving
+                      ? 'bg-[#94A3B8] cursor-not-allowed'
+                      : 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg'
+                  }`}
+                  type="button"
+                >
+                  {saving ? (
+                    <>
+                      <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                      <span>Saving...</span>
+                    </>
+                  ) : (
+                    <>
+                      <SaveIcon style={{ fontSize: 20 }} />
+                      <span>Save Changes</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
       <BottomNav value="journal" setValue={() => {}} />
-      <Modal open={!!selectedImage} onClose={handleCloseModal}>
-        <Box className="flex items-center justify-center h-screen relative">
-          <img src={selectedImage} alt="Selected" className="max-w-full max-h-full" />
-          <CloseIcon
-            className="absolute top-4 right-4 text-white cursor-pointer"
-            style={{ fontSize: 40 }}
-            onClick={handleCloseModal}
-          />
-        </Box>
-      </Modal>
     </div>
   );
 };
