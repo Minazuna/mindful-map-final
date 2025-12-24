@@ -1,7 +1,5 @@
 const User = require('../models/User');
-const Prompt = require('../models/Prompt');
 const MoodLog = require('../models/MoodLog');
-const Forum = require('../models/Forum'); 
 const CorrelationValue = require('../models/CorrelationValue'); 
 const Journal = require('../models/JournalEntry');
 const PredictedMood = require('../models/PredictedMood');
@@ -207,112 +205,6 @@ exports.getUserMoodLogs = async (req, res) => {
   }
 };
 
-exports.getAllPrompts = async (req, res) => {
-  try {
-    const prompts = await Prompt.find().populate("createdBy", "name email");
-    res.json(prompts);
-  } catch (error) {
-    res.status(500).json({ message: "Error fetching prompts", error });
-  }
-};
-
-exports.addPrompt = async (req, res) => {
-  try {
-    const { question } = req.body;
-    
-    if (!question) {
-      return res.status(400).json({ message: "Question is required" });
-    }
-    if (!req.user || !req.user.id) {
-      return res.status(401).json({ message: "Unauthorized: No user found" });
-    }
-
-    const newPrompt = await Prompt.create({ 
-      question, 
-      createdBy: req.user.id 
-    });
-
-    res.status(201).json(newPrompt);
-  } catch (error) {
-    console.error("Error adding prompt:", error);if (error.code === 11000) {
-
-      return res.status(400).json({
-        message: "This prompt already exists!",
-        code: 11000,
-      });
-    }
-
-    res.status(500).json({ message: "Error adding prompt", error: error.message });
-  }
-};
-
-exports.deletePrompt = async (req, res) => {
-  try {
-    const { id } = req.params;
-    await Prompt.findByIdAndDelete(id);
-    res.status(200).json({ message: "Prompt deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error deleting prompt", error });
-  }
-};
-
-exports.getDailyForumEngagement = async (req, res) => {
-  try {
-    const dailyEngagement = await Forum.aggregate([
-      { $unwind: "$discussions" },
-      {
-        $group: {
-          _id: { $dateToString: { format: "%Y-%m-%d", date: "$discussions.createdAt" } },
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-    ]);
-
-    const dailyEngagementData = dailyEngagement.map(data => ({
-      date: data._id,
-      count: data.count,
-    }));
-
-    res.status(200).json(dailyEngagementData);
-  } catch (error) {
-    console.error('Error fetching daily forum engagement:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-// New function to get weekly forum engagement
-exports.getWeeklyForumEngagement = async (req, res) => {
-  try {
-    const weeklyEngagement = await Forum.aggregate([
-      { $unwind: "$discussions" },
-      {
-        $group: {
-          _id: { $isoWeek: "$discussions.createdAt" },
-          count: { $sum: 1 },
-        },
-      },
-      {
-        $sort: { _id: 1 },
-      },
-    ]);
-
-    const weeklyEngagementData = weeklyEngagement.map(data => ({
-      week: data._id,
-      count: data.count,
-    }));
-
-    res.status(200).json(weeklyEngagementData);
-  } catch (error) {
-    console.error('Error fetching weekly forum engagement:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-
-
 exports.getDailyMoodLogs = async (req, res) => {
   try {
     const dailyMoodLogs = await MoodLog.aggregate([
@@ -408,43 +300,6 @@ exports.getWeeklyCorrelationValues = async (req, res) => {
     res.status(200).json(formattedData);
   } catch (error) {
     console.error('Error fetching weekly correlation values:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-exports.getWeeklyForumPosts = async (req, res) => {
-  try {
-    const token = req.headers.authorization.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'No token found' });
-    }
-
-    const weeklyForumPosts = await Forum.aggregate([
-      {
-        $group: {
-          _id: {
-            week: { $week: "$createdAt" },
-            year: { $year: "$createdAt" }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { "_id.year": 1, "_id.week": 1 }
-      }
-    ]);
-
-    const formattedData = weeklyForumPosts.map(item => {
-      const startOfWeek = moment().year(item._id.year).week(item._id.week).startOf('week').format('MM-DD-YY');
-      const endOfWeek = moment().year(item._id.year).week(item._id.week).endOf('week').format('MM-DD-YY');
-      return {
-        week: `${startOfWeek} to ${endOfWeek}`,
-        count: item.count
-      };
-    });
-    res.status(200).json(formattedData);
-  } catch (error) {
-    console.error('Error fetching weekly forum posts:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };

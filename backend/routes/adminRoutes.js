@@ -13,17 +13,9 @@ router.get('/inactive-users', authMiddleware, adminMiddleware, adminController.g
 // Dashboard Analytics Routes
 router.get('/daily-mood-logs', authMiddleware, adminMiddleware, adminController.getDailyMoodLogs);
 router.get('/daily-journal-logs', authMiddleware, adminMiddleware, adminController.getDailyJournalLogs);
-router.get('/daily-forum-engagement', adminController.getDailyForumEngagement);
-router.get('/weekly-forum-engagement', adminController.getWeeklyForumEngagement);
 router.get('/correlation-values', authMiddleware, adminMiddleware, adminController.getCorrelationValues);
 router.get('/weekly-correlation-values', authMiddleware, adminMiddleware, adminController.getWeeklyCorrelationValues);
-router.get('/weekly-forum-posts', authMiddleware, adminMiddleware, adminController.getWeeklyForumPosts);
 router.get('/active-vs-inactive-users', authMiddleware, adminMiddleware, adminController.getActiveVsInactiveUsers);
-
-// Prompt Management Routes
-router.get('/prompts', authMiddleware, adminMiddleware, adminController.getAllPrompts);
-router.post('/add-prompt', authMiddleware, adminMiddleware, adminController.addPrompt);
-router.delete('/:id', authMiddleware, adminMiddleware, adminController.deletePrompt);
 
 // Teacher Management Routes
 router.get('/teachers', authMiddleware, adminMiddleware, adminController.getAllTeachers);

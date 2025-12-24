@@ -77,7 +77,7 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
   };
 
   const handleSubmit = async () => {
-    if (selectedEmotion && intensity > 0 && reason.trim()) {
+    if (selectedEmotion && intensity > 0) {
       // Validate reason
       const validation = validateReason(reason);
       if (!validation.isValid) {
@@ -86,7 +86,7 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
       }
 
       // Count words in reason
-      const wordCount = reason.trim().split(/\s+/).length;
+      const wordCount = reason.trim() ? reason.trim().split(/\s+/).length : 0;
       if (wordCount > 100) {
         setReasonError('Please limit your response to 100 words or less.');
         return;
@@ -99,7 +99,7 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
           afterValence: 'positive',
           afterEmotion: selectedEmotion,
           afterIntensity: intensity,
-          afterReason: reason.trim()
+          afterReason: reason.trim() || ''
         };
 
         console.log('Final category form data:', finalFormData);
@@ -331,18 +331,18 @@ const AfterPositive = ({ categoryFormData, setCategoryFormData }) => {
         {/* Continue Button */}
         <button
           onClick={handleSubmit}
-          disabled={!selectedEmotion || intensity === 0 || !reason.trim()}
+          disabled={!selectedEmotion || intensity === 0}
           className={`w-full max-w-md py-4 rounded-2xl text-xl font-bold transition-all duration-300 transform ${
-            selectedEmotion && intensity > 0 && reason.trim()
+            selectedEmotion && intensity > 0
               ? 'hover:scale-105 hover:shadow-lg' 
               : 'opacity-50 cursor-not-allowed'
           }`}
           style={{ 
-            backgroundColor: selectedEmotion && intensity > 0 && reason.trim() ? '#55AD9B' : '#D8EFD3',
-            color: selectedEmotion && intensity > 0 && reason.trim() ? '#F1F8E8' : '#272829'
+            backgroundColor: selectedEmotion && intensity > 0 ? '#55AD9B' : '#D8EFD3',
+            color: selectedEmotion && intensity > 0 ? '#F1F8E8' : '#272829'
           }}
         >
-          {selectedEmotion && intensity > 0 && reason.trim() ? 'Continue' : 'Complete all fields to continue'}
+          {selectedEmotion && intensity > 0 ? 'Continue' : 'Complete all fields to continue'}
         </button>
 
         {/* Helper Text */}

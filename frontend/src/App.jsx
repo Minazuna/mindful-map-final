@@ -21,7 +21,6 @@ import ListTask from './components/User/Activities/ListTask';
 import CalmingMusic from './components/User/Activities/CalmingMusic';
 import Activities from './components/User/Activities';
 import GuidedMeditation from './components/User/Activities/GuidedMeditation';
-import ForumDiscussion from './components/User/Forum';
 import Profile from './components/User/Profile';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -36,7 +35,6 @@ import SleepAnalysis from './components/User/Statistics/StatisticsComponents/Sle
 
 import Dashboard from './components/Admin/Dashboard';
 import Users from './components/Admin/Users';
-import PromptsTable from './components/Admin/PromptsTable';
 import StatisticsTable from './components/Admin/StatisticsTable';
 import Teachers from './components/Admin/Teachers';
 import AdminStudentLogs from './components/Admin/StudentLogs';
@@ -626,14 +624,6 @@ const App = () => {
           }
         />
         <Route
-          path="/forum"
-          element={
-            <UserPrivateRoute>
-              <ForumDiscussion />
-            </UserPrivateRoute>
-          }
-        />
-        <Route
           path="/profile"
           element={
             <UserPrivateRoute>
@@ -656,14 +646,6 @@ const App = () => {
           element={
             <AdminPrivateRoute>
               <Users />
-            </AdminPrivateRoute>
-          }
-        />
-        <Route
-          path="/admin/prompts"
-          element={
-            <AdminPrivateRoute>
-              <PromptsTable />
             </AdminPrivateRoute>
           }
         />

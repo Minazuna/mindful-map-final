@@ -57,7 +57,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       details: [
         '1 = Low intensity (barely felt it)',
         '5 = High intensity (very strong feeling)',
-        'Reason: Briefly explain what caused this feeling (up to 100 words)',
+        'Reason (Optional): Briefly explain what caused this feeling (up to 100 words)',
         'Example: "I was nervous because it was my first exam"'
       ]
     },
@@ -85,7 +85,7 @@ const TutorialModal = ({ isOpen, onClose }) => {
       details: [
         '1 = Low intensity',
         '5 = High intensity',
-        'Reason: Explain how or why the activity affected your emotions',
+        'Reason (Optional): Explain how or why the activity affected your emotions',
         'Example: "I feel relieved because the exam is over!"'
       ]
     },

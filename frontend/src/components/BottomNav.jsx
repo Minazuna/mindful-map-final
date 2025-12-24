@@ -4,7 +4,6 @@ import BottomNavigation from '@mui/material/BottomNavigation';
 import BottomNavigationAction from '@mui/material/BottomNavigationAction';
 import ListAltIcon from '@mui/icons-material/ListAlt';
 import BarChartIcon from '@mui/icons-material/BarChart';
-import ForumIcon from '@mui/icons-material/Forum';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import BookIcon from '@mui/icons-material/Book';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
@@ -33,9 +32,6 @@ const BottomNav = ({ value, setValue }) => {
         break;
       case 'activities':
         navigate('/activities');
-        break;
-      case 'forum':
-        navigate('/forum');
         break;
       case 'calendar':
         navigate('/calendar-log');
@@ -111,12 +107,6 @@ const BottomNav = ({ value, setValue }) => {
           value="activities"
           icon={<RecommendIcon />}
           style={{ color: value === 'activities' ? '#6fba94' : '#b1b1b1' }}
-        />
-        <BottomNavigationAction
-          label="Forum"
-          value="forum"
-          icon={<ForumIcon />}
-          style={{ color: value === 'forum' ? '#6fba94' : '#b1b1b1' }}
         />
         <BottomNavigationAction
           label="Calendar"
