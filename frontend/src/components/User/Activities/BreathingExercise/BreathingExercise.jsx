@@ -523,9 +523,9 @@ const BreathingExercise = () => {
               transition={{ duration: 0.7, ease: "easeInOut" }}
             >
             </motion.div>
-            <div className="bg-white bg-opacity-95 px-8 py-6 rounded-2xl shadow-xl">
+            <div className="text-center">
               <motion.p 
-                className="text-6xl font-bold text-center"
+                className="text-6xl font-bold"
                 style={{ color: techniqueColor }}
                 key={count}
                 initial={{ scale: 1.2 }}
@@ -534,7 +534,7 @@ const BreathingExercise = () => {
               >
                 {count}
               </motion.p>
-              <p className="text-lg text-center mt-2" style={{ color: techniqueColor }}>
+              <p className="text-lg mt-2" style={{ color: techniqueColor }}>
                 {phase}
               </p>
             </div>
@@ -593,9 +593,9 @@ const BreathingExercise = () => {
               >
                 Exhale
               </motion.p>
-              <div className="bg-white bg-opacity-95 px-8 py-6 rounded-2xl shadow-xl">
+              <div className="text-center">
                 <motion.p 
-                  className="text-6xl font-bold text-center"
+                  className="text-6xl font-bold"
                   style={{ color: techniqueColor }}
                   key={count}
                   initial={{ scale: 1.2 }}
@@ -604,7 +604,7 @@ const BreathingExercise = () => {
                 >
                   {count}
                 </motion.p>
-                <p className="text-lg text-center mt-2" style={{ color: techniqueColor }}>
+                <p className="text-lg mt-2" style={{ color: techniqueColor }}>
                   {phase}
                 </p>
               </div>
@@ -653,9 +653,9 @@ const BreathingExercise = () => {
             >
               Exhale
             </motion.p>
-            <div className="bg-white bg-opacity-95 px-8 py-6 rounded-2xl shadow-xl">
+            <div className="text-center">
               <motion.p 
-                className="text-6xl font-bold text-center"
+                className="text-6xl font-bold"
                 style={{ color: techniqueColor }}
                 key={count}
                 initial={{ scale: 1.2 }}
@@ -664,7 +664,7 @@ const BreathingExercise = () => {
               >
                 {count}
               </motion.p>
-              <p className="text-lg text-center mt-2" style={{ color: techniqueColor }}>
+              <p className="text-lg mt-2" style={{ color: techniqueColor }}>
                 {phase}
               </p>
             </div>
