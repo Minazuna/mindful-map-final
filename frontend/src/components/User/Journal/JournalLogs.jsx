@@ -246,19 +246,19 @@ const JournalLogs = () => {
         {entry.challenges && entry.challenges.map((challenge) => (
           <span
             key={challenge}
-            className="bg-[#d8f3dc] text-[#40916c] px-3 py-1 rounded-full text-xs font-semibold"
+            className="bg-[#d8f3dc] text-[#40916c] px-3 py-1 rounded-full text-md font-semibold"
           >
             {challenge}
           </span>
         ))}
       </div>
-      <div className="text-gray-700 whitespace-pre-line mb-2 line-clamp-3">
+      <div className="text-gray-700 text-md whitespace-pre-line mb-2 line-clamp-3">
         {entry.content.length > 100
           ? entry.content.slice(0, 100) + '...'
           : entry.content}
       </div>
       <div className="flex items-center justify-between mt-2">
-        <div className="flex items-center text-xs text-gray-400">
+        <div className="flex items-center text-sm text-gray-400">
           <CalendarTodayIcon fontSize="small" className="mr-1" />
           {new Date(entry.date).toLocaleString()}
         </div>
@@ -313,7 +313,7 @@ const JournalLogs = () => {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#F7FBF9] to-[#EAF7F3] flex flex-col">
+    <div className="min-h-screen bg-[#55AD9B] flex flex-col">
       {/* Fixed navbar */}
       <nav className="bg-white py-4 shadow-md sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 flex items-center">
@@ -334,7 +334,7 @@ const JournalLogs = () => {
               open={Boolean(challengesAnchorEl)}
               onClose={() => setChallengesAnchorEl(null)}
               anchorOrigin={{
-                vertical: 'bottom',
+                vertical: 'top',
                 horizontal: 'left',
               }}
               transformOrigin={{
@@ -498,7 +498,7 @@ const JournalLogs = () => {
           style: {
             borderRadius: 20,
             padding: 0,
-            background: 'linear-gradient(135deg, #F1F8E8 60%, #EAF7F3 100%)',
+            background: '#FFFFFF',
             border: '2px solid #E6F4EA'
           }
         }}

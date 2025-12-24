@@ -9,6 +9,9 @@ import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HighlightAltIcon from '@mui/icons-material/HighlightAlt';
 import BugReportIcon from '@mui/icons-material/BugReport';
 import CreateIcon from '@mui/icons-material/Create';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import SaveIcon from '@mui/icons-material/Save';
+import { motion } from "framer-motion";
 
 const CHALLENGES = [
   {
@@ -165,36 +168,74 @@ export default function CreateJournalEntry() {
     }
   };
 
+  const handleBackClick = () => {
+    navigate(-1);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        {/* Challenge Info Card */}
-        {selectedChallengeObj && (
-          <div className="bg-white rounded-2xl p-7 border-2 border-[#D8EFD3] shadow-md mb-8 flex items-start gap-5">
-            <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-4xl"
-              style={{ background: "linear-gradient(135deg, #F1F8E8 60%, #95D2B3 100%)" }}>
-              {selectedChallengeObj.icon}
-            </div>
-            <div>
-              <h3 className="text-[#1b5f52] font-bold text-xl mb-1">{selectedChallengeObj.title}</h3>
-              <p className="text-[#272829] text-base">{selectedChallengeObj.description}</p>
+      {/* Header */}
+      <div className="py-8 border-b-2 border-[#CBE7DC] bg-white backdrop-blur-sm">
+        <div className="max-w-2xl mx-auto px-6 flex items-center justify-between">
+          <button
+            onClick={handleBackClick}
+            className="p-3 rounded-full hover:bg-white/80 shadow-md hover:shadow-lg transition-all duration-300"
+            aria-label="Back"
+          >
+            <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
+          </button>
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center gap-3 text-[#1b5f52] text-3xl font-bold mb-2">
+              <span>New Journal Entry</span>
             </div>
           </div>
-        )}
+          <div className="w-[52px]"></div>
+        </div>
+      </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-7">
+      {/* Content */}
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-7"
+        >
+          {/* Info Banner */}
+          <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] rounded-2xl p-5 border-2 border-[#fbbf24]/30 shadow-sm">
+            <div className="flex items-start gap-3">
+              <InfoOutlinedIcon style={{ color: '#92400e', fontSize: 24 }} />
+              <div>
+                <p className="text-[#92400e] font-semibold text-base mb-1">Journaling Challenge</p>
+                <p className="text-[#78350f] text-sm leading-relaxed">
+                  Complete your daily challenge by reflecting and writing your thoughts below.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Challenge Info Card */}
+          {selectedChallengeObj && (
+            <div className="bg-white rounded-2xl p-7 border-2 border-[#D8EFD3] shadow-md flex items-start gap-5">
+              <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-4xl">
+                {selectedChallengeObj.icon}
+              </div>
+              <div>
+                <h3 className="text-[#1b5f52] font-bold text-xl mb-1">{selectedChallengeObj.title}</h3>
+                <p className="text-[#272829] text-base">{selectedChallengeObj.description}</p>
+              </div>
+            </div>
+          )}
 
           {/* Suggestion Bubbles */}
           {selectedChallengeObj && selectedChallengeObj.suggestions && (
             <div>
-              <div className="mb-2 text-[#1b5f52] font-semibold">Suggestions</div>
+              <div className="mb-2 text-[#1b5f52] text-md font-semibold">Suggestions</div>
               <div className="flex flex-wrap gap-2">
                 {selectedChallengeObj.suggestions.map((suggestion, idx) => (
                   <button
                     type="button"
                     key={idx}
-                    className="px-4 py-2 rounded-full bg-gradient-to-r from-[#F1F8E8] to-[#EAF7F3] border border-[#D8EFD3] text-[#3e8e7e] font-medium text-sm hover:bg-[#EAF7F3] transition"
+                    className="px-4 py-2 rounded-full bg-gradient-to-r from-[#F1F8E8] to-[#EAF7F3] border border-[#D8EFD3] text-[#3e8e7e] text-md hover:bg-[#EAF7F3] transition"
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
                     {suggestion}
@@ -205,56 +246,71 @@ export default function CreateJournalEntry() {
           )}
 
           {/* Journal Content */}
-          <div>
-            <label className="block font-semibold mb-2 text-[#1b5f52]">
-              Journal Content
-            </label>
-            <textarea
-              className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-base bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none min-h-[120px]"
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Write your thoughts here..."
-            />
-            <div className="mt-2 flex items-start gap-2 text-sm text-[#6b7280]">
-              <InfoOutlinedIcon style={{ fontSize: 18, color: "#6b7280" }} />
-              <span>
-                You can use the suggestions above or write anything that comes to mind.
-              </span>
+          <form onSubmit={handleSubmit} className="space-y-7">
+            <div>
+              <label className="block font-semibold mb-2 text-[#1b5f52] text-md">
+                Journal Content
+              </label>
+              <textarea
+                className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-md bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none min-h-[120px]"
+                value={content}
+                onChange={(e) => setContent(e.target.value)}
+                placeholder="Write your thoughts here..."
+              />
+              <div className="mt-2 flex items-start gap-2 text-sm text-[#6b7280]">
+                <InfoOutlinedIcon style={{ fontSize: 18, color: "#6b7280" }} />
+                <span>
+                  You can use the suggestions above or write anything that comes to mind.
+                </span>
+              </div>
             </div>
-          </div>
 
-          {/* Error */}
-          {error && (
-            <div className="text-red-500 text-sm font-medium">{error}</div>
-          )}
-
-          {/* Submit Button */}
-          <button
-            type="submit"
-            className={`w-full px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
-              loading
-                ? "bg-[#94A3B8] cursor-not-allowed"
-                : "bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg"
-            }`}
-            disabled={loading}
-          >
-            {loading ? (
-              <>
-                <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                <span>Saving...</span>
-              </>
-            ) : (
-              <span>Save Entry</span>
+            {/* Error */}
+            {error && (
+              <div className="text-red-500 text-sm font-medium">{error}</div>
             )}
-          </button>
-        </form>
 
-        {/* Bottom Note */}
-        <div className="mt-8 text-center">
-          <p className="text-[#6b7280] text-md leading-relaxed">
-            Journaling regularly helps you reflect, grow, and build a mindful habit.
-          </p>
-        </div>
+            {/* Submit Button */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+              <button
+                type="button"
+                onClick={handleBackClick}
+                className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
+                  loading
+                    ? "bg-[#94A3B8] cursor-not-allowed"
+                    : "bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg"
+                }`}
+                disabled={loading}
+              >
+                {loading ? (
+                  <>
+                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Saving...</span>
+                  </>
+                ) : (
+                  <>
+                    <SaveIcon style={{ fontSize: 20 }} />
+                    <span>Save Entry</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+
+          {/* Bottom Note */}
+          <div className="text-center">
+            <p className="text-[#6b7280] text-md leading-relaxed">
+              Journaling regularly helps you reflect, grow, and build a mindful habit.
+            </p>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

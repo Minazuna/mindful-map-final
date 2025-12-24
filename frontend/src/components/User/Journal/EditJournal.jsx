@@ -198,10 +198,10 @@ const EditJournal = () => {
   });
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3] flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
       {/* Header */}
       <div className="py-8 border-b-2 border-[#CBE7DC] bg-white backdrop-blur-sm">
-        <div className="max-w-3xl mx-auto px-6 flex items-center justify-between">
+        <div className="max-w-2xl mx-auto px-6 flex items-center justify-between">
           <button
             onClick={handleBackClick}
             className="p-3 rounded-full hover:bg-white/80 shadow-md hover:shadow-lg transition-all duration-300"
@@ -211,7 +211,6 @@ const EditJournal = () => {
           </button>
           <div className="flex-1 text-center">
             <div className="flex items-center justify-center gap-3 text-[#1b5f52] text-3xl font-bold mb-2">
-              <span>Edit Journal Entry</span>
             </div>
             <div className="text-[#40916c] font-semibold">{currentDate}</div>
           </div>
@@ -220,116 +219,117 @@ const EditJournal = () => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 flex flex-col items-center py-10 px-4">
-        <div className="w-full max-w-3xl space-y-8">
-          {loading ? (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="animate-pulse bg-white rounded-2xl p-8 border-2 border-[#E6F4EA] shadow-sm"
-            >
-              <div className="h-6 w-3/4 bg-[#E6F4EA] rounded mb-4" />
-              <div className="h-6 w-1/2 bg-[#F7FBF9] rounded" />
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-8"
-            >
-              {/* Challenge Info Card */}
-              <div className="bg-white rounded-2xl p-7 border-2 border-[#D8EFD3] shadow-md flex items-start gap-5">
-                <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-4xl"
-                  style={{ background: "linear-gradient(135deg, #F1F8E8 60%, #95D2B3 100%)" }}>
-                  {challengeObj?.icon}
-                </div>
-                <div>
-                  <h3 className="text-[#1b5f52] font-bold text-xl mb-1">{challengeObj?.title || challengeTitle}</h3>
-                  <p className="text-[#272829] text-base">{challengeObj?.description}</p>
-                </div>
-              </div>
-
-              {/* Suggestion Bubbles */}
-              {challengeObj && challengeObj.suggestions && (
-                <div>
-                  <div className="mb-2 text-[#1b5f52] font-semibold">Suggestions</div>
-                  <div className="flex flex-wrap gap-2">
-                    {challengeObj.suggestions.map((suggestion, idx) => (
-                      <button
-                        type="button"
-                        key={idx}
-                        className="px-4 py-2 rounded-full bg-gradient-to-r from-[#F1F8E8] to-[#EAF7F3] border border-[#D8EFD3] text-[#3e8e7e] font-medium text-sm hover:bg-[#EAF7F3] transition"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                      >
-                        {suggestion}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Journal Content */}
+      <div className="max-w-2xl mx-auto px-4 py-12">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="space-y-7"
+        >
+          {/* Info Banner */}
+          <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] rounded-2xl p-5 border-2 border-[#fbbf24]/30 shadow-sm">
+            <div className="flex items-start gap-3">
+              <InfoOutlinedIcon style={{ color: '#92400e', fontSize: 24 }} />
               <div>
-                <label className="block font-semibold mb-2 text-[#1b5f52]">
-                  Journal Content
-                </label>
-                <textarea
-                  className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-base bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none min-h-[120px]"
-                  value={content}
-                  onChange={(e) => setContent(e.target.value)}
-                  placeholder="Write your thoughts here..."
-                />
-                <div className="mt-2 flex items-start gap-2 text-sm text-[#6b7280]">
-                  <InfoOutlinedIcon style={{ fontSize: 18, color: "#6b7280" }} />
-                  <span>
-                    You can use the suggestions above or write anything that comes to mind.
-                  </span>
-                </div>
+                <p className="text-[#92400e] font-semibold text-base mb-1">Edit Your Journal Entry</p>
+                <p className="text-[#78350f] text-sm leading-relaxed">
+                  Update your journal content below. You cannot change the challenge type.
+                </p>
               </div>
+            </div>
+          </div>
 
-              {/* Error Message */}
-              {error && (
-                <div className="bg-[#ffeded] border border-[#ff5252]/30 text-[#ff5252] rounded-xl px-6 py-3 text-center font-semibold">
-                  {error}
-                </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
-                <button
-                  onClick={handleBackClick}
-                  className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
-                  type="button"
-                  disabled={saving}
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleSave}
-                  disabled={saving}
-                  className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
-                    saving
-                      ? 'bg-[#94A3B8] cursor-not-allowed'
-                      : 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg'
-                  }`}
-                  type="button"
-                >
-                  {saving ? (
-                    <>
-                      <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <SaveIcon style={{ fontSize: 20 }} />
-                      <span>Save Changes</span>
-                    </>
-                  )}
-                </button>
+          {/* Challenge Info Card */}
+          {challengeObj && (
+            <div className="bg-white rounded-2xl p-7 border-2 border-[#D8EFD3] shadow-md flex items-start gap-5">
+              <div className="h-14 w-14 rounded-2xl flex items-center justify-center text-4xl">
+                {challengeObj.icon}
               </div>
-            </motion.div>
+              <div>
+                <h3 className="text-[#1b5f52] font-bold text-xl mb-1">{challengeObj.title}</h3>
+                <p className="text-[#272829] text-base">{challengeObj.description}</p>
+              </div>
+            </div>
           )}
-        </div>
+
+          {/* Suggestion Bubbles */}
+          {challengeObj && challengeObj.suggestions && (
+            <div>
+              <div className="mb-2 text-[#1b5f52] font-semibold text-md">Suggestions</div>
+              <div className="flex flex-wrap gap-2">
+                {challengeObj.suggestions.map((suggestion, idx) => (
+                  <button
+                    type="button"
+                    key={idx}
+                    className="px-4 py-2 rounded-full bg-gradient-to-r from-[#F1F8E8] to-[#EAF7F3] border border-[#D8EFD3] text-[#3e8e7e] text-md hover:bg-[#EAF7F3] transition"
+                    onClick={() => handleSuggestionClick(suggestion)}
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Journal Content */}
+          <div>
+            <label className="block font-semibold mb-2 text-[#1b5f52] text-md">
+              Journal Content
+            </label>
+            <textarea
+              className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-md bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none min-h-[120px]"
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="Write your thoughts here..."
+            />
+            <div className="mt-2 flex items-start gap-2 text-sm text-[#6b7280]">
+              <InfoOutlinedIcon style={{ fontSize: 18, color: "#6b7280" }} />
+              <span>
+                You can use the suggestions above or write anything that comes to mind.
+              </span>
+            </div>
+          </div>
+
+          {/* Error Message */}
+          {error && (
+            <div className="bg-[#ffeded] border border-[#ff5252]/30 text-[#ff5252] rounded-xl px-6 py-3 text-center font-semibold">
+              {error}
+            </div>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+            <button
+              onClick={handleBackClick}
+              className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
+              type="button"
+              disabled={saving}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
+                saving
+                  ? 'bg-[#94A3B8] cursor-not-allowed'
+                  : 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg'
+              }`}
+              type="button"
+            >
+              {saving ? (
+                <>
+                  <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  <span>Saving...</span>
+                </>
+              ) : (
+                <>
+                  <SaveIcon style={{ fontSize: 20 }} />
+                  <span>Save Changes</span>
+                </>
+              )}
+            </button>
+          </div>
+        </motion.div>
       </div>
       <BottomNav value="journal" setValue={() => {}} />
     </div>
