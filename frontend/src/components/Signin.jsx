@@ -106,7 +106,7 @@ const Signin = () => {
         } else if (userResponse.data.role === 'teacher') {
           navigate('/teacher/dashboard');
         } else if (userResponse.data.role === 'user') {
-          navigate('/choose-category');
+          navigate('/daily-quote');
         } else {
           toast.error("Unknown user role.");
         }

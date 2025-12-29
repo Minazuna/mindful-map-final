@@ -79,6 +79,8 @@ import RecommendationRating from './components/User/Statistics/Daily/Recommendat
 import ViewRecommendation from './components/User/Statistics/Daily/ViewRecommendation';
 import EditRecommendationRating from './components/User/Statistics/Daily/EditRecommendation';
 
+import DailyQuote from './components/User/DailyQuote';
+
 import JournalLogs from './components/User/Journal/JournalLogs';
 import JournalChallenge from './components/User/Journal/JournalChallenge';
 import CreateJournalEntry from './components/User/Journal/CreateJournalEntry';
@@ -180,7 +182,7 @@ const TeacherPrivateRoute = ({ children }) => {
   }, [location.pathname, prevLocation]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <div></div>;
   }
 
   if (!token) {
@@ -231,6 +233,14 @@ const App = () => {
         <Route path="/mental-health-resources" element={<MentalHealthResources />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
+        <Route
+          path="/daily-quote"
+          element={
+            <UserPrivateRoute>
+              <DailyQuote />
+            </UserPrivateRoute>
+          }
+        />
         <Route
           path="/choose-category"
           element={

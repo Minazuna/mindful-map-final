@@ -1,90 +1,135 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { emphasize, styled } from '@mui/material/styles';
 import {
-  Breadcrumbs,
-  Chip,
   Modal,
-  Box,
-  Typography,
   IconButton,
-  Slider,
   Button,
   Snackbar,
   Alert,
-  CircularProgress,
-  Collapse,
-  Fade,
-  Switch,
-  FormControlLabel,
-  Tooltip,
-  Divider // Added Divider import
+  Fade
 } from '@mui/material';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import PauseIcon from '@mui/icons-material/Pause';
 import ReplayIcon from '@mui/icons-material/Replay';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import SettingsIcon from '@mui/icons-material/Settings';
-import NotificationsIcon from '@mui/icons-material/Notifications';
-import CloseIcon from '@mui/icons-material/Close';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import LockIcon from '@mui/icons-material/Lock';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-const StyledBreadcrumb = styled(Chip)(({ theme, active }) => {
-  const backgroundColor = theme.palette.mode === 'light'
-    ? theme.palette.grey[100]
-    : theme.palette.grey[800];
-    
-  return {
-    backgroundColor: active ? '#4e8067' : backgroundColor,
-    height: theme.spacing(3.5),
-    color: active ? 'white' : theme.palette.text.primary,
-    fontWeight: active ? 'bold' : 'normal',
-    fontSize: '0.95rem',
-    '&:hover, &:focus': {
-      backgroundColor: active ? '#4e8067' : emphasize(backgroundColor, 0.06),
-    },
-    '&:active': {
-      boxShadow: theme.shadows[1],
-      backgroundColor: emphasize(backgroundColor, 0.12),
-    },
-  };
-});
+const plantOptions = [
+  {
+    key: 'firstOption',
+    folder: '/images/pomodoro/firstOption/',
+    preview: 'flower1.3.png',
+    stages: ['flower1.0.png', 'flower1.1.png', 'flower1.2.png', 'flower1.3.png'],
+    unlocked: () => true,
+  },
+  {
+    key: 'secondOption',
+    folder: '/images/pomodoro/secondOption/',
+    preview: 'flower2.2.png',
+    stages: ['flower2.0.png', 'flower2.1.png', 'flower2.2.png'],
+    unlocked: () => true,
+  },
+  {
+    key: 'thirdOption',
+    folder: '/images/pomodoro/thirdOption/',
+    preview: 'flower3.3.png',
+    stages: ['flower3.0.png', 'flower3.1.png', 'flower3.2.png', 'flower3.3.png'],
+    unlocked: (completedPomodoros) => completedPomodoros >= 3,
+  }
+];
 
 const Pomodoro = () => {
+  const navigate = useNavigate();
+
   // Timer states
   const [time, setTime] = useState(1500); // 25 minutes in seconds
   const [initialTime, setInitialTime] = useState(1500);
   const [isActive, setIsActive] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
-  const [currentMode, setCurrentMode] = useState('pomodoro');
-  
+
   // UI states
-  const [showModal, setShowModal] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showAlert, setShowAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertType, setAlertType] = useState('success');
   const [completedPomodoros, setCompletedPomodoros] = useState(0);
   const [playSound, setPlaySound] = useState(true);
-  
-  // Custom timer settings
-  const [customPomodoro, setCustomPomodoro] = useState(25);
-  const [customShortBreak, setCustomShortBreak] = useState(5);
-  const [customLongBreak, setCustomLongBreak] = useState(15);
-  const [autoStartBreaks, setAutoStartBreaks] = useState(false);
-  
+
+  // Plant selection
+  const [showPlantModal, setShowPlantModal] = useState(true);
+  const [selectedPlant, setSelectedPlant] = useState(null);
+
+  // Info modal
+  const [showInfoModal, setShowInfoModal] = useState(false);
+
+  // Leave warning
+  const [showLeaveModal, setShowLeaveModal] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState(null);
+
+  // Timer selection
+  const [customMinutes, setCustomMinutes] = useState(25);
+
   const intervalRef = useRef(null);
   const audioRef = useRef(null);
 
+  // Prevent accidental navigation (browser/tab close)
   useEffect(() => {
-    // Initialize audio
-    audioRef.current = new Audio('/sounds/bell.mp3'); // Make sure to add a sound file to your public folder
-    
+    const handleBeforeUnload = (e) => {
+      if (isActive && !isPaused && time > 0) {
+        e.preventDefault();
+        e.returnValue = '';
+        setShowLeaveModal(true);
+        return '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [isActive, isPaused, time]);
+
+  // Load completedPomodoros from backend/localStorage
+  useEffect(() => {
+    audioRef.current = new Audio('/sounds/bell.mp3');
+    const fetchProgress = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${import.meta.env.VITE_NODE_API}/api/pomodoro/progress`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.data && res.data.progress && res.data.progress.completedSessions) {
+          setCompletedPomodoros(res.data.progress.completedSessions);
+        }
+      } catch (err) {
+        const saved = localStorage.getItem('completedPomodoros');
+        if (saved) setCompletedPomodoros(Number(saved));
+      }
+    };
+    fetchProgress();
     return () => {
       clearInterval(intervalRef.current);
     };
   }, []);
 
+  // Save completedPomodoros to backend/localStorage
+  useEffect(() => {
+    localStorage.setItem('completedPomodoros', completedPomodoros);
+    const saveProgress = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        await axios.post(`${import.meta.env.VITE_NODE_API}/api/pomodoro/progress`, {
+          completedSessions: completedPomodoros
+        }, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+      } catch (err) {
+        // ignore for now
+      }
+    };
+    saveProgress();
+  }, [completedPomodoros]);
+
+  // Timer logic
   useEffect(() => {
     if (isActive && !isPaused) {
       intervalRef.current = setInterval(() => {
@@ -100,50 +145,55 @@ const Pomodoro = () => {
     } else {
       clearInterval(intervalRef.current);
     }
-
     return () => clearInterval(intervalRef.current);
   }, [isActive, isPaused]);
+
+  // Notification permission
+  useEffect(() => {
+    if ("Notification" in window && Notification.permission !== "granted") {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  // Plant stages logic
+  const getPlantStages = () => {
+    if (!selectedPlant) return [];
+    const plant = plantOptions.find(p => p.key === selectedPlant);
+    return plant ? plant.stages.map(img => plant.folder + img) : [];
+  };
+  const plantStages = getPlantStages();
+  const stageCount = plantStages.length;
+  const elapsed = initialTime - time;
+  const stage = Math.min(
+    Math.floor((elapsed / initialTime) * stageCount),
+    stageCount - 1
+  );
+
+  const handlePlantSelect = (key) => {
+    setSelectedPlant(key);
+    setShowPlantModal(false);
+    setInitialTime(customMinutes * 60);
+    setTime(customMinutes * 60);
+    setIsActive(false);
+    setIsPaused(false);
+  };
 
   const handleTimerComplete = () => {
     if (playSound) {
       audioRef.current.play().catch(e => console.log("Audio play failed:", e));
     }
-    
-    // Handle completion based on current mode
-    if (currentMode === 'pomodoro') {
-      setCompletedPomodoros(prev => prev + 1);
-      setAlertMessage('Good job! Take a break now.');
-      setAlertType('success');
-      setShowAlert(true);
-      
-      // Auto start break after completing a pomodoro
-      if (autoStartBreaks) {
-        setTimeout(() => {
-          const nextMode = completedPomodoros % 4 === 3 ? 'longBreak' : 'shortBreak';
-          handleModeChange(nextMode);
-        }, 1500);
-      }
-    } else {
-      setAlertMessage(currentMode === 'shortBreak' 
-        ? 'Short break finished! Ready to focus again?' 
-        : 'Long break finished! Ready to focus again?');
-      setAlertType('info');
-      setShowAlert(true);
-      
-      // Auto start next pomodoro after break
-      if (autoStartBreaks) {
-        setTimeout(() => {
-          handleModeChange('pomodoro');
-        }, 1500);
-      }
+    if ("Notification" in window && Notification.permission === "granted") {
+      new Notification("Pomodoro Complete! Take a break.");
     }
-    
+    setCompletedPomodoros(completedPomodoros + 1);
+    setAlertMessage('Good job! Take a break now.');
+    setAlertType('success');
+    setShowAlert(true);
     setIsActive(false);
   };
 
   const toggleStartPause = () => {
     if (time === 0) return;
-    
     if (!isActive) {
       setIsActive(true);
       setIsPaused(false);
@@ -159,38 +209,13 @@ const Pomodoro = () => {
     setIsPaused(false);
   };
 
-  const handleModeChange = (mode) => {
-    setCurrentMode(mode);
-    clearInterval(intervalRef.current);
+  const handleMinutesChange = (e) => {
+    const val = Math.max(10, Math.min(60, Number(e.target.value)));
+    setCustomMinutes(val);
+    setInitialTime(val * 60);
+    setTime(val * 60);
     setIsActive(false);
     setIsPaused(false);
-    
-    let newTime;
-    switch(mode) {
-      case 'pomodoro':
-        newTime = customPomodoro * 60;
-        break;
-      case 'shortBreak':
-        newTime = customShortBreak * 60;
-        break;
-      case 'longBreak':
-        newTime = customLongBreak * 60;
-        break;
-      default:
-        newTime = customPomodoro * 60;
-    }
-    
-    setInitialTime(newTime);
-    setTime(newTime);
-  };
-
-  const saveSettings = () => {
-    handleModeChange(currentMode); // Apply current mode with new settings
-    setShowSettings(false);
-    
-    setAlertMessage('Settings saved!');
-    setAlertType('success');
-    setShowAlert(true);
   };
 
   const formatTime = (seconds) => {
@@ -199,408 +224,235 @@ const Pomodoro = () => {
     return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
 
-  const progress = ((initialTime - time) / initialTime) * 100;
-
-  // Background gradient based on current mode
-  const getBackgroundGradient = () => {
-    switch(currentMode) {
-      case 'pomodoro':
-        return 'from-[#67b88f] via-[#93c4ab] to-[#f8ffff]';
-      case 'shortBreak':
-        return 'from-[#6c88c4] via-[#94b0e2] to-[#f0f6ff]';
-      case 'longBreak':
-        return 'from-[#9367b8] via-[#b794c9] to-[#f8f0ff]';
-      default:
-        return 'from-[#67b88f] via-[#93c4ab] to-[#f8ffff]';
-    }
-  };
-
-  return (
-    <div className={`bg-gradient-to-r ${getBackgroundGradient()} min-h-screen flex flex-col items-center justify-center relative overflow-hidden`}>
-      {/* Floating particles for visual interest */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {[...Array(15)].map((_, i) => (
-          <motion.div
-            key={i}
-            className="absolute rounded-full bg-white bg-opacity-20"
-            style={{
-              width: Math.random() * 50 + 10,
-              height: Math.random() * 50 + 10,
-            }}
-            initial={{
-              x: Math.random() * window.innerWidth,
-              y: Math.random() * window.innerHeight,
-              opacity: Math.random() * 0.5 + 0.2,
-            }}
-            animate={{
-              y: [null, Math.random() * -100 - 50],
-              opacity: [null, 0],
-            }}
-            transition={{
-              duration: Math.random() * 20 + 20,
-              ease: "linear",
-              repeat: Infinity,
-              repeatType: "loop",
-              delay: Math.random() * 20,
-            }}
-          />
-        ))}
-      </div>
-      
-      {/* Help Icon - Top Left */}
-      <Tooltip title="What is Pomodoro?">
-        <IconButton 
-          className="absolute -top-1 -left-60 bg-white bg-opacity-20 hover:bg-opacity-30"
-          onClick={() => setShowModal(true)}
-        >
-          <HelpOutlineIcon style={{ fontSize: 24, color: 'white' }} />
-        </IconButton>
-      </Tooltip>
-      
-      {/* Settings Icon - Centered Above Timer */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="absolute top-4 left-2 transform -translate-x-1/2"
-      >
-        <Tooltip title="Timer Settings">
-          <IconButton 
-            className="bg-white bg-opacity-20 hover:bg-opacity-30"
-            onClick={() => setShowSettings(true)}
-          >
-            <SettingsIcon style={{ fontSize: 24, color: 'white', top }} />
-          </IconButton>
-        </Tooltip>
-      </motion.div>
-      
-      {/* Completed Pomodoros Counter */}
-      {completedPomodoros > 0 && (
-        <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-white bg-opacity-20 rounded-full px-4 py-1 flex items-center"
-        >
-          <CheckCircleOutlineIcon style={{ fontSize: 20, color: 'white', marginRight: 8 }} />
-          <Typography className="text-white font-medium">
-            {completedPomodoros} {completedPomodoros === 1 ? 'Pomodoro' : 'Pomodoros'} Completed
-          </Typography>
-        </motion.div>
-      )}
-      
-      {/* Main Timer Container */}
-      <motion.div 
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="bg-white bg-opacity-20 backdrop-blur-sm p-8 rounded-2xl shadow-lg text-center relative"
-        style={{ width: '90%', maxWidth: '500px' }}
-      >
-        {/* Timer Mode Selection */}
-        <Breadcrumbs aria-label="breadcrumb" className="mb-8 flex justify-center">
-          <StyledBreadcrumb 
-            component="a" 
-            href="#" 
-            label="Pomodoro" 
-            active={currentMode === 'pomodoro'}
-            onClick={() => handleModeChange('pomodoro')} 
-          />
-          <StyledBreadcrumb 
-            component="a" 
-            href="#" 
-            label="Short Break" 
-            active={currentMode === 'shortBreak'}
-            onClick={() => handleModeChange('shortBreak')} 
-          />
-          <StyledBreadcrumb 
-            component="a" 
-            href="#" 
-            label="Long Break" 
-            active={currentMode === 'longBreak'}
-            onClick={() => handleModeChange('longBreak')} 
-          />
-        </Breadcrumbs>
-        
-        {/* Circular Progress */}
-        <div className="relative w-64 h-64 mx-auto my-4">
-          <CircularProgress 
-            variant="determinate" 
-            value={progress} 
-            size={240}
-            thickness={2}
-            style={{ color: 'rgba(255,255,255,0.9)' }}
-          />
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Typography variant="h1" className="text-white font-bold text-6xl">
-              {formatTime(time)}
-            </Typography>
+  // Plant selection modal (horizontal, images only)
+  const PlantSelectionModal = (
+    <Modal open={showPlantModal} aria-labelledby="plant-modal-title" disableEscapeKeyDown>
+      <Fade in={showPlantModal}>
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-3xl shadow-2xl px-8 py-10 max-w-lg w-[95%] flex flex-col items-center">
+            <div className="text-2xl font-bold text-[#4e8067] mb-6 font-nunito text-center">
+              Choose Your Plant
+            </div>
+            <div className="flex flex-row justify-center gap-8 w-full">
+              {plantOptions.map((plant) => {
+                const unlocked = plant.unlocked(completedPomodoros);
+                return (
+                  <motion.div
+                    key={plant.key}
+                    whileHover={unlocked ? { scale: 1.08 } : {}}
+                    className={`rounded-2xl p-3 transition-all duration-150 ${unlocked ? 'bg-[#e8f5ea] cursor-pointer' : 'bg-[#f0f0f0] opacity-50 cursor-not-allowed'} relative`}
+                    onClick={() => unlocked && handlePlantSelect(plant.key)}
+                  >
+                    <img
+                      src={plant.folder + plant.preview}
+                      alt=""
+                      className={`w-24 h-24 object-contain ${unlocked ? '' : 'grayscale blur-sm'}`}
+                    />
+                    {!unlocked && (
+                      <LockIcon
+                        sx={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          fontSize: 40,
+                          color: '#bdbdbd',
+                          zIndex: 2
+                        }}
+                      />
+                    )}
+                  </motion.div>
+                );
+              })}
+            </div>
+            {/* Timer selection */}
+            <div className="mt-8 flex flex-col items-center">
+              <label className="text-[#4e8067] font-semibold mb-2">Pomodoro Duration</label>
+              <input
+                type="number"
+                min={10}
+                max={60}
+                value={customMinutes}
+                onChange={handleMinutesChange}
+                className="w-20 text-center border border-[#4e8067] rounded-lg py-1 px-2 focus:outline-none focus:ring-2 focus:ring-[#4e8067] font-bold text-lg"
+              />
+              <span className="text-[#4e8067] text-sm mt-1">minutes (10–60)</span>
+            </div>
           </div>
         </div>
-        
-        {/* Timer Controls */}
-        <div className="flex justify-center items-center space-x-8 mt-6">
-          <motion.div 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <IconButton 
-              onClick={toggleStartPause} 
-              className="bg-white bg-opacity-30 hover:bg-opacity-40 p-3"
-              disabled={time === 0}
-            >
-              {isActive && !isPaused ? 
-                <PauseIcon style={{ fontSize: 36, color: 'white' }} /> : 
-                <PlayArrowIcon style={{ fontSize: 36, color: 'white' }} />
-              }
-            </IconButton>
-          </motion.div>
-          
-          <motion.div 
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <IconButton 
-              onClick={resetTimer} 
-              className="bg-white bg-opacity-30 hover:bg-opacity-40 p-3"
-            >
-              <ReplayIcon style={{ fontSize: 36, color: 'white' }} />
-            </IconButton>
-          </motion.div>
-        </div>
-      </motion.div>
-      
-      {/* Task input field */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.2, duration: 0.5 }}
-        className="mt-8 w-full max-w-md px-4"
-      >
-        <Typography className="text-white mb-2 text-center text-lg font-medium">
-          Current Focus:
-        </Typography>
-        <input
-          type="text"
-          placeholder="What are you working on?"
-          className="w-full p-3 rounded-xl bg-white bg-opacity-20 backdrop-blur-sm border border-white border-opacity-30 text-white placeholder-white placeholder-opacity-70 focus:outline-none focus:ring-2 focus:ring-white focus:ring-opacity-40 text-center"
-        />
-      </motion.div>
-      
-      {/* Spotify Playlist */}
-      <motion.div 
-        initial={{ opacity: 0, y: 50 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3, duration: 0.5 }}
-        className="absolute bottom-4 right-4" 
-        style={{ width: '300px' }}
-      >
-        <iframe
-          style={{ borderRadius: '12px' }}
-          src="https://open.spotify.com/embed/playlist/37i9dQZF1DWZeKCadgRdKQ?utm_source=generator&theme=0"
-          width="100%"
-          height="152"
-          frameBorder="0"
-          allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-          loading="lazy"
-        ></iframe>
-      </motion.div>
-      
-      {/* Info Modal */}
-      <Modal
-        open={showModal}
-        onClose={() => setShowModal(false)}
-        aria-labelledby="pomodoro-modal-title"
-      >
-        <motion.div
-          initial={{ opacity: 0, y: -50 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Box className="absolute top-1 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-xl shadow-xl max-w-md w-[90%]">
-            <div className="flex justify-between items-center mb-4">
-              <Typography variant="h5" component="h2" className="text-gray-800 font-bold flex items-center">
-                <HelpOutlineIcon style={{ marginRight: 8, color: '#6fba94' }} />
-                What is Pomodoro?
-              </Typography>
-              <IconButton size="small" onClick={() => setShowModal(false)}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
+      </Fade>
+    </Modal>
+  );
+
+  // Info modal
+  const InfoModal = (
+    <Modal open={showInfoModal} onClose={() => setShowInfoModal(false)}>
+      <Fade in={showInfoModal}>
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-[95%] flex flex-col items-center">
+            <div className="flex items-center mb-4">
+              <InfoOutlinedIcon className="text-[#4e8067] mr-2" fontSize="large" />
+              <span className="text-xl font-bold text-[#4e8067]">What is Pomodoro?</span>
             </div>
-            
-            <Typography className="text-gray-600 mb-3">
-              The Pomodoro Technique is a time management method developed by Francesco Cirillo in the late 1980s. It uses a timer to break work into intervals, traditionally 25 minutes in length, separated by short breaks.
-            </Typography>
-            
-            <Typography variant="h6" className="font-semibold mt-4 mb-2 text-gray-700">
-              How it works:
-            </Typography>
-            
-            <ol className="list-decimal pl-5 space-y-2 text-gray-600 mb-4">
-              <li>Choose a task you'd like to get done</li>
-              <li>Set the Pomodoro timer (traditionally 25 minutes)</li>
-              <li>Work on the task until the timer rings</li>
-              <li>Take a short break (5 minutes)</li>
-              <li>Every 4 Pomodoros, take a longer break (15-30 minutes)</li>
-            </ol>
-            
-            <Typography className="text-gray-600 italic">
-              This method improves focus, mental agility, and helps manage distractions for increased productivity.
-            </Typography>
-            
-            <Button 
-              onClick={() => setShowModal(false)}
-              variant="contained" 
-              className="mt-4 bg-[#6fba94] hover:bg-[#5ea983]"
+            <div className="text-gray-700 text-center mb-4">
+              The Pomodoro Technique is a time management method that uses a timer to break work into intervals, traditionally 25 minutes, separated by short breaks.
+            </div>
+            <ul className="list-disc text-gray-600 text-left pl-5 mb-4">
+              <li>Pick a plant and set your timer (10–60 min)</li>
+              <li>Stay focused while your plant grows</li>
+              <li>When the timer ends, your plant is fully grown!</li>
+              <li>Complete more Pomodoros to unlock new plants</li>
+            </ul>
+            <Button
+              variant="contained"
+              onClick={() => setShowInfoModal(false)}
+              sx={{ background: '#4e8067', color: 'white', fontWeight: 600, mt: 2 }}
               fullWidth
             >
               Got it!
             </Button>
-          </Box>
-        </motion.div>
-      </Modal>
-      
-      {/* Settings Modal */}
-      <Modal
-        open={showSettings}
-        onClose={() => setShowSettings(false)}
-        aria-labelledby="settings-modal-title"
-      >
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.3 }}
-        >
-          <Box className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-white p-6 rounded-xl shadow-xl max-w-md w-[90%]">
-            <div className="flex justify-between items-center mb-4">
-              <Typography variant="h5" component="h2" className="text-gray-800 font-bold flex items-center">
-                <SettingsIcon style={{ marginRight: 8, color: '#6fba94' }} />
-                Timer Settings
-              </Typography>
-              <IconButton size="small" onClick={() => setShowSettings(false)}>
-                <CloseIcon fontSize="small" />
-              </IconButton>
+          </div>
+        </div>
+      </Fade>
+    </Modal>
+  );
+
+  // Leave warning modal
+  const LeaveWarningModal = (
+    <Modal open={showLeaveModal} aria-labelledby="leave-modal-title">
+      <Fade in={showLeaveModal}>
+        <div className="fixed inset-0 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-[95%] flex flex-col items-center">
+            <div className="text-lg font-bold text-[#4e8067] mb-2 text-center">
+              Are you sure you want to leave?
             </div>
-            
-            <Typography variant="body2" className="text-gray-500 mb-4">
-              Customize your timer durations (in minutes)
-            </Typography>
-            
-            <div className="mb-6">
-              <Typography id="pomodoro-slider" gutterBottom className="font-medium">
-                Pomodoro: {customPomodoro} min
-              </Typography>
-              <Slider
-                aria-labelledby="pomodoro-slider"
-                value={customPomodoro}
-                onChange={(_, newValue) => setCustomPomodoro(newValue)}
-                min={1}
-                max={60}
-                step={1}
-                marks={[
-                  { value: 1, label: '1' },
-                  { value: 25, label: '25' },
-                  { value: 60, label: '60' }
-                ]}
-                className="text-[#6fba94]"
-              />
+            <div className="text-gray-600 mb-6 text-center">
+              You will lose your current Pomodoro progress.
             </div>
-            
-            <div className="mb-6">
-              <Typography id="short-break-slider" gutterBottom className="font-medium">
-                Short Break: {customShortBreak} min
-              </Typography>
-              <Slider
-                aria-labelledby="short-break-slider"
-                value={customShortBreak}
-                onChange={(_, newValue) => setCustomShortBreak(newValue)}
-                min={1}
-                max={20}
-                step={1}
-                marks={[
-                  { value: 1, label: '1' },
-                  { value: 5, label: '5' },
-                  { value: 20, label: '20' }
-                ]}
-                className="text-[#6c88c4]"
-              />
-            </div>
-            
-            <div className="mb-6">
-              <Typography id="long-break-slider" gutterBottom className="font-medium">
-                Long Break: {customLongBreak} min
-              </Typography>
-              <Slider
-                aria-labelledby="long-break-slider"
-                value={customLongBreak}
-                onChange={(_, newValue) => setCustomLongBreak(newValue)}
-                min={5}
-                max={45}
-                step={1}
-                marks={[
-                  { value: 5, label: '5' },
-                  { value: 15, label: '15' },
-                  { value: 45, label: '45' }
-                ]}
-                className="text-[#9367b8]"
-              />
-            </div>
-            
-            <Divider className="my-4" />
-            
-            <div className="space-y-3">
-              <FormControlLabel
-                control={
-                  <Switch 
-                    checked={autoStartBreaks}
-                    onChange={(e) => setAutoStartBreaks(e.target.checked)}
-                    className="text-[#6fba94]"
-                  />
-                }
-                label="Auto-start breaks/pomodoros"
-              />
-              
-              <FormControlLabel
-                control={
-                  <Switch 
-                    checked={playSound}
-                    onChange={(e) => setPlaySound(e.target.checked)}
-                    className="text-[#6fba94]"
-                  />
-                }
-                label="Play sound when timer ends"
-              />
-            </div>
-            
-            <div className="flex justify-end mt-6">
-              <Button 
-                onClick={() => setShowSettings(false)}
-                variant="outlined" 
-                className="mr-2 border-gray-300 text-gray-500"
+            <div className="flex gap-4 mt-2">
+              <Button
+                variant="outlined"
+                onClick={() => {
+                  setShowLeaveModal(false);
+                  setPendingNavigation(null);
+                }}
+                sx={{ color: '#4e8067', borderColor: '#4e8067', fontWeight: 600 }}
               >
                 Cancel
               </Button>
-              <Button 
-                onClick={saveSettings}
-                variant="contained" 
-                className="bg-[#6fba94] hover:bg-[#5ea983]"
+              <Button
+                variant="contained"
+                onClick={() => {
+                  setShowLeaveModal(false);
+                  if (pendingNavigation) pendingNavigation();
+                  else navigate(-1);
+                }}
+                sx={{ background: '#4e8067', color: 'white', fontWeight: 600 }}
               >
-                Save Settings
+                Leave
               </Button>
             </div>
-          </Box>
+          </div>
+        </div>
+      </Fade>
+    </Modal>
+  );
+
+  return (
+    <div className="min-h-screen flex flex-col items-center bg-gradient-to-br from-[#b4ddc8] via-[#a8d5bb] to-[#9ccdae] relative overflow-hidden">
+      {/* Header */}
+      <div className="w-full flex items-center justify-between px-6 py-4 bg-white shadow-md  mb-8">
+        <IconButton
+          className="bg-[#e8f5ea] mr-2"
+          onClick={() => {
+            if (isActive && !isPaused && time > 0) {
+              setShowLeaveModal(true);
+              setPendingNavigation(() => () => navigate(-1));
+            } else {
+              navigate(-1);
+            }
+          }}
+        >
+          <ArrowBackIcon style={{ color: '#4e8067' }} />
+        </IconButton>
+        <div className="flex items-center gap-2">
+          <span className="text-2xl font-bold text-[#4e8067] font-nunito">Pomodoro Timer</span>
+          <IconButton
+            className="bg-[#e8f5ea]"
+            onClick={() => setShowInfoModal(true)}
+          >
+            <InfoOutlinedIcon style={{ color: '#4e8067' }} />
+          </IconButton>
+        </div>
+        <div className="w-10" /> {/* Spacer for symmetry */}
+      </div>
+
+      {PlantSelectionModal}
+      {InfoModal}
+      {LeaveWarningModal}
+
+{/* Main Circular Timer */}
+<div className="relative flex flex-col items-center justify-center mt-16">
+  <div className="relative flex items-center justify-center">
+    {/* Main Circle */}
+    <div className="w-[420px] h-[420px] rounded-full bg-gradient-to-br from-[#e8f5ea] to-[#b4ddc8] shadow-2xl flex flex-col items-center justify-center relative">
+      {/* Plant Animation */}
+      {selectedPlant && plantStages.length > 0 && (
+        <motion.img
+          key={stage}
+          src={plantStages[stage]}
+          alt={`Plant stage ${stage + 1}`}
+          className="w-48 h-48 object-contain mx-auto mb-10"
+          initial={{ scale: 0.95, opacity: 0.7 }}
+          animate={{ scale: [1, 1.07, 1], opacity: 1 }}
+          transition={{ duration: 1.5, repeat: Infinity, repeatType: "loop" }}
+        />
+      )}
+      {/* Timer */}
+      <div className="text-5xl font-bold text-[#4e8067] font-nunito mt-2 mb-4 select-none">
+        {formatTime(time)}
+      </div>
+      {/* Controls */}
+      <div className="flex flex-row items-center justify-center gap-8 mt-2">
+        <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.95 }}>
+          <span
+            onClick={toggleStartPause}
+            className="cursor-pointer"
+            role="button"
+            tabIndex={0}
+          >
+            {isActive && !isPaused ?
+              <PauseIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} /> :
+              <PlayArrowIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} />
+            }
+          </span>
         </motion.div>
-      </Modal>
-      
+        <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.95 }}>
+          <span
+            onClick={resetTimer}
+            className="cursor-pointer"
+            role="button"
+            tabIndex={0}
+          >
+            <ReplayIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} />
+          </span>
+        </motion.div>
+      </div>
+    </div>
+  </div>
+</div>
+
       {/* Notifications */}
-      <Snackbar 
-        open={showAlert} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={showAlert}
+        autoHideDuration={4000}
         onClose={() => setShowAlert(false)}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setShowAlert(false)} 
+        <Alert
+          onClose={() => setShowAlert(false)}
           severity={alertType}
-          sx={{ width: '100%', fontWeight: 500 }}
+          sx={{ width: '100%', fontWeight: 500, background: '#4e8067', color: 'white', fontFamily: 'Nunito, sans-serif' }}
         >
           {alertMessage}
         </Alert>
