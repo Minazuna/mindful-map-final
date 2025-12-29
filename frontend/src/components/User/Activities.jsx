@@ -3,219 +3,167 @@ import { useNavigate } from 'react-router-dom';
 import BottomNav from '../BottomNav';
 import { motion } from 'framer-motion';
 
-// Material UI Icons and Components
-import FavoriteIcon from '@mui/icons-material/Favorite';
-import PsychologyIcon from '@mui/icons-material/Psychology';
+// Material UI Icons
+import SpaIcon from '@mui/icons-material/Spa';
+import TimerIcon from '@mui/icons-material/Timer';
 import SelfImprovementIcon from '@mui/icons-material/SelfImprovement';
-import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
-import FormatQuoteIcon from '@mui/icons-material/FormatQuote';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
 
-const ActivityCard = ({ title, description, image, onClick, color }) => {
-  return (
-    <motion.div
-      whileHover={{ scale: 1.02, boxShadow: '0 15px 30px -10px rgba(0, 0, 0, 0.1), 0 15px 15px -10px rgba(0, 0, 0, 0.04)' }}
-      whileTap={{ scale: 0.98 }}
-      className="bg-white rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer flex flex-col h-[480px]" // Increased height further
-      onClick={onClick}
-    >
-      <div className="relative h-64"> {/* Increased image container height */}
-        <img src={image} alt={title} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-        
-        <div className="absolute bottom-0 left-0 p-5 w-full">
-          <h3 className="font-bold text-white text-xl drop-shadow-md">{title}</h3>
-        </div>
-      </div>
-      
-      <div className="p-6 flex-1 flex flex-col justify-between border-t border-gray-50">
-        <p className="text-gray-600 text-base leading-relaxed">
-          {description}
-        </p>
-        <div className="mt-5 pt-4 border-t border-gray-100 flex justify-end">
-          <div 
-            className="flex items-center text-base font-medium transition-all hover:opacity-80"
-            style={{ color: color }}
-          >
-            Try now 
-            <ArrowForwardIcon style={{ fontSize: 20, marginLeft: 6 }} />
-          </div>
-        </div>
-      </div>
-    </motion.div>
-  );
+const activityIcons = {
+  breathing: <SpaIcon style={{ fontSize: 28, color: '#64aa86' }} />,
+  pomodoro: <TimerIcon style={{ fontSize: 28, color: '#5a9edb' }} />,
+  meditation: <SelfImprovementIcon style={{ fontSize: 28, color: '#b084c8' }} />,
+  affirmation: <FavoriteBorderIcon style={{ fontSize: 28, color: '#9c75d5' }} />,
+  music: <MusicNoteIcon style={{ fontSize: 28, color: '#d57583' }} />,
 };
 
-const BenefitCard = ({ icon, title, description, color, delay }) => {
-  return (
-    <motion.div 
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay, duration: 0.5 }}
-      className="bg-white rounded-xl shadow-md overflow-hidden h-full flex flex-col"
-    >
-      <div className="p-6 flex-1">
-        <div 
-          className="w-12 h-12 rounded-full flex items-center justify-center mb-4"
-          style={{ backgroundColor: `${color}15` }}
-        >
-          <div style={{ color }}>
-            {icon}
-          </div>
-        </div>
-        <h3 className="font-semibold text-lg mb-3" style={{ color }}>{title}</h3>
-        <p className="text-gray-600 leading-relaxed">{description}</p>
-      </div>
-      <div 
-        className="h-1.5 w-full"
-        style={{ backgroundColor: color }}
-      ></div>
-    </motion.div>
-  );
-};
+const activities = [
+  {
+    id: 'breathing',
+    title: 'Breathing Exercises',
+    description: 'Reduce stress and anxiety with guided breathing techniques. ',
+    color: '#64aa86',
+    icon: activityIcons.breathing,
+    onClick: (navigate) => navigate('/breathing-exercise'),
+    border: 'border-[#64aa86]',
+    text: 'text-[#247a5a]',
+    bg: 'bg-[#e6f4ea]',
+    shadow: 'shadow-[#64aa86]/10',
+  },
+  {
+    id: 'pomodoro',
+    title: 'Pomodoro Technique',
+    description: 'Boost productivity with timed work and break intervals.',
+    color: '#5a9edb',
+    icon: activityIcons.pomodoro,
+    onClick: (navigate) => navigate('/pomodoro'),
+    border: 'border-[#5a9edb]',
+    text: 'text-[#245a7a]',
+    bg: 'bg-[#eaf3fa]',
+    shadow: 'shadow-[#5a9edb]/10',
+  },
+  {
+    id: 'meditation',
+    title: 'Guided Meditation',
+    description: 'Experience deep relaxation with different guided meditations.',
+    color: '#b084c8',
+    icon: activityIcons.meditation,
+    onClick: (navigate) => navigate('/guided-meditation'),
+    border: 'border-[#b084c8]',
+    text: 'text-[#6c4a7a]',
+    bg: 'bg-[#f3eafc]',
+    shadow: 'shadow-[#b084c8]/10',
+  },
+  {
+    id: 'affirmation',
+    title: 'Daily Affirmation',
+    description: 'Build confidence and positive mindset through affirmations. ',
+    color: '#9c75d5',
+    icon: activityIcons.affirmation,
+    onClick: (navigate) => navigate('/affirmation'),
+    border: 'border-[#9c75d5]',
+    text: 'text-[#5a3a7a]',
+    bg: 'bg-[#f3eafc]',
+    shadow: 'shadow-[#9c75d5]/10',
+  },
+  {
+    id: 'music',
+    title: 'Calming Music',
+    description: 'Relax with soothing melodies to reduce stress.',
+    color: '#d57583',
+    icon: activityIcons.music,
+    onClick: (navigate) => navigate('/calming-music'),
+    border: 'border-[#d57583]',
+    text: 'text-[#7a3a4a]',
+    bg: 'bg-[#faeaea]',
+    shadow: 'shadow-[#d57583]/10',
+  },
+];
 
 const Activities = () => {
   const navigate = useNavigate();
   const [value, setValue] = useState('activities');
 
-  const activities = [
-    {
-      id: 'breathing',
-      title: 'Breathing Exercises',
-      description: 'Reduce stress and anxiety with guided breathing techniques. Practice mindful breathing for improved relaxation and mental clarity.',
-      image: '/images/breathingexercise.gif',
-      color: '#64aa86',
-      onClick: () => navigate('/breathing-exercise')
-    },
-    {
-      id: 'pomodoro',
-      title: 'Pomodoro Technique',
-      description: 'Boost productivity with timed work and break intervals. An effective method to maintain focus and prevent burnout.',
-      image: '/images/pomodoro.gif',
-      color: '#5a9edb', 
-      onClick: () => navigate('/pomodoro')
-    },
-    {
-      id: 'meditation',
-      title: 'Guided Meditation',
-      description: 'Find your inner peace with a collection of guided meditations. Choose from different types and durations to suit your needs.',
-      image: '/images/meditation.gif',
-      color: '#b084c8',
-      onClick: () => navigate('/guided-meditation')
-    },
-    {
-      id: 'affirmation',
-      title: 'Daily Affirmations',
-      description: 'Build confidence and positive mindset through affirmations. Transform negative thoughts with powerful positive statements.',
-      image: '/images/affirmation.gif',
-      color: '#9c75d5',
-      onClick: () => navigate('/affirmation')
-    },
-    {
-      id: 'music',
-      title: 'Calming Music',
-      description: 'Relax with soothing melodies and nature sounds. Curated audio tracks designed to reduce anxiety and promote peaceful states of mind.',
-      image: '/images/relaxingmusic.gif',
-      color: '#d57583',
-      onClick: () => navigate('/calming-music')
-    }
-  ];
-
-  const benefits = [
-    {
-      title: 'Reduce Stress',
-      description: 'Regular mindfulness practices help lower cortisol levels and promote relaxation. Studies show significant reductions in stress markers after just 8 weeks of practice.',
-      color: '#64aa86',
-      delay: 0.1,
-      icon: <FavoriteIcon style={{ fontSize: 24 }} />
-    },
-    {
-      title: 'Improve Focus',
-      description: 'Mindful activities strengthen attention and reduce distractions in daily life. Training your mind to stay present enhances performance in work and studies.',
-      color: '#5a9edb',
-      delay: 0.2,
-      icon: <PsychologyIcon style={{ fontSize: 24 }} />
-    },
-    {
-      title: 'Enhance Wellbeing',
-      description: 'Regular practice promotes emotional balance and overall mental health. Mindfulness cultivates a greater sense of happiness and life satisfaction.',
-      color: '#9c75d5',
-      delay: 0.3,
-      icon: <SelfImprovementIcon style={{ fontSize: 24 }} />
-    }
-  ];
-
   return (
-    <div className="bg-gradient-to-b from-[#f5f9fa] to-[#e8f1ee] min-h-screen flex flex-col">
-      {/* Background elements */}
-      <div className="absolute top-40 right-0 w-24 h-24 rounded-full bg-[#64aa86]/5 blur-2xl"></div>
-      <div className="absolute top-80 left-0 w-32 h-32 rounded-full bg-[#5a9edb]/5 blur-2xl"></div>
-      <div className="absolute bottom-60 right-10 w-32 h-32 rounded-full bg-[#9c75d5]/5 blur-2xl"></div>
-      
-      {/* Full-width colored header container - Updated color to #89bcbc */}
-      <div className="w-full bg-[#89bcbc] py-12 mb-8 shadow-md">
-        <div className="max-w-5xl mx-auto px-6 text-center">
-          <h1 className="text-4xl font-bold text-white mb-3">Mindfulness Activities</h1>
-          <p className="text-white text-opacity-90 max-w-2xl mx-auto text-lg">
-            Discover curated activities designed to enhance your mental wellbeing and cultivate a mindful presence in everyday life.
-          </p>
+    <div className="bg-gradient-to-b from-[#e6f4ea] to-[#f5f9fa] min-h-screen flex flex-col relative overflow-x-hidden">
+      {/* Decorative background */}
+      <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute top-10 left-10 w-56 h-56 rounded-full bg-[#b7eacb]/30 blur-[80px]" />
+        <div className="absolute top-1/3 right-0 w-40 h-40 rounded-full bg-[#5a9edb]/20 blur-[60px]" />
+        <div className="absolute bottom-0 left-0 w-72 h-72 rounded-full bg-[#e6f4ea]/40 blur-[120px]" />
+        <div className="absolute bottom-24 right-10 w-32 h-32 rounded-full bg-[#9c75d5]/20 blur-[80px]" />
+      </div>
+
+      {/* Header */}
+      <div className="w-full bg-[#ffff] py-12 mb-8 shadow-lg relative z-10 rounded-b-3xl">
+        <div className="max-w-xl mx-auto px-6 text-center">
+          <motion.h1
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl font-extrabold text-[#1b5f52] mb-2 tracking-tight bg-clip-text bg-gradient-to-r from-[#1b5f52] to-[#64aa86] text-transparent"
+          >
+            Mindfulness Activities
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-[#1b5f52]/80 text-lg font-medium"
+          >
+            Choose an activity to support your mental well-being
+          </motion.p>
         </div>
       </div>
 
-      {/* Activity Cards - with increased height */}
-      <div className="px-6 pb-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-          {activities.map((activity, index) => (
-            <motion.div
-              key={activity.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 + 0.2 }}
-              className="h-full"
-            >
-              <ActivityCard
-                title={activity.title}
-                description={activity.description}
-                image={activity.image}
-                color={activity.color}
-                onClick={activity.onClick}
-              />
-            </motion.div>
-          ))}
+      {/* Activities List - Horizontal square cards */}
+      <div className="flex-1 px-4 pb-24 relative z-10 flex items-center justify-center">
+        <div className="w-full max-w-7xl mx-auto">
+          <div className="flex flex-row gap-8 justify-center flex-nowrap">
+            {activities.map((activity, idx) => (
+              <motion.div
+                key={activity.id}
+                initial={{ opacity: 0, y: 30 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.09 + 0.2 }}
+                whileHover={{ scale: 1.05, boxShadow: `0 16px 40px -8px ${activity.color}22` }}
+                whileTap={{ scale: 0.98 }}
+                className={`relative ${activity.bg} rounded-2xl shadow-xl transition-all cursor-pointer w-72 h-80 flex flex-col items-center border ${activity.border} ${activity.shadow} bg-white`}
+                onClick={() => activity.onClick(navigate)}
+                style={{ borderTop: `8px solid ${activity.color}` }}
+              >
+                {/* Small centered circular icon inside card */}
+                <div className="flex justify-center w-full">
+                  <div className="mt-6 mb-2 w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-md border border-[#e6f4ea]">
+                    {activity.icon}
+                  </div>
+                </div>
+                <div className="flex-1 flex flex-col items-center justify-center px-6 pb-5 w-full">
+                  <span className={`text-2xl font-bold ${activity.text} text-center mb-2 mt-2`}>{activity.title}</span>
+                  <div className={`${activity.text.replace( 'text-opacity-70 ')} text-lg text-center`}>
+                    {activity.description}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
       </div>
-      
-      {/* Mental Health Quote */}
-      <motion.div 
+
+      {/* Quote */}
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.7 }}
-        className="px-6 py-4 mb-8"
+        className="px-4 mb-8 relative z-10"
       >
-        <div className="bg-white rounded-xl p-8 shadow-md text-center relative border border-gray-50">
-          <FormatQuoteIcon style={{ color: '#9c75d520', fontSize: 48, position: 'absolute', top: 16, left: 16 }} />
-          <p className="text-[#2d5f5d] italic text-xl px-8 font-light">
+        <div className="max-w-xl mx-auto p-7  text-center mb-10">
+          <p className="text-[#1b5f52] italic text-xl px-2 font-light">
             "Mental health is not a destination, but a process. It's about how you drive, not where you're going."
           </p>
-          <p className="text-[#5e8a87] text-sm mt-3">— Noam Shpancer</p>
+          <p className="text-[#5e8a87] text-sm mt-3 font-medium">— Noam Shpancer</p>
         </div>
       </motion.div>
-
-      {/* Benefit Cards - improved design */}
-      <div className="px-6 py-4 mb-24">
-        <h2 className="text-2xl font-bold text-[#2d5f5d] mb-5">Benefits of Mindfulness</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {benefits.map((benefit) => (
-            <BenefitCard 
-              key={benefit.title}
-              icon={benefit.icon}
-              title={benefit.title}
-              description={benefit.description}
-              color={benefit.color}
-              delay={benefit.delay}
-            />
-          ))}
-        </div>
-      </div>
 
       <BottomNav value={value} setValue={setValue} />
     </div>
