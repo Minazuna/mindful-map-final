@@ -182,7 +182,7 @@ const Signup = () => {
         setValidationErrors({});
         localStorage.setItem('token', response.data.token);
         setTimeout(() => {
-          navigate('/choose-category');
+          navigate('/daily-quote');
         }, 3000);
       } else {
         setError(response.data.message);

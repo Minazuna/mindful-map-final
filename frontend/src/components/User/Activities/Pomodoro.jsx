@@ -15,7 +15,6 @@ import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import LockIcon from '@mui/icons-material/Lock';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
 
 const plantOptions = [
   {
@@ -37,7 +36,7 @@ const plantOptions = [
     folder: '/images/pomodoro/thirdOption/',
     preview: 'flower3.3.png',
     stages: ['flower3.0.png', 'flower3.1.png', 'flower3.2.png', 'flower3.3.png'],
-    unlocked: (completedPomodoros) => completedPomodoros >= 3,
+    unlocked: () => true, // Always unlocked now
   }
 ];
 
@@ -88,45 +87,19 @@ const Pomodoro = () => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isActive, isPaused, time]);
 
-  // Load completedPomodoros from backend/localStorage
+  // Load completedPomodoros from localStorage
   useEffect(() => {
     audioRef.current = new Audio('/sounds/bell.mp3');
-    const fetchProgress = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const res = await axios.get(`${import.meta.env.VITE_NODE_API}/api/pomodoro/progress`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (res.data && res.data.progress && res.data.progress.completedSessions) {
-          setCompletedPomodoros(res.data.progress.completedSessions);
-        }
-      } catch (err) {
-        const saved = localStorage.getItem('completedPomodoros');
-        if (saved) setCompletedPomodoros(Number(saved));
-      }
-    };
-    fetchProgress();
+    const saved = localStorage.getItem('completedPomodoros');
+    if (saved) setCompletedPomodoros(Number(saved));
     return () => {
       clearInterval(intervalRef.current);
     };
   }, []);
 
-  // Save completedPomodoros to backend/localStorage
+  // Save completedPomodoros to localStorage
   useEffect(() => {
     localStorage.setItem('completedPomodoros', completedPomodoros);
-    const saveProgress = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        await axios.post(`${import.meta.env.VITE_NODE_API}/api/pomodoro/progress`, {
-          completedSessions: completedPomodoros
-        }, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-      } catch (err) {
-        // ignore for now
-      }
-    };
-    saveProgress();
   }, [completedPomodoros]);
 
   // Timer logic
@@ -230,37 +203,27 @@ const Pomodoro = () => {
       <Fade in={showPlantModal}>
         <div className="fixed inset-0 flex items-center justify-center z-50">
           <div className="bg-white rounded-3xl shadow-2xl px-8 py-10 max-w-lg w-[95%] flex flex-col items-center">
-            <div className="text-2xl font-bold text-[#4e8067] mb-6 font-nunito text-center">
-              Choose Your Plant
+            <div className="text-3xl font-bold text-[#4e8067] mb-3 font-nunito text-center">
+              Choose a Plant to Grow
+            </div>
+            <div className="text-sm text-[#4e8067] mb-6 font-nunito text-center">
+              Watch your plant grow as you stay focused! The longer you work, the more your plant blossoms. Complete your Pomodoro to see it fully bloom!
             </div>
             <div className="flex flex-row justify-center gap-8 w-full">
               {plantOptions.map((plant) => {
-                const unlocked = plant.unlocked(completedPomodoros);
+                const unlocked = true; // Always unlocked
                 return (
                   <motion.div
                     key={plant.key}
                     whileHover={unlocked ? { scale: 1.08 } : {}}
-                    className={`rounded-2xl p-3 transition-all duration-150 ${unlocked ? 'bg-[#e8f5ea] cursor-pointer' : 'bg-[#f0f0f0] opacity-50 cursor-not-allowed'} relative`}
+                    className={`rounded-2xl p-3 transition-all duration-150 bg-[#e8f5ea] cursor-pointer relative`}
                     onClick={() => unlocked && handlePlantSelect(plant.key)}
                   >
                     <img
                       src={plant.folder + plant.preview}
                       alt=""
-                      className={`w-24 h-24 object-contain ${unlocked ? '' : 'grayscale blur-sm'}`}
+                      className="w-24 h-24 object-contain"
                     />
-                    {!unlocked && (
-                      <LockIcon
-                        sx={{
-                          position: 'absolute',
-                          top: '50%',
-                          left: '50%',
-                          transform: 'translate(-50%, -50%)',
-                          fontSize: 40,
-                          color: '#bdbdbd',
-                          zIndex: 2
-                        }}
-                      />
-                    )}
                   </motion.div>
                 );
               })}
@@ -391,56 +354,56 @@ const Pomodoro = () => {
       {InfoModal}
       {LeaveWarningModal}
 
-{/* Main Circular Timer */}
-<div className="relative flex flex-col items-center justify-center mt-16">
-  <div className="relative flex items-center justify-center">
-    {/* Main Circle */}
-    <div className="w-[420px] h-[420px] rounded-full bg-gradient-to-br from-[#e8f5ea] to-[#b4ddc8] shadow-2xl flex flex-col items-center justify-center relative">
-      {/* Plant Animation */}
-      {selectedPlant && plantStages.length > 0 && (
-        <motion.img
-          key={stage}
-          src={plantStages[stage]}
-          alt={`Plant stage ${stage + 1}`}
-          className="w-48 h-48 object-contain mx-auto mb-10"
-          initial={{ scale: 0.95, opacity: 0.7 }}
-          animate={{ scale: [1, 1.07, 1], opacity: 1 }}
-          transition={{ duration: 1.5, repeat: Infinity, repeatType: "loop" }}
-        />
-      )}
-      {/* Timer */}
-      <div className="text-5xl font-bold text-[#4e8067] font-nunito mt-2 mb-4 select-none">
-        {formatTime(time)}
+      {/* Main Circular Timer */}
+      <div className="relative flex flex-col items-center justify-center mt-16">
+        <div className="relative flex items-center justify-center">
+          {/* Main Circle */}
+          <div className="w-[420px] h-[420px] rounded-full bg-gradient-to-br from-[#e8f5ea] to-[#b4ddc8] shadow-2xl flex flex-col items-center justify-center relative">
+            {/* Plant Animation */}
+            {selectedPlant && plantStages.length > 0 && (
+              <motion.img
+                key={stage}
+                src={plantStages[stage]}
+                alt={`Plant stage ${stage + 1}`}
+                className="w-48 h-48 object-contain mx-auto mb-10"
+                initial={{ scale: 0.95, opacity: 0.7 }}
+                animate={{ scale: [1, 1.07, 1], opacity: 1 }}
+                transition={{ duration: 1.5, repeat: Infinity, repeatType: "loop" }}
+              />
+            )}
+            {/* Timer */}
+            <div className="text-5xl font-bold text-[#4e8067] font-nunito mt-2 mb-4 select-none">
+              {formatTime(time)}
+            </div>
+            {/* Controls */}
+            <div className="flex flex-row items-center justify-center gap-8 mt-2">
+              <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.95 }}>
+                <span
+                  onClick={toggleStartPause}
+                  className="cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                >
+                  {isActive && !isPaused ?
+                    <PauseIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} /> :
+                    <PlayArrowIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} />
+                  }
+                </span>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.95 }}>
+                <span
+                  onClick={resetTimer}
+                  className="cursor-pointer"
+                  role="button"
+                  tabIndex={0}
+                >
+                  <ReplayIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} />
+                </span>
+              </motion.div>
+            </div>
+          </div>
+        </div>
       </div>
-      {/* Controls */}
-      <div className="flex flex-row items-center justify-center gap-8 mt-2">
-        <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.95 }}>
-          <span
-            onClick={toggleStartPause}
-            className="cursor-pointer"
-            role="button"
-            tabIndex={0}
-          >
-            {isActive && !isPaused ?
-              <PauseIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} /> :
-              <PlayArrowIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} />
-            }
-          </span>
-        </motion.div>
-        <motion.div whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.95 }}>
-          <span
-            onClick={resetTimer}
-            className="cursor-pointer"
-            role="button"
-            tabIndex={0}
-          >
-            <ReplayIcon fontSize="large" className="text-[#4e8067]" style={{ fontSize: 44 }} />
-          </span>
-        </motion.div>
-      </div>
-    </div>
-  </div>
-</div>
 
       {/* Notifications */}
       <Snackbar

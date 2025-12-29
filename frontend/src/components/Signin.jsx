@@ -162,7 +162,7 @@ const Signin = () => {
         } else if (response.data.role === 'teacher') {
           navigate('/teacher/dashboard');
         } else {
-          navigate('/choose-category');
+          navigate('/daily-quote');
         }
       }
     } catch (error) {
