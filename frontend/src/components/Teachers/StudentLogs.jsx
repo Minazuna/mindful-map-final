@@ -183,16 +183,6 @@ const StudentLogs = () => {
     return 'text-gray-600 bg-gray-100';
   };
 
-  const getCategoryIcon = (category) => {
-    const icons = {
-      activity: '🏃',
-      social: '👥',
-      health: '🏥',
-      sleep: '😴'
-    };
-    return icons[category] || '📝';
-  };
-
   if (loading) {
     return (
       <div className="flex">
@@ -434,7 +424,6 @@ const StudentLogs = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <span className="text-lg mr-2">{getCategoryIcon(log.category)}</span>
                         <span className="text-sm font-medium text-gray-900 capitalize">
                           {log.category}
                         </span>

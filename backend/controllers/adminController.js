@@ -13,6 +13,12 @@ exports.getMonthlyUsers = async (req, res) => {
     const currentYear = new Date().getFullYear();
 
     const users = await User.aggregate([
+      // Exclude admin role from the count
+      {
+        $match: {
+          role: { $ne: 'admin' }
+        }
+      },
       {
         $addFields: {
           createdAt: {
@@ -20,7 +26,6 @@ exports.getMonthlyUsers = async (req, res) => {
           },
         },
       },
-
       {
         $match: {
           createdAt: {
@@ -83,6 +88,11 @@ exports.getActiveUsers = async (req, res) => {
       },
       {
         $unwind: '$user',
+      },
+      {
+        $match: {
+          'user.role': 'user' // Filter only students
+        },
       },
       {
         $project: {
@@ -304,34 +314,7 @@ exports.getWeeklyCorrelationValues = async (req, res) => {
   }
 };
 
-exports.getActiveVsInactiveUsers = async (req, res) => {
-  try {
-    const token = req.headers.authorization.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'No token found' });
-    }
 
-    const twoWeeksAgo = moment().subtract(2, 'weeks').toDate();
-
-    // Find all users who have mood logs in the past two weeks
-    const activeUsers = await MoodLog.distinct('user', { date: { $gte: twoWeeksAgo } });
-
-    // Find the total number of users
-    const totalUsers = await User.countDocuments();
-
-    // Calculate the number of inactive users
-    const inactiveUsersCount = totalUsers - activeUsers.length - 1;
-    const data = {
-      active: activeUsers.length,
-      inactive: inactiveUsersCount
-    };
-
-    res.status(200).json(data);
-  } catch (error) {
-    console.error('Error fetching active vs inactive users:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
 
 // Teacher Management Functions
 
@@ -1159,6 +1142,81 @@ exports.getAvailableWeeks = async (req, res) => {
     });
   } catch (error) {
     console.error('Error getting available weeks:', error);
+    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+// Get weekly logs by category for admin dashboard
+exports.getAdminWeeklyLogsByCategory = async (req, res) => {
+  try {
+    const { weekStartDate } = req.query;
+    
+    // Parse the week start date (Monday)
+    let startDate = new Date(weekStartDate);
+    startDate.setHours(0, 0, 0, 0);
+    
+    // Calculate end date (Sunday)
+    let endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + 6);
+    endDate.setHours(23, 59, 59, 999);
+
+    // Get mood logs for the week by category and day
+    const logs = await MoodLog.aggregate([
+      {
+        $match: {
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            category: '$category',
+            dayOfWeek: { $dayOfWeek: '$date' }
+          },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Organize data by category and day
+    const categories = ['activity', 'health', 'social', 'sleep'];
+    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    
+    const chartData = {};
+    categories.forEach(cat => {
+      chartData[cat] = [0, 0, 0, 0, 0, 0, 0]; // Sun to Sat
+    });
+
+    logs.forEach(log => {
+      const { category, dayOfWeek } = log._id;
+      const dayIndex = dayOfWeek === 1 ? 0 : dayOfWeek - 1; // Convert MongoDB dayOfWeek (1-7) to array index (0-6)
+      if (chartData[category]) {
+        chartData[category][dayIndex] = log.count;
+      }
+    });
+
+    // Reorder to start with Monday
+    const reorderedChartData = {};
+    categories.forEach(cat => {
+      const days = chartData[cat];
+      // Move Sunday (index 0) to the end
+      reorderedChartData[cat] = [...days.slice(1), days[0]];
+    });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+        activity: reorderedChartData.activity,
+        health: reorderedChartData.health,
+        social: reorderedChartData.social,
+        sleep: reorderedChartData.sleep,
+        weekStart: startDate,
+        weekEnd: endDate
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching admin weekly logs by category:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };

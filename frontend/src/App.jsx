@@ -45,6 +45,7 @@ import TeacherDashboard from './components/Teachers/Dashboard';
 import StudentLogs from './components/Teachers/StudentLogs';
 import SectionStudents from './components/Teachers/SectionStudents';
 import TeacherProfile from './components/Teachers/Profile';
+import TeacherAnalytics from './components/Teachers/Analytics';
 
 //Student's Inputs 
 import ChooseCategory from './components/User/Inputs/ChooseCategory';
@@ -720,6 +721,14 @@ const App = () => {
           element={
             <TeacherPrivateRoute>
               <StudentLogs />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/analytics"
+          element={
+            <TeacherPrivateRoute>
+              <TeacherAnalytics />
             </TeacherPrivateRoute>
           }
         />
