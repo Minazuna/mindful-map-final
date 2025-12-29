@@ -15,7 +15,7 @@ router.get('/daily-mood-logs', authMiddleware, adminMiddleware, adminController.
 router.get('/daily-journal-logs', authMiddleware, adminMiddleware, adminController.getDailyJournalLogs);
 router.get('/correlation-values', authMiddleware, adminMiddleware, adminController.getCorrelationValues);
 router.get('/weekly-correlation-values', authMiddleware, adminMiddleware, adminController.getWeeklyCorrelationValues);
-router.get('/active-vs-inactive-users', authMiddleware, adminMiddleware, adminController.getActiveVsInactiveUsers);
+router.get('/weekly-logs-by-category', authMiddleware, adminMiddleware, adminController.getAdminWeeklyLogsByCategory);
 
 // Teacher Management Routes
 router.get('/teachers', authMiddleware, adminMiddleware, adminController.getAllTeachers);

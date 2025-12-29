@@ -231,7 +231,6 @@ const SectionStudents = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-lg mr-2">🏃</span>
                           <span className="text-sm font-medium text-gray-900">
                             {getCategoryTotal(student, 'activity')}
                           </span>
@@ -239,7 +238,6 @@ const SectionStudents = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-lg mr-2">👥</span>
                           <span className="text-sm font-medium text-gray-900">
                             {getCategoryTotal(student, 'social')}
                           </span>
@@ -247,7 +245,6 @@ const SectionStudents = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-lg mr-2">🏥</span>
                           <span className="text-sm font-medium text-gray-900">
                             {getCategoryTotal(student, 'health')}
                           </span>
@@ -255,7 +252,6 @@ const SectionStudents = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div className="flex items-center">
-                          <span className="text-lg mr-2">😴</span>
                           <span className="text-sm font-medium text-gray-900">
                             {getCategoryTotal(student, 'sleep')}
                           </span>

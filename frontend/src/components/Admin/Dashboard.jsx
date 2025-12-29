@@ -4,25 +4,58 @@ import Navbar from './Navbar';
 import ShowChartIcon from '@mui/icons-material/ShowChart';
 import TaskAltIcon from '@mui/icons-material/TaskAlt';
 import BlockIcon from '@mui/icons-material/Block';
+import SchoolIcon from '@mui/icons-material/School';
+import PersonIcon from '@mui/icons-material/Person';
 import DownloadIcon from '@mui/icons-material/Download';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import axios from 'axios';
 import { Bar, Line, Pie } from 'react-chartjs-2';
 import 'chart.js/auto';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-import moment from 'moment';
+import { generatePDF } from '../PDFTemplates/DashboardPDFs';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const [monthlyUsers, setMonthlyUsers] = useState(0);
   const [monthlyUserData, setMonthlyUserData] = useState([]);
-  const [activeUsersCount, setActiveUsersCount] = useState(0);
-  const [inactiveUsersCount, setInactiveUsersCount] = useState(0);
+  const [activeStudentsCount, setActiveStudentsCount] = useState(0);
+  const [inactiveStudentsCount, setInactiveStudentsCount] = useState(0);
+  const [teachersCount, setTeachersCount] = useState(0);
+  const [studentsCount, setStudentsCount] = useState(0);
   const [dailyMoodLogsData, setDailyMoodLogsData] = useState([]);
   const [dailyJournalLogsData, setDailyJournalLogsData] = useState([]);
-  const [weeklyCorrelationValuesData, setWeeklyCorrelationValuesData] = useState([]);
-  const [activeVsInactiveUsersData, setActiveVsInactiveUsersData] = useState({ active: 0, inactive: 0 });
+  const [activeVsInactiveStudentsData, setActiveVsInactiveStudentsData] = useState({ active: 0, inactive: 0 });
   const [moodLogsPage, setMoodLogsPage] = useState(0);
+  const [weeklyLogsData, setWeeklyLogsData] = useState(null);
+  const [currentWeekStart, setCurrentWeekStart] = useState(getMondayOfCurrentWeek());
+  const [weeklyLogsLoading, setWeeklyLogsLoading] = useState(false);
+
+  function getMondayOfCurrentWeek() {
+    const now = new Date();
+    const day = now.getDay();
+    const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+    return new Date(now.setDate(diff));
+  }
+
+  function getFormattedDate(date) {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  const handlePreviousWeek = () => {
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentWeekStart(newDate);
+  };
+
+  const handleNextWeek = () => {
+    const newDate = new Date(currentWeekStart);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentWeekStart(newDate);
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('token');
@@ -38,24 +71,28 @@ const Dashboard = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        setMonthlyUsers(response.data.reduce((acc, data) => acc + data.count, 0));
+        // Calculate total users (will exclude admins on backend level later)
+        const totalUsers = response.data.reduce((acc, data) => acc + data.count, 0);
+        setMonthlyUsers(totalUsers);
         setMonthlyUserData(response.data);
       } catch (error) {
         console.error('Error fetching monthly users:', error);
       }
     };
   
-    const fetchActiveUsers = async () => {
+    const fetchActiveStudents = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/active-users`, {
+        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        setActiveUsersCount(response.data.length);
+        // Count active students (users endpoint already filters role: 'user' and includes status)
+        const activeStudents = response.data.filter(user => user.status === 'Active');
+        setActiveStudentsCount(activeStudents.length);
       } catch (error) {
-        console.error('Error fetching active users:', error);
+        console.error('Error fetching active students:', error);
       }
     };
   
@@ -87,42 +124,92 @@ const Dashboard = () => {
       }
     };
   
-    const fetchWeeklyCorrelationValues = async () => {
+    const fetchActiveVsInactiveStudents = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/weekly-correlation-values`, {
+        // Fetch active students
+        const activeResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/active-users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        setWeeklyCorrelationValuesData(response.data);
+        // Fetch inactive students  
+        const inactiveResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/inactive-users`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        
+        const activeStudents = activeResponse.data.length;
+        const inactiveStudents = inactiveResponse.data.length;
+        setActiveVsInactiveStudentsData({ active: activeStudents, inactive: inactiveStudents });
+        setInactiveStudentsCount(inactiveStudents);
       } catch (error) {
-        console.error('Error fetching weekly correlation values:', error);
+        console.error('Error fetching active vs inactive students:', error);
       }
     };
-  
-    const fetchActiveVsInactiveUsers = async () => {
+
+    const fetchTeachersCount = async () => {
       try {
         const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/active-vs-inactive-users`, {
+        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/teachers`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
         });
-        setActiveVsInactiveUsersData(response.data);
-        setInactiveUsersCount(response.data.inactive);
+        setTeachersCount(response.data.count || response.data.data?.length || 0);
       } catch (error) {
-        console.error('Error fetching active vs inactive users:', error);
+        console.error('Error fetching teachers count:', error);
+      }
+    };
+
+    const fetchStudentsCount = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/users`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        // users endpoint already filters for role: 'user'
+        setStudentsCount(response.data.length);
+      } catch (error) {
+        console.error('Error fetching students count:', error);
+      }
+    };
+
+    const fetchWeeklyLogs = async () => {
+      try {
+        setWeeklyLogsLoading(true);
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/admin/weekly-logs-by-category`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            params: { weekStartDate: getFormattedDate(currentWeekStart) }
+          }
+        );
+        
+        if (response.data.success) {
+          setWeeklyLogsData(response.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching weekly logs:', error);
+        setWeeklyLogsData(null);
+      } finally {
+        setWeeklyLogsLoading(false);
       }
     };
   
     fetchMonthlyUsers();
-    fetchActiveUsers();
+    fetchActiveStudents();
     fetchDailyMoodLogs();
     fetchDailyJournalLogs();
-    fetchWeeklyCorrelationValues();
-    fetchActiveVsInactiveUsers();
-  }, []);
+    fetchActiveVsInactiveStudents();
+    fetchTeachersCount();
+    fetchStudentsCount();
+    fetchWeeklyLogs();
+  }, [currentWeekStart]);
 
   const barChartData = {
     labels: monthlyUserData.map(data => data.month),
@@ -187,20 +274,6 @@ const Dashboard = () => {
     ],
   };
 
-  const weeklyCorrelationValuesChartData = {
-    labels: weeklyCorrelationValuesData.map(data => data.week),
-    datasets: [
-      {
-        label: 'Weekly Correlation Values',
-        data: weeklyCorrelationValuesData.map(data => data.count),
-        borderColor: '#64aa86',
-        backgroundColor: 'rgba(100, 170, 134, 0.2)',
-        fill: true,
-        tension: 0.4,
-      },
-    ],
-  };
-
   const lineChartOptions = {
     maintainAspectRatio: false,
     plugins: {
@@ -225,12 +298,12 @@ const Dashboard = () => {
     },
   };
 
-  const activeVsInactiveUsersChartData = {
-    labels: ['Active Users', 'Inactive Users'],
+  const activeVsInactiveStudentsChartData = {
+    labels: ['Active Students', 'Inactive Students'],
     datasets: [
       {
-        label: 'Users',
-        data: [activeVsInactiveUsersData.active, activeVsInactiveUsersData.inactive],
+        label: 'Students',
+        data: [activeVsInactiveStudentsData.active, activeVsInactiveStudentsData.inactive],
         backgroundColor: ['#64aa86', '#f44336'],
       },
     ],
@@ -252,178 +325,17 @@ const Dashboard = () => {
     },
   };
 
-  const generatePDF = (chartId, title) => {
-    const input = document.querySelector(`#${chartId} canvas`);
-    html2canvas(input).then((canvas) => {
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const logoWidth = 25; 
-      const logoHeight = 25;
-      const margin = 15;
-      const lineY = 42;
-      
-      pdf.setFillColor(240, 247, 244);
-      pdf.rect(0, 0, pageWidth, pageHeight, 'F');
-      
-      pdf.setFillColor(255, 255, 255);
-      pdf.roundedRect(10, 5, pageWidth - 20, pageHeight - 10, 5, 5, 'F');
-      
-      const tupLogo = new Image();
-      const rightLogo = new Image();
-      tupLogo.src = '/images/tup.png';
-      rightLogo.src = '/images/logo.png';
-      
-      Promise.all([
-        new Promise((resolve, reject) => {
-          tupLogo.onload = resolve;
-          tupLogo.onerror = reject;
-        }),
-        new Promise((resolve, reject) => {
-          rightLogo.onload = resolve;
-          rightLogo.onerror = reject;
-        })
-      ]).then(() => {
-        pdf.addImage(tupLogo, 'PNG', margin, 10, logoWidth, logoHeight);
-        const rightLogoX = pageWidth - margin - logoWidth;
-        pdf.addImage(rightLogo, 'PNG', rightLogoX, 10, logoWidth, logoHeight);
-        
-        const textStart = margin + logoWidth + 10;
-        const textWidth = rightLogoX - textStart;
-        
-        pdf.setFontSize(11);
-        pdf.setFont('helvetica', 'bold');
-        const universityName = "TECHNOLOGICAL UNIVERSITY OF THE PHILIPPINES-TAGUIG";
-        const universityX = textStart + (textWidth - pdf.getTextWidth(universityName)) / 2 - 5;
-        pdf.text(universityName, universityX, 20);
-        
-        pdf.setFontSize(11);
-        const program = "BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY";
-        const programX = textStart + (textWidth - pdf.getTextWidth(program)) / 2 - 5;
-        pdf.text(program, programX, 27);
-        
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'normal');
-        const address = "Km. 14 East Service Road, Western Bicutan, Taguig City 1630, Metro Manila, Philippines";
-        const addressX = textStart + (textWidth - pdf.getTextWidth(address)) / 2 - 5;
-        pdf.text(address, addressX, 34);
-        
-        pdf.setLineWidth(0.8);
-        pdf.setDrawColor(100, 179, 138);  
-        pdf.line(35, lineY, pageWidth - 35, lineY);
-        
-        pdf.setFontSize(16);
-        pdf.setTextColor(60, 107, 82);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text(title, margin, lineY + 20);
-        
-        pdf.setFillColor(255, 255, 255);
-        pdf.setDrawColor(100, 179, 138);
-        pdf.setLineWidth(0.5);
-        pdf.roundedRect(25, 65, 160, 90, 3, 3, 'FD');
-        
-        pdf.addImage(imgData, 'PNG', 35, 70, 140, 80);
-        
-        let summaryText = generateSummaryText(chartId);
-        
-        pdf.setFillColor(240, 247, 244);
-        pdf.roundedRect(margin, 160, pageWidth - (margin * 2), 90, 3, 3, 'F');
-        
-        pdf.setFontSize(14);
-        pdf.setFont('helvetica', 'bold');
-        pdf.setTextColor(60, 107, 82);
-        pdf.text("Summary", margin, 166);
-        
-        pdf.setLineWidth(0.3);
-        pdf.setDrawColor(100, 179, 138, 0.5);
-        pdf.line(margin, 170, pageWidth - margin, 170);
-        
-        pdf.setFontSize(12);
-        pdf.setFont('helvetica', 'normal');
-        pdf.setTextColor(50, 50, 50);
-        
-        const maxWidth = pageWidth - (2 * margin) - 10;
-        const splitText = pdf.splitTextToSize(summaryText, maxWidth);
-        
-        for (let i = 0; i < splitText.length; i++) {
-          const textY = 178 + (i * 7);
-          pdf.text(splitText[i], margin + 5, textY, { align: 'justify' });
-        }
-        
-        pdf.setFillColor(240, 247, 244);
-        pdf.rect(0, pageHeight - 15, pageWidth, 15, 'F');
-        
-        pdf.setFontSize(9);
-        pdf.setFont('helvetica', 'italic');
-        pdf.setTextColor(100, 100, 100);
-        const today = new Date().toLocaleDateString('en-US', { 
-          year: 'numeric', 
-          month: 'long', 
-          day: 'numeric' 
-        });
-        pdf.text(`Generated on: ${today}`, margin, pageHeight - 7);
-        pdf.text(`Mindful Map Analytics  Page 1/1`, pageWidth - margin - 40, pageHeight - 7);
-        
-        pdf.save(`${title}.pdf`);
-      }).catch(error => {
-        console.error('Error loading images:', error);
-      });
-    });
-  };
-  
-  const generateSummaryText = (chartId) => {
-    switch (chartId) {
-      case 'monthly-users-chart':
-        const totalMonthlyUsers = monthlyUsers;
-        const highestMonth = monthlyUserData.reduce((max, data) => data.count > max.count ? data : max, { count: 0 }).month || 'N/A';
-        const averageMonthlyUsers = monthlyUserData.length > 0 ? 
-          (monthlyUserData.reduce((sum, data) => sum + data.count, 0) / monthlyUserData.length).toFixed(2) : 0;
-        return `The total number of registered users across all months is ${totalMonthlyUsers}. The highest number of registrations occurred in ${highestMonth}. The average number of users registered per month is ${averageMonthlyUsers}. This data helps track user growth trends over time and identify seasonal patterns in user registration.`;
-      
-      case 'active-vs-inactive-users-chart':
-        const active = activeVsInactiveUsersData.active || 0;
-        const inactive = activeVsInactiveUsersData.inactive || 0;
-        const total = active + inactive;
-        const activePercentage = total > 0 ? ((active / total) * 100).toFixed(2) : 0;
-        return `Currently, there are ${active} active users and ${inactive} inactive users on the platform. Active users represent ${activePercentage}% of the total user base. This ratio is important for understanding user retention and engagement levels across the platform.`;
-      
-      case 'daily-mood-logs-chart':
-        const totalMoodLogs = dailyMoodLogsData.reduce((sum, data) => sum + data.count, 0);
-        const avgMoodLogs = dailyMoodLogsData.length > 0 ?
-          (totalMoodLogs / dailyMoodLogsData.length).toFixed(2) : 0;
-        const highestMoodLogDay = dailyMoodLogsData.reduce((max, data) => data.count > max.count ? data : max, { count: 0 }).date || 'N/A';
-        return `Users have recorded a total of ${totalMoodLogs} mood entries across the displayed period. The average is ${avgMoodLogs} mood logs per day, with the highest activity on ${highestMoodLogDay}. This data shows how frequently users are tracking their emotional states.`;
-      
-      case 'daily-journal-logs-chart':
-        const totalJournalLogs = dailyJournalLogsData.reduce((sum, data) => sum + data.count, 0);
-        const avgJournalLogs = dailyJournalLogsData.length > 0 ?
-          (totalJournalLogs / dailyJournalLogsData.length).toFixed(2) : 0;
-        const highestJournalLogDay = dailyJournalLogsData.reduce((max, data) => data.count > max.count ? data : max, { count: 0 }).date || 'N/A';
-        return `Users have created a total of ${totalJournalLogs} journal entries during this period. Daily journaling averages ${avgJournalLogs} entries per day, with peak activity occurring on ${highestJournalLogDay}. Journal logs represent deeper user engagement with the reflection process.`;
-      
-      case 'weekly-correlation-values-chart':
-        const avgCorrelationValue = weeklyCorrelationValuesData.length > 0 ?
-          (weeklyCorrelationValuesData.reduce((sum, data) => sum + data.count, 0) / weeklyCorrelationValuesData.length).toFixed(2) : 0;
-        const correlationTrend = getWeeklyTrend(weeklyCorrelationValuesData);
-        return `The average correlation value across all weeks is ${avgCorrelationValue}, with a ${correlationTrend} trend. Correlation values measure the strength of relationship between user activities and mood states. Higher values indicate stronger connections between activities and emotional outcomes.`;
-      
-      default:
-        return "This chart summarizes the data collected within the Mindful Map application. Please refer to the visual representation above for specific data points and trends.";
-    }
-  };
-  
-  const getWeeklyTrend = (data) => {
-    if (data.length < 2) return "stable";
-    const firstValues = data.slice(0, Math.ceil(data.length/2));
-    const secondValues = data.slice(-Math.ceil(data.length/2));
-    const firstAvg = firstValues.reduce((sum, item) => sum + item.count, 0) / firstValues.length;
-    const secondAvg = secondValues.reduce((sum, item) => sum + item.count, 0) / secondValues.length;
-    const difference = secondAvg - firstAvg;
-    if (difference > 0.1) return "increasing";
-    if (difference < -0.1) return "decreasing";
-    return "stable";
+  const handleGeneratePDF = (chartId, title) => {
+    const data = {
+      monthlyUsers,
+      monthlyUserData,
+      activeVsInactiveUsersData: activeVsInactiveStudentsData,
+      dailyMoodLogsData,
+      dailyJournalLogsData,
+      weeklyLogsData,
+      currentWeekStart
+    };
+    generatePDF(chartId, title, data);
   };
   
   return (
@@ -433,26 +345,42 @@ const Dashboard = () => {
       </div>
 
       <div className="flex-grow p-6">
-        <div className="grid grid-cols-3 gap-4">
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36 w-72">
+        <div className="grid grid-cols-4 gap-4">
+          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
             <ShowChartIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
             <div>
               <h2 className="text-[#292f33] font-bold text-xl">Total Users</h2>
               <p className="text-[#64aa86] font-bold text-2xl">{monthlyUsers}</p>
             </div>
           </div>
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36 w-72">
-            <TaskAltIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
+          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
+            <SchoolIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
             <div>
-              <h2 className="text-[#292f33] font-bold text-xl">Active Users</h2>
-              <p className="text-[#64aa86] font-bold text-2xl">{activeUsersCount}</p>
+              <h2 className="text-[#292f33] font-bold text-xl">Teachers</h2>
+              <p className="text-[#64aa86] font-bold text-2xl">{teachersCount}</p>
             </div>
           </div>
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36 w-72">
+          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
+            <PersonIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
+            <div>
+              <h2 className="text-[#292f33] font-bold text-xl">Students</h2>
+              <p className="text-[#64aa86] font-bold text-2xl">{studentsCount}</p>
+            </div>
+          </div>
+          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
+            <TaskAltIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
+            <div>
+              <h2 className="text-[#292f33] font-bold text-xl">Active Students</h2>
+              <p className="text-[#64aa86] font-bold text-2xl">{activeStudentsCount}</p>
+            </div>
+          </div>
+        </div>
+        <div className="grid grid-cols-4 gap-4 mt-4">
+          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
             <BlockIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
             <div>
-              <h2 className="text-[#292f33] font-bold text-xl">Inactive Users</h2>
-              <p className="text-[#64aa86] font-bold text-2xl">{inactiveUsersCount}</p>
+              <h2 className="text-[#292f33] font-bold text-xl">Inactive Students</h2>
+              <p className="text-[#64aa86] font-bold text-2xl">{inactiveStudentsCount}</p>
             </div>
           </div>
         </div>
@@ -464,7 +392,7 @@ const Dashboard = () => {
               <DownloadIcon
                 className="text-[#64aa86] cursor-pointer"
                 style={{ fontSize: '20px' }}
-                onClick={() => generatePDF('monthly-users-chart', 'Monthly Users')}
+                onClick={() => handleGeneratePDF('monthly-users-chart', 'Monthly Users')}
               />
             </div>
             <div className="h-64">
@@ -475,17 +403,17 @@ const Dashboard = () => {
 
         <div className="flex flex-col items-center mt-6">
           <div className="grid grid-cols-1 gap-4 w-full max-w-6xl">
-            <div id="active-vs-inactive-users-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6">
-              <h2 className="text-[#292f33] font-bold text-xl mb-4">Active and Inactive Users</h2>
+            <div id="active-vs-inactive-students-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6">
+              <h2 className="text-[#292f33] font-bold text-xl mb-4">Active and Inactive Students</h2>
               <div className="absolute top-2 right-2">
                 <DownloadIcon
                   className="text-[#64aa86] cursor-pointer"
                   style={{ fontSize: '20px' }}
-                  onClick={() => generatePDF('active-vs-inactive-users-chart', 'Active vs Inactive Users')}
+                  onClick={() => handleGeneratePDF('active-vs-inactive-students-chart', 'Active vs Inactive Students')}
                 />
               </div>
               <div className="h-64">
-                <Pie data={activeVsInactiveUsersChartData} options={pieChartOptions} />
+                <Pie data={activeVsInactiveStudentsChartData} options={pieChartOptions} />
               </div>
             </div>
           </div>
@@ -495,7 +423,7 @@ const Dashboard = () => {
               <DownloadIcon
                 className="text-[#64aa86] cursor-pointer"
                 style={{ fontSize: '20px' }}
-                onClick={() => generatePDF('daily-mood-logs-chart', 'Daily Mood Logs')}
+                onClick={() => handleGeneratePDF('daily-mood-logs-chart', 'Daily Mood Logs')}
               />
             </div>
             <div className="h-64">
@@ -512,25 +440,165 @@ const Dashboard = () => {
               <DownloadIcon
                 className="text-[#64aa86] cursor-pointer"
                 style={{ fontSize: '20px' }}
-                onClick={() => generatePDF('daily-journal-logs-chart', 'Daily Journal Logs')}
+                onClick={() => handleGeneratePDF('daily-journal-logs-chart', 'Daily Journal Logs')}
               />
             </div>
             <div className="h-64">
               <Line data={dailyJournalLogsChartData} options={lineChartOptions} />
             </div>
           </div>
-          <div id="weekly-correlation-values-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 w-full max-w-6xl mt-6">
-            <h2 className="text-[#292f33] font-bold text-xl mb-4">Weekly Correlation Values</h2>
+
+          {/* Weekly Logs by Category Chart */}
+          <div className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 w-full max-w-6xl mt-6">
+            <h2 className="text-[#292f33] font-bold text-xl mb-4">Weekly Logs by Category</h2>
             <div className="absolute top-2 right-2">
               <DownloadIcon
                 className="text-[#64aa86] cursor-pointer"
                 style={{ fontSize: '20px' }}
-                onClick={() => generatePDF('weekly-correlation-values-chart', 'Weekly Correlation Values')}
+                onClick={() => handleGeneratePDF('weekly-logs-by-category-chart', 'Weekly Logs by Category')}
               />
             </div>
-            <div className="h-64">
-              <Line data={weeklyCorrelationValuesChartData} options={lineChartOptions} />
+            
+            {/* Week Date Display */}
+            <div className="text-center text-xs text-gray-400 mb-6">
+              {currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </div>
+
+            {/* Chart */}
+            {weeklyLogsLoading ? (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-gray-500">Loading weekly data...</div>
+              </div>
+            ) : weeklyLogsData ? (
+              <>
+                <div id="weekly-logs-by-category-chart" className="h-64">
+                  <Line
+                    data={{
+                      labels: weeklyLogsData.days,
+                      datasets: [
+                        {
+                          label: 'Activity',
+                          data: weeklyLogsData.activity,
+                          borderColor: '#4A90E2',
+                          borderWidth: 2.5,
+                          fill: false,
+                          tension: 0.4,
+                          pointRadius: 5,
+                          pointHoverRadius: 7,
+                          pointBackgroundColor: '#4A90E2',
+                          pointBorderColor: '#fff',
+                          pointBorderWidth: 2
+                        },
+                        {
+                          label: 'Social',
+                          data: weeklyLogsData.social,
+                          borderColor: '#E85D75',
+                          borderWidth: 2.5,
+                          fill: false,
+                          tension: 0.4,
+                          pointRadius: 5,
+                          pointHoverRadius: 7,
+                          pointBackgroundColor: '#E85D75',
+                          pointBorderColor: '#fff',
+                          pointBorderWidth: 2
+                        },
+                        {
+                          label: 'Health',
+                          data: weeklyLogsData.health,
+                          borderColor: '#2FCC71',
+                          borderWidth: 2.5,
+                          fill: false,
+                          tension: 0.4,
+                          pointRadius: 5,
+                          pointHoverRadius: 7,
+                          pointBackgroundColor: '#2FCC71',
+                          pointBorderColor: '#fff',
+                          pointBorderWidth: 2
+                        },
+                        {
+                          label: 'Sleep',
+                          data: weeklyLogsData.sleep,
+                          borderColor: '#F39C12',
+                          borderWidth: 2.5,
+                          fill: false,
+                          tension: 0.4,
+                          pointRadius: 5,
+                          pointHoverRadius: 7,
+                          pointBackgroundColor: '#F39C12',
+                          pointBorderColor: '#fff',
+                          pointBorderWidth: 2
+                        }
+                      ]
+                    }}
+                    options={{
+                      responsive: true,
+                      maintainAspectRatio: false,
+                      plugins: {
+                        legend: {
+                          display: true,
+                          position: 'top',
+                          labels: {
+                            usePointStyle: true,
+                            padding: 15,
+                            font: {
+                              size: 12,
+                              weight: 'bold'
+                            }
+                          }
+                        },
+                        tooltip: {
+                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                          titleColor: '#333',
+                          bodyColor: '#333',
+                          borderColor: '#55AD9B',
+                          borderWidth: 1,
+                          cornerRadius: 8,
+                          padding: 10
+                        }
+                      },
+                      scales: {
+                        y: {
+                          beginAtZero: true,
+                          ticks: {
+                            stepSize: Math.max(1, Math.ceil(Math.max(...weeklyLogsData.activity, ...weeklyLogsData.health, ...weeklyLogsData.social, ...weeklyLogsData.sleep) / 5))
+                          },
+                          grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                          }
+                        },
+                        x: {
+                          grid: {
+                            color: 'rgba(200, 200, 200, 0.2)'
+                          }
+                        }
+                      }
+                    }}
+                  />
+                </div>
+                
+                {/* Navigation Buttons Below Chart */}
+                <div className="flex items-center justify-center gap-4 mt-6">
+                  <button
+                    onClick={handlePreviousWeek}
+                    className="p-2 rounded-lg text-[#55AD9B] hover:bg-gray-100 transition-colors"
+                    title="Previous Week"
+                  >
+                    <NavigateBeforeIcon style={{ fontSize: '32px' }} />
+                  </button>
+                  <button
+                    onClick={handleNextWeek}
+                    className="p-2 rounded-lg text-[#55AD9B] hover:bg-gray-100 transition-colors"
+                    title="Next Week"
+                  >
+                    <NavigateNextIcon style={{ fontSize: '32px' }} />
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="flex justify-center items-center h-64">
+                <div className="text-gray-500">No data available for this week</div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -538,4 +606,4 @@ const Dashboard = () => {
   );
 };
 
-export default Dashboard;
+export default Dashboard; 
