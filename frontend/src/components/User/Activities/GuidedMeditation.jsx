@@ -1,26 +1,58 @@
 import React, { useState } from 'react';
 import { FaLeaf, FaSpa, FaEye, FaMusic, FaDotCircle } from 'react-icons/fa';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const meditationData = {
   mindfulness: {
-    '5': 'ssss7V1_eyA',
-    '10': 'Evgx9yX2Vw8',
+    '5': {
+      id: 'ssss7V1_eyA',
+      description: 'A gentle 5-minute mindfulness meditation to help you become present and aware of your thoughts and sensations.',
+    },
+    '10': {
+      id: 'Evgx9yX2Vw8',
+      description: 'A 10-minute guided mindfulness session to cultivate calm and clarity by focusing on the breath and present moment.',
+    },
   },
   'body-scan': {
-    '5': 'z8zX-QbXIT4',
-    '10': 'nnVCadMo3qI',
+    '5': {
+      id: 'z8zX-QbXIT4',
+      description: 'A short body scan to help you relax and connect with your body, releasing tension from head to toe.',
+    },
+    '10': {
+      id: 'nnVCadMo3qI',
+      description: 'A deeper 10-minute body scan meditation for full-body relaxation and stress relief.',
+    },
   },
   visualization: {
-    '5': '_YAgCAhVtss',
-    '10': 'Tvs7JNV8NDA', 
+    '5': {
+      id: '_YAgCAhVtss',
+      description: 'A quick visualization to help you imagine a peaceful place and boost your mood.',
+    },
+    '10': {
+      id: 'Tvs7JNV8NDA',
+      description: 'A 10-minute visualization journey to inspire positivity and inner peace.',
+    },
   },
   sound: {
-    '5': '1AQs9vLcr3Q',
-    '10': 'YlOUww60Q5M',
+    '5': {
+      id: '1AQs9vLcr3Q',
+      description: 'A 5-minute sound bath using soothing tones to calm your mind and body.',
+    },
+    '10': {
+      id: 'YlOUww60Q5M',
+      description: 'A longer sound bath experience for deep relaxation and mental clarity.',
+    },
   },
   chakra: {
-    '5': 'v0r2zCMcRsA', 
-    '10': 'P_ri2uy9Hgs',
+    '5': {
+      id: 'v0r2zCMcRsA',
+      description: 'A brief chakra meditation to balance your energy centers and promote well-being.',
+    },
+    '10': {
+      id: 'P_ri2uy9Hgs',
+      description: 'A 10-minute chakra alignment meditation for harmony and inner balance.',
+    },
   },
 };
 
@@ -32,64 +64,70 @@ const meditationTypes = [
   { id: 'chakra', name: 'Chakra', icon: <FaDotCircle /> },
 ];
 
-const GuidedMeditation = () => {
+const GuidedMeditation = ({ onBack }) => {
   const [meditationType, setMeditationType] = useState('mindfulness');
   const [duration, setDuration] = useState('5');
-  const [video, setVideo] = useState(meditationData.mindfulness['5']);
 
-  const handleMeditationTypeChange = (type) => {
-    setMeditationType(type);
-    setVideo(meditationData[type][duration]);
-  };
+  const currentMeditation = meditationData[meditationType][duration];
 
-  const handleDurationChange = (newDuration) => {
-    setDuration(newDuration);
-    setVideo(meditationData[meditationType][newDuration]);
-  };
-
+  // UI improvement: add header, back button, and more modern layout/colors
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-4 sm:p-8">
-      <div className="max-w-6xl mx-auto">
-        <header className="text-center mb-8">
-          <h1 className="text-4xl sm:text-5xl font-bold tracking-tight">Guided Meditation</h1>
-          <p className="text-lg text-gray-400 mt-2">Find your inner peace and calm.</p>
-        </header>
+    <div className="min-h-screen bg-gradient-to-br from-[#e0f7fa] via-[#f1f8e8] to-[#eaf7f3] text-[#1b5f52] flex flex-col">
+      {/* Header */}
+      <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-[#CBE7DC] py-4 px-4 flex items-center shadow-sm">
+        <button
+          onClick={onBack ? onBack : () => window.history.back()}
+          className="p-2 rounded-full hover:bg-[#E6F4EA] transition"
+          aria-label="Back"
+        >
+          <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
+        </button>
+        <h1 className="flex-1 text-center text-2xl font-bold tracking-tight text-[#1b5f52]">
+          Guided Meditation
+        </h1>
+        <div className="w-8" />
+      </div>
 
+      <div className="flex-1 max-w-5xl mx-auto w-full px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Left side: Meditation selection */}
-          <div className="lg:col-span-1 bg-gray-800 bg-opacity-50 rounded-lg p-6 shadow-lg">
-            <h2 className="text-2xl font-semibold mb-4">Choose Your Path</h2>
+          <div className="lg:col-span-1 bg-white/90 rounded-2xl p-6 shadow-lg border-2 border-[#E6F4EA]">
+            <h2 className="text-xl font-semibold mb-4 text-[#40916c]">Choose Your Path</h2>
             <div className="space-y-2">
               {meditationTypes.map((type) => (
                 <button
                   key={type.id}
-                  onClick={() => handleMeditationTypeChange(type.id)}
-                  className={`w-full text-left p-4 rounded-lg transition-all duration-300 flex items-center space-x-3 ${
+                  onClick={() => setMeditationType(type.id)}
+                  className={`w-full text-left p-4 rounded-xl transition-all duration-300 flex items-center space-x-3 border-2 ${
                     meditationType === type.id
-                      ? 'bg-teal-500 text-white shadow-md'
-                      : 'bg-gray-700 hover:bg-gray-600'
+                      ? 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white border-[#55AD9B] shadow-md'
+                      : 'bg-[#F7FBF9] hover:bg-[#EAF7F3] text-[#1b5f52] border-[#E6F4EA]'
                   }`}
                 >
-                  <span className="text-xl">{type.icon}</span>
-                  <span>{type.name}</span>
+                  <span className="text-2xl">{type.icon}</span>
+                  <span className="font-semibold">{type.name}</span>
                 </button>
               ))}
             </div>
 
-            <h2 className="text-2xl font-semibold mt-8 mb-4">Select Duration</h2>
+            <h2 className="text-xl font-semibold mt-8 mb-4 text-[#40916c]">Select Duration</h2>
             <div className="flex space-x-4">
               <button
-                onClick={() => handleDurationChange('5')}
-                className={`w-full p-3 rounded-lg transition-all duration-300 ${
-                  duration === '5' ? 'bg-teal-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
+                onClick={() => setDuration('5')}
+                className={`flex-1 p-3 rounded-xl font-semibold transition-all duration-300 border-2 ${
+                  duration === '5'
+                    ? 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white border-[#55AD9B]'
+                    : 'bg-[#F7FBF9] hover:bg-[#EAF7F3] text-[#1b5f52] border-[#E6F4EA]'
                 }`}
               >
                 5 Minutes
               </button>
               <button
-                onClick={() => handleDurationChange('10')}
-                className={`w-full p-3 rounded-lg transition-all duration-300 ${
-                  duration === '10' ? 'bg-teal-500 text-white' : 'bg-gray-700 hover:bg-gray-600'
+                onClick={() => setDuration('10')}
+                className={`flex-1 p-3 rounded-xl font-semibold transition-all duration-300 border-2 ${
+                  duration === '10'
+                    ? 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white border-[#55AD9B]'
+                    : 'bg-[#F7FBF9] hover:bg-[#EAF7F3] text-[#1b5f52] border-[#E6F4EA]'
                 }`}
               >
                 10 Minutes
@@ -97,27 +135,40 @@ const GuidedMeditation = () => {
             </div>
           </div>
 
-          {/* Right side: Video player */}
-          <div className="lg:col-span-2 bg-gray-800 bg-opacity-50 rounded-lg p-4 shadow-lg flex flex-col">
-            <div className="aspect-video w-full">
-              {video ? (
-                <iframe
-                  className="rounded-lg w-full h-full"
-                  src={`https://www.youtube.com/embed/${video}`}
-                  title="YouTube video player"
-                  frameBorder="0"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              ) : (
-                <div className="flex items-center justify-center h-full bg-gray-700 rounded-lg">
-                  <p>Please select a meditation type and duration.</p>
-                </div>
-              )}
+          {/* Right side: Video player and description */}
+          <div className="lg:col-span-2 flex flex-col gap-6">
+            <div className="bg-white/90 rounded-2xl p-4 shadow-lg border-2 border-[#E6F4EA] flex flex-col items-center">
+              <div className="aspect-video w-full max-w-2xl mx-auto rounded-xl overflow-hidden bg-[#F7FBF9] border border-[#E6F4EA]">
+                {currentMeditation ? (
+                  <iframe
+                    className="w-full h-full"
+                    src={`https://www.youtube.com/embed/${currentMeditation.id}`}
+                    title="YouTube video player"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  ></iframe>
+                ) : (
+                  <div className="flex items-center justify-center h-full bg-[#EAF7F3]">
+                    <p className="text-[#40916c]">Please select a meditation type and duration.</p>
+                  </div>
+                )}
+              </div>
+              <div className="mt-4 text-center">
+                <h3 className="text-2xl font-bold capitalize text-[#1b5f52]">
+                  {meditationType.replace('-', ' ')} Meditation
+                </h3>
+                <p className="text-[#40916c] font-medium">{duration} minutes</p>
+              </div>
             </div>
-            <div className="mt-4 text-center">
-                <h3 className="text-2xl font-semibold capitalize">{meditationType.replace('-', ' ')} Meditation</h3>
-                <p className="text-gray-400">{duration} minutes</p>
+            {/* Description Box */}
+            <div className="flex items-start gap-3 bg-[#E6F4EA]/60 border border-[#CBE7DC] rounded-xl p-5 min-h-[64px]">
+              <InfoOutlinedIcon style={{ color: '#55AD9B', fontSize: 28 }} />
+              <span className="text-[#1b5f52] text-base font-medium leading-relaxed">
+                {currentMeditation
+                  ? currentMeditation.description
+                  : 'Choose a meditation type and duration to see an overview.'}
+              </span>
             </div>
           </div>
         </div>
