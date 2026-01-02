@@ -10,7 +10,14 @@ const Sidebar = ({ teacher }) => {
   const currentPath = location.pathname;
 
   // All available sections
-  const allSections = ['St. John Paul II (STEM 1)', 'St. Paul VI (STEM 2)', 'St. John XXIII (STEM 3)', 'St. Pius X (HUMSS)', 'St. Tarcisius (ABM)', 'St. Jose Sanchez Del Rio (ICT)'];
+  const allSections = [
+    'St. John Paul II (STEM 1)',
+    'St. Paul VI (STEM 2)',
+    'St. John XXIII (STEM 3)',
+    'St. Pius X (HUMSS)',
+    'St. Tarcisius (ABM)',
+    'St. Jose Sanchez Del Rio (ICT)'
+  ];
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/teacher/dashboard' },
@@ -35,62 +42,32 @@ const Sidebar = ({ teacher }) => {
         isCollapsed ? 'w-20' : 'w-72'
       }`}
     >
-      {/* Header with Teacher Profile */}
-      <div className="border-b border-gray-100" style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
-        {/* Logo and Toggle */}
-        <div className="h-16 flex items-center justify-between px-6">
-          {!isCollapsed && (
-            <div>
-              <h1 className="text-white font-bold text-lg leading-tight">MoodTracker</h1>
-              <p className="text-white/80 text-xs font-medium">Teacher Portal</p>
-            </div>
+      {/* Logo Centered */}
+      <div className="flex flex-col items-center justify-center py-7 border-b border-gray-100" style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
+        <img
+          src="/images/logo.png"
+          alt="Mindful Map Logo"
+          className="w-32 h-32 object-contain"
+        />
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute top-4 right-4 p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+        >
+          {isCollapsed ? (
+            <Menu className="w-5 h-5 text-white" />
+          ) : (
+            <X className="w-5 h-5 text-white" />
           )}
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
-          >
-            {isCollapsed ? (
-              <Menu className="w-5 h-5 text-white" />
-            ) : (
-              <X className="w-5 h-5 text-white" />
-            )}
-          </button>
-        </div>
-
-        {/* Teacher Profile */}
-        {teacher && !isCollapsed && (
-          <div className="px-6 pb-6 pt-2">
-            <div className="flex items-center space-x-3">
-              <div className="w-14 h-14 rounded-full overflow-hidden ring-2 ring-white/30">
-                {teacher?.avatar ? (
-                  <img
-                    src={teacher.avatar}
-                    alt={`${teacher.firstName} ${teacher.lastName}`}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full bg-white/20 backdrop-blur-sm flex items-center justify-center font-bold text-xl text-white">
-                    {teacher.firstName?.charAt(0)}{teacher.lastName?.charAt(0)}
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-base font-bold text-white truncate">
-                  {teacher.firstName} {teacher.lastName}
-                </p>
-                <p className="text-xs text-white/80 truncate">{teacher.email}</p>
-              </div>
-            </div>
-          </div>
-        )}
+        </button>
       </div>
+
 
       {/* Navigation Menu */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
         {menuItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
-          
+
           return (
             <button
               key={item.path}
@@ -159,7 +136,7 @@ const Sidebar = ({ teacher }) => {
               {allSections.map((section, index) => {
                 const isAssigned = teacher?.assignedSections?.includes(section);
                 const sectionPath = `/teacher/section/${encodeURIComponent(section)}`;
-                
+
                 return isAssigned ? (
                   <button
                     key={index}
@@ -203,14 +180,7 @@ const Sidebar = ({ teacher }) => {
             <span className="font-medium text-sm">Logout</span>
           )}
         </button>
-      
-      {/* Version Info */}
-          {!isCollapsed && (
-            <div className="px-6 py-3 text-center border-t border-gray-100">
-              <p className="text-xs text-gray-400">Version 1.0.0</p>
-            </div>
-          )}
-    </div>
+      </div>
     </div>
   );
 };
