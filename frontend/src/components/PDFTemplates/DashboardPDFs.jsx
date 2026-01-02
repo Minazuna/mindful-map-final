@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
 async function loadImageAsDataURL(url) {
@@ -52,11 +53,17 @@ const generateSummaryText = (chartId, data) => {
     
     case 'weekly-logs-by-category-chart':
       if (weeklyLogsData) {
-        // Calculate date range
-        const startDate = new Date(currentWeekStart);
-        const endDate = new Date(currentWeekStart);
-        endDate.setDate(endDate.getDate() + 6);
-        const dateRange = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+        const { viewType = 'weekly' } = data;
+        let dateRange = "";
+        const labels = weeklyLogsData.labels || [];
+        
+        if (viewType === 'weekly') {
+          dateRange = labels.length > 0 ? `${labels[0]} - ${labels[labels.length - 1]}` : "Last 8 Weeks";
+        } else if (viewType === 'daily') {
+          dateRange = labels.length > 0 ? `${labels[0]} - ${labels[labels.length - 1]}` : "Past 30 Days";
+        } else {
+          dateRange = labels.length > 0 ? `${labels[0]} - ${labels[labels.length - 1]}` : "Last 12 Months";
+        }
         
         const activityTotal = weeklyLogsData.activity.reduce((sum, count) => sum + count, 0);
         const socialTotal = weeklyLogsData.social.reduce((sum, count) => sum + count, 0);
@@ -69,12 +76,20 @@ const generateSummaryText = (chartId, data) => {
         const healthPercent = grandTotal > 0 ? ((healthTotal / grandTotal) * 100).toFixed(1) : 0;
         const sleepPercent = grandTotal > 0 ? ((sleepTotal / grandTotal) * 100).toFixed(1) : 0;
         
-        const highestDay = weeklyLogsData.days[0];
         const highestCount = Math.max(...weeklyLogsData.activity, ...weeklyLogsData.social, ...weeklyLogsData.health, ...weeklyLogsData.sleep);
+        const highestIndex = weeklyLogsData.activity.indexOf(highestCount) !== -1 ? weeklyLogsData.activity.indexOf(highestCount) : 
+                           weeklyLogsData.social.indexOf(highestCount) !== -1 ? weeklyLogsData.social.indexOf(highestCount) :
+                           weeklyLogsData.health.indexOf(highestCount) !== -1 ? weeklyLogsData.health.indexOf(highestCount) :
+                           weeklyLogsData.sleep.indexOf(highestCount);
+        const highestLabel = labels[highestIndex] || 'N/A';
         
-        return `For the week of ${dateRange}, students recorded a total of ${grandTotal} logs across all categories. Activity logs account for ${activityPercent}% (${activityTotal} logs), Social logs for ${socialPercent}% (${socialTotal} logs), Health logs for ${healthPercent}% (${healthTotal} logs), and Sleep logs for ${sleepPercent}% (${sleepTotal} logs). The peak activity occurred with ${highestCount} logs on ${highestDay}. This weekly breakdown helps identify which wellness categories students are focusing on most and how their engagement varies throughout the week.`;
+        const periodText = viewType === 'weekly' ? `For the past 8 weeks (${dateRange})` : 
+                          viewType === 'daily' ? `For the past 30 days (${dateRange})` : 
+                          `For the past 12 months (${dateRange})`;
+
+        return `${periodText}, students recorded a total of ${grandTotal} logs across all categories. Activity logs account for ${activityPercent}% (${activityTotal} logs), Social logs for ${socialPercent}% (${socialTotal} logs), Health logs for ${healthPercent}% (${healthTotal} logs), and Sleep logs for ${sleepPercent}% (${sleepTotal} logs).`;
       }
-      return "Weekly logs by category data is not available for this period.";
+      return "Logs by category data is not available for this period.";
     
     default:
       return "This chart summarizes the data collected within the Mindful Map application. Please refer to the visual representation above for specific data points and trends.";
@@ -170,21 +185,45 @@ export const generatePDF = async (chartId, title, data) => {
     
     yPos += 8;
     
-    // Add date range for weekly logs chart
-    if (chartId === 'weekly-logs-by-category-chart' && data.currentWeekStart) {
-      const startDate = new Date(data.currentWeekStart);
-      const endDate = new Date(data.currentWeekStart);
-      endDate.setDate(endDate.getDate() + 6);
-      const dateRange = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    // Add view type and period for weekly logs chart
+    if (chartId === 'weekly-logs-by-category-chart') {
+      const viewTypeLabel = data.viewType ? data.viewType.charAt(0).toUpperCase() + data.viewType.slice(1) : 'Weekly';
+      const labels = data.weeklyLogsData?.labels || [];
+      const dateRange = labels.length > 0 ? `${labels[0]} - ${labels[labels.length - 1]}` : "";
+      const subtitleText = `${viewTypeLabel} | ${dateRange}`;
       
-      pdf.setFontSize(10);
+      pdf.setFontSize(11);
       pdf.setFont('helvetica', 'normal');
       pdf.setTextColor(100, 100, 100);
-      pdf.text(dateRange, pageWidth / 2, yPos, { align: 'center' });
-      yPos += 6;
+      pdf.text(subtitleText, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 10;
     }
     
-    yPos += 6;
+    // Summary Box
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    const summary = generateSummaryText(chartId, data);
+    const summaryLines = pdf.splitTextToSize(summary, pageWidth - 40);
+    const summaryHeight = (summaryLines.length * 5) + 15;
+    
+    pdf.setFillColor(240, 248, 255);
+    pdf.roundedRect(15, yPos, pageWidth - 30, summaryHeight, 3, 3, 'F');
+    
+    pdf.setFontSize(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setTextColor(85, 173, 155);
+    pdf.text('Summary Overview', 20, yPos + 7);
+    
+    pdf.setTextColor(60, 60, 60);
+    pdf.setFontSize(10);
+    pdf.setFont('helvetica', 'normal');
+    // Use justify alignment for equal space on both sides
+    pdf.text(summaryLines, 20, yPos + 15, { 
+      maxWidth: pageWidth - 40, 
+      align: 'justify' 
+    });
+    
+    yPos += summaryHeight + 10;
     
     // Chart image
     pdf.setFillColor(255, 255, 255);
@@ -193,23 +232,79 @@ export const generatePDF = async (chartId, title, data) => {
     pdf.roundedRect(25, yPos, 160, 90, 3, 3, 'FD');
     pdf.addImage(imgData, 'PNG', 35, yPos + 5, 140, 80);
     
-    yPos += 95;
-    
-    // Summary Box
-    pdf.setFillColor(240, 248, 255);
-    pdf.roundedRect(15, yPos, pageWidth - 30, 90, 3, 3, 'F');
-    
-    pdf.setFontSize(12);
-    pdf.setFont('helvetica', 'bold');
-    pdf.setTextColor(85, 173, 155);
-    pdf.text('Summary', 20, yPos + 7);
-    
-    pdf.setFont('helvetica', 'normal');
-    pdf.setTextColor(60, 60, 60);
-    pdf.setFontSize(10);
-    const summary = generateSummaryText(chartId, data);
-    const summaryLines = pdf.splitTextToSize(summary, pageWidth - 40);
-    pdf.text(summaryLines, 20, yPos + 15);
+    yPos += 100;
+
+    // Table
+    if (chartId === 'weekly-logs-by-category-chart' && data.weeklyLogsData) {
+      const tableData = data.weeklyLogsData.labels.map((label, index) => [
+        label,
+        data.weeklyLogsData.activity[index] || 0,
+        data.weeklyLogsData.social[index] || 0,
+        data.weeklyLogsData.health[index] || 0,
+        data.weeklyLogsData.sleep[index] || 0
+      ]);
+
+      autoTable(pdf, {
+        startY: yPos,
+        head: [['Time Period', 'Activity', 'Social', 'Health', 'Sleep']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [85, 173, 155] },
+        margin: { left: 15, right: 15 },
+        styles: { fontSize: 9 }
+      });
+    } else if (chartId === 'monthly-users-chart' && data.monthlyUserData) {
+        const tableData = data.monthlyUserData.map(item => [item.month, item.count]);
+        autoTable(pdf, {
+            startY: yPos,
+            head: [['Month', 'New Registrations']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [85, 173, 155] },
+            margin: { left: 15, right: 15 },
+            styles: { fontSize: 9 }
+        });
+    } else if (chartId === 'active-vs-inactive-students-chart' && data.activeVsInactiveUsersData) {
+        const active = data.activeVsInactiveUsersData.active || 0;
+        const inactive = data.activeVsInactiveUsersData.inactive || 0;
+        const total = active + inactive;
+        const tableData = [
+            ['Active', active, total > 0 ? `${((active/total)*100).toFixed(1)}%` : '0%'],
+            ['Inactive', inactive, total > 0 ? `${((inactive/total)*100).toFixed(1)}%` : '0%'],
+            ['Total', total, '100%']
+        ];
+        autoTable(pdf, {
+            startY: yPos,
+            head: [['Status', 'Count', 'Percentage']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [85, 173, 155] },
+            margin: { left: 15, right: 15 },
+            styles: { fontSize: 9 }
+        });
+    } else if (chartId === 'daily-mood-logs-chart' && data.dailyMoodLogsData) {
+        const tableData = data.dailyMoodLogsData.map(item => [item.date, item.count]);
+        autoTable(pdf, {
+            startY: yPos,
+            head: [['Date', 'Mood Logs']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [85, 173, 155] },
+            margin: { left: 15, right: 15 },
+            styles: { fontSize: 9 }
+        });
+    } else if (chartId === 'daily-journal-logs-chart' && data.dailyJournalLogsData) {
+        const tableData = data.dailyJournalLogsData.map(item => [item.date, item.count]);
+        autoTable(pdf, {
+            startY: yPos,
+            head: [['Date', 'Journal Entries']],
+            body: tableData,
+            theme: 'striped',
+            headStyles: { fillColor: [85, 173, 155] },
+            margin: { left: 15, right: 15 },
+            styles: { fontSize: 9 }
+        });
+    }
     
     // Footer
     pdf.setFontSize(8);
@@ -222,7 +317,17 @@ export const generatePDF = async (chartId, title, data) => {
       { align: 'center' }
     );
     
-    pdf.save(`${title}.pdf`);
+    let filename = title;
+    if (chartId === 'weekly-logs-by-category-chart') {
+      const viewTypeLabel = data.viewType ? data.viewType.charAt(0).toUpperCase() + data.viewType.slice(1) : 'Weekly';
+      filename = `CategoricalLogsReport_${viewTypeLabel}`;
+    } else if (chartId === 'monthly-users-chart') {
+      filename = 'UserRegistrationsReport';
+    } else if (chartId === 'active-vs-inactive-students-chart') {
+      filename = 'StudentStatusReport';
+    }
+    
+    pdf.save(`${filename}.pdf`);
   } catch (error) {
     console.error('Error generating PDF:', error);
     throw error;

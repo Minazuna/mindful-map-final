@@ -29,6 +29,7 @@ const Dashboard = () => {
   const [weeklyLogsData, setWeeklyLogsData] = useState(null);
   const [currentWeekStart, setCurrentWeekStart] = useState(getMondayOfCurrentWeek());
   const [weeklyLogsLoading, setWeeklyLogsLoading] = useState(false);
+  const [viewType, setViewType] = useState('weekly');
 
   function getMondayOfCurrentWeek() {
     const now = new Date();
@@ -63,6 +64,24 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    const fetchDashboardStats = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/dashboard-stats`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        setMonthlyUsers(response.data.data.totalUsers);
+        setTeachersCount(response.data.data.totalTeachers);
+        setStudentsCount(response.data.data.totalStudents);
+        setActiveStudentsCount(response.data.data.activeStudents);
+        setInactiveStudentsCount(response.data.data.inactiveStudents);
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      }
+    };
+
     const fetchMonthlyUsers = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -71,28 +90,9 @@ const Dashboard = () => {
             Authorization: `Bearer ${token}`,
           },
         });
-        // Calculate total users (will exclude admins on backend level later)
-        const totalUsers = response.data.reduce((acc, data) => acc + data.count, 0);
-        setMonthlyUsers(totalUsers);
         setMonthlyUserData(response.data);
       } catch (error) {
         console.error('Error fetching monthly users:', error);
-      }
-    };
-  
-    const fetchActiveStudents = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/users`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        // Count active students (users endpoint already filters role: 'user' and includes status)
-        const activeStudents = response.data.filter(user => user.status === 'Active');
-        setActiveStudentsCount(activeStudents.length);
-      } catch (error) {
-        console.error('Error fetching active students:', error);
       }
     };
   
@@ -143,50 +143,24 @@ const Dashboard = () => {
         const activeStudents = activeResponse.data.length;
         const inactiveStudents = inactiveResponse.data.length;
         setActiveVsInactiveStudentsData({ active: activeStudents, inactive: inactiveStudents });
-        setInactiveStudentsCount(inactiveStudents);
       } catch (error) {
         console.error('Error fetching active vs inactive students:', error);
       }
     };
 
-    const fetchTeachersCount = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/teachers`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        setTeachersCount(response.data.count || response.data.data?.length || 0);
-      } catch (error) {
-        console.error('Error fetching teachers count:', error);
-      }
-    };
-
-    const fetchStudentsCount = async () => {
-      try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/users`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        // users endpoint already filters for role: 'user'
-        setStudentsCount(response.data.length);
-      } catch (error) {
-        console.error('Error fetching students count:', error);
-      }
-    };
-
-    const fetchWeeklyLogs = async () => {
+    const fetchLogsByCategory = async () => {
       try {
         setWeeklyLogsLoading(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          `${import.meta.env.VITE_NODE_API}/api/admin/weekly-logs-by-category`,
+          `${import.meta.env.VITE_NODE_API}/api/admin/logs-by-category`,
           {
             headers: { Authorization: `Bearer ${token}` },
-            params: { weekStartDate: getFormattedDate(currentWeekStart) }
+            params: { 
+              viewType,
+              weekStartDate: getFormattedDate(currentWeekStart),
+              year: new Date().getFullYear()
+            }
           }
         );
         
@@ -194,22 +168,20 @@ const Dashboard = () => {
           setWeeklyLogsData(response.data.data);
         }
       } catch (error) {
-        console.error('Error fetching weekly logs:', error);
+        console.error('Error fetching logs by category:', error);
         setWeeklyLogsData(null);
       } finally {
         setWeeklyLogsLoading(false);
       }
     };
   
+    fetchDashboardStats();
     fetchMonthlyUsers();
-    fetchActiveStudents();
     fetchDailyMoodLogs();
     fetchDailyJournalLogs();
     fetchActiveVsInactiveStudents();
-    fetchTeachersCount();
-    fetchStudentsCount();
-    fetchWeeklyLogs();
-  }, [currentWeekStart]);
+    fetchLogsByCategory();
+  }, [currentWeekStart, viewType]);
 
   const barChartData = {
     labels: monthlyUserData.map(data => data.month),
@@ -333,7 +305,8 @@ const Dashboard = () => {
       dailyMoodLogsData,
       dailyJournalLogsData,
       weeklyLogsData,
-      currentWeekStart
+      currentWeekStart,
+      viewType
     };
     generatePDF(chartId, title, data);
   };
@@ -387,12 +360,12 @@ const Dashboard = () => {
 
         <div className="grid grid-cols-1 gap-4 mt-6">
           <div id="monthly-users-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 max-w-4xl">
-            <h2 className="text-[#292f33] font-bold text-xl mb-4">Monthly Users</h2>
+            <h2 className="text-[#292f33] font-bold text-xl mb-4">Monthly User Registrations</h2>
             <div className="absolute top-2 right-2">
               <DownloadIcon
                 className="text-[#64aa86] cursor-pointer"
                 style={{ fontSize: '20px' }}
-                onClick={() => handleGeneratePDF('monthly-users-chart', 'Monthly Users')}
+                onClick={() => handleGeneratePDF('monthly-users-chart', 'Monthly User Registrations Report')}
               />
             </div>
             <div className="h-64">
@@ -409,7 +382,7 @@ const Dashboard = () => {
                 <DownloadIcon
                   className="text-[#64aa86] cursor-pointer"
                   style={{ fontSize: '20px' }}
-                  onClick={() => handleGeneratePDF('active-vs-inactive-students-chart', 'Active vs Inactive Students')}
+                  onClick={() => handleGeneratePDF('active-vs-inactive-students-chart', 'Active vs Inactive Students Report')}
                 />
               </div>
               <div className="h-64">
@@ -448,33 +421,61 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Weekly Logs by Category Chart */}
+          {/* Logs by Category Chart */}
           <div className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 w-full max-w-6xl mt-6">
-            <h2 className="text-[#292f33] font-bold text-xl mb-4">Weekly Logs by Category</h2>
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-[#292f33] font-bold text-xl">Categorical Logs</h2>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setViewType('daily')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${viewType === 'daily' ? 'bg-[#64aa86] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  Daily
+                </button>
+                <button 
+                  onClick={() => setViewType('weekly')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${viewType === 'weekly' ? 'bg-[#64aa86] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  Weekly
+                </button>
+                <button 
+                  onClick={() => setViewType('monthly')}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${viewType === 'monthly' ? 'bg-[#64aa86] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  Monthly
+                </button>
+              </div>
+            </div>
             <div className="absolute top-2 right-2">
               <DownloadIcon
                 className="text-[#64aa86] cursor-pointer"
                 style={{ fontSize: '20px' }}
-                onClick={() => handleGeneratePDF('weekly-logs-by-category-chart', 'Weekly Logs by Category')}
+                onClick={() => handleGeneratePDF('weekly-logs-by-category-chart', 'Categorical Logs Report')}
               />
             </div>
             
-            {/* Week Date Display */}
+            {/* Date Range Display */}
             <div className="text-center text-xs text-gray-400 mb-6">
-              {currentWeekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - {new Date(currentWeekStart.getTime() + 6 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+              {viewType === 'weekly' ? (
+                `Last 8 Weeks (${weeklyLogsData?.labels?.[0]} - ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
+              ) : viewType === 'daily' ? (
+                `Past 30 Days (${weeklyLogsData?.labels?.[0]} - ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
+              ) : (
+                `Last 12 Months (${weeklyLogsData?.labels?.[0]} - ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
+              )}
             </div>
 
             {/* Chart */}
             {weeklyLogsLoading ? (
               <div className="flex justify-center items-center h-64">
-                <div className="text-gray-500">Loading weekly data...</div>
+                <div className="text-gray-500">Loading data...</div>
               </div>
             ) : weeklyLogsData ? (
               <>
                 <div id="weekly-logs-by-category-chart" className="h-64">
                   <Line
                     data={{
-                      labels: weeklyLogsData.days,
+                      labels: weeklyLogsData.labels,
                       datasets: [
                         {
                           label: 'Activity',
@@ -575,28 +576,10 @@ const Dashboard = () => {
                     }}
                   />
                 </div>
-                
-                {/* Navigation Buttons Below Chart */}
-                <div className="flex items-center justify-center gap-4 mt-6">
-                  <button
-                    onClick={handlePreviousWeek}
-                    className="p-2 rounded-lg text-[#55AD9B] hover:bg-gray-100 transition-colors"
-                    title="Previous Week"
-                  >
-                    <NavigateBeforeIcon style={{ fontSize: '32px' }} />
-                  </button>
-                  <button
-                    onClick={handleNextWeek}
-                    className="p-2 rounded-lg text-[#55AD9B] hover:bg-gray-100 transition-colors"
-                    title="Next Week"
-                  >
-                    <NavigateNextIcon style={{ fontSize: '32px' }} />
-                  </button>
-                </div>
               </>
             ) : (
               <div className="flex justify-center items-center h-64">
-                <div className="text-gray-500">No data available for this week</div>
+                <div className="text-gray-500">No data available for this period</div>
               </div>
             )}
           </div>

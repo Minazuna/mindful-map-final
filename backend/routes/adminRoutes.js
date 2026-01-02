@@ -4,6 +4,7 @@ const { authMiddleware, adminMiddleware } = require('../middleware/authMiddlewar
 const adminController = require('../controllers/adminController');
 
 // User Management Routes
+router.get('/dashboard-stats', authMiddleware, adminMiddleware, adminController.getDashboardStats);
 router.get('/users', authMiddleware, adminMiddleware, adminController.getUsers);
 router.get('/user/:userId/moodlogs', authMiddleware, adminMiddleware, adminController.getUserMoodLogs);
 router.get('/monthly-users', authMiddleware, adminMiddleware, adminController.getMonthlyUsers);
@@ -15,7 +16,7 @@ router.get('/daily-mood-logs', authMiddleware, adminMiddleware, adminController.
 router.get('/daily-journal-logs', authMiddleware, adminMiddleware, adminController.getDailyJournalLogs);
 router.get('/correlation-values', authMiddleware, adminMiddleware, adminController.getCorrelationValues);
 router.get('/weekly-correlation-values', authMiddleware, adminMiddleware, adminController.getWeeklyCorrelationValues);
-router.get('/weekly-logs-by-category', authMiddleware, adminMiddleware, adminController.getAdminWeeklyLogsByCategory);
+router.get('/logs-by-category', authMiddleware, adminMiddleware, adminController.getAdminLogsByCategory);
 
 // Teacher Management Routes
 router.get('/teachers', authMiddleware, adminMiddleware, adminController.getAllTeachers);
