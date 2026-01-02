@@ -337,12 +337,15 @@ const Teachers = () => {
 
   const openEditModal = (teacher) => {
     setSelectedTeacher(teacher);
+    // Filter assignedSections to only include valid ones from the current sections list
+    const validSections = (teacher.assignedSections || []).filter(s => sections.includes(s));
+    
     setFormData({
       firstName: teacher.firstName,
       lastName: teacher.lastName,
       middleInitial: teacher.middleInitial || '',
       email: teacher.email,
-      assignedSections: teacher.assignedSections || [],
+      assignedSections: validSections,
       subject: teacher.subject,
       password: '' // Don't populate password
     });
