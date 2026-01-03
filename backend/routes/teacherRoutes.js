@@ -34,7 +34,6 @@ router.get('/categorical-logs/:section', teacherController.getLogsByCategory);
 // Get dashboard statistics
 router.get('/dashboard-stats', teacherController.getTeacherDashboardStats);
 
-<<<<<<< HEAD
 // Generate recommendations for a section based on the JSON and engine
 router.get('/recommendations/:section', teacherController.generateSectionRecommendations);
 
@@ -55,12 +54,5 @@ router.get('/recommendation-feedback/:recommendationId/:recIdx', teacherControll
 router.put('/recommendation-feedback/:recommendationId/:recIdx/:fbIdx', teacherController.editRecommendationFeedback);
 router.delete('/recommendation-feedback/:recommendationId/:recIdx/:fbIdx', teacherController.deleteRecommendationFeedback);
 router.put('/recommendation-feedback-effective/:recommendationId/:recIdx/:fbIdx', teacherController.setFeedbackEffective);
-=======
-// Update mood log observation
-router.put('/mood-logs/:logId/observation', teacherController.updateMoodLogObservation);
-
-// Delete mood log observation
-router.delete('/mood-logs/:logId/observation', teacherController.deleteMoodLogObservation);
->>>>>>> cf14290eaec58ebaa9b4bc128abf19f47a759111
 
 module.exports = router;
