@@ -1,4 +1,5 @@
 import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import html2canvas from 'html2canvas';
 
 const emotionColors = {
@@ -35,37 +36,6 @@ function getSummary(moodCounts, moodType, sortedMoods) {
     return `Students were most frequently ${capitalizeText(topMood)} ${moodType === 'before' ? 'before' : 'after'} activities (${topCount} entries, ${topPercent}%). This mood shows moderate prevalence across the section.`;
   }
   return `${capitalizeText(topMood)} was the most common emotion (${topCount} entries, ${topPercent}%), with emotions relatively distributed across the section.`;
-}
-
-function getWeeklySummary(weeklyLogsData, dateRange) {
-  if (!weeklyLogsData) {
-    return 'No weekly data available for this period.';
-  }
-
-  const activityTotal = weeklyLogsData.activity.reduce((sum, count) => sum + count, 0);
-  const socialTotal = weeklyLogsData.social.reduce((sum, count) => sum + count, 0);
-  const healthTotal = weeklyLogsData.health.reduce((sum, count) => sum + count, 0);
-  const sleepTotal = weeklyLogsData.sleep.reduce((sum, count) => sum + count, 0);
-  const grandTotal = activityTotal + socialTotal + healthTotal + sleepTotal;
-
-  if (grandTotal === 0) {
-    return `No logs recorded during the week of ${dateRange}.`;
-  }
-
-  const activityPercent = ((activityTotal / grandTotal) * 100).toFixed(1);
-  const socialPercent = ((socialTotal / grandTotal) * 100).toFixed(1);
-  const healthPercent = ((healthTotal / grandTotal) * 100).toFixed(1);
-  const sleepPercent = ((sleepTotal / grandTotal) * 100).toFixed(1);
-
-  const maxDayIndex = Math.max(
-    weeklyLogsData.activity.indexOf(Math.max(...weeklyLogsData.activity)),
-    weeklyLogsData.social.indexOf(Math.max(...weeklyLogsData.social)),
-    weeklyLogsData.health.indexOf(Math.max(...weeklyLogsData.health)),
-    weeklyLogsData.sleep.indexOf(Math.max(...weeklyLogsData.sleep))
-  );
-  const peakDay = weeklyLogsData.days[maxDayIndex] || 'unknown day';
-
-  return `For the week of ${dateRange}, students recorded a total of ${grandTotal} logs across all categories. Activity logs account for ${activityPercent}% (${activityTotal} logs), Social logs for ${socialPercent}% (${socialTotal} logs), Health logs for ${healthPercent}% (${healthTotal} logs), and Sleep logs for ${sleepPercent}% (${sleepTotal} logs). The peak activity occurred on ${peakDay}. This breakdown helps identify which wellness categories students are focusing on most throughout the week.`;
 }
 
 async function loadImageAsDataURL(url) {
@@ -333,54 +303,65 @@ export async function generateMoodAnalysisPDF(selectedSection, moodType, moodPer
     throw error;
   }
 }
+function getCategoricalSummary(logsData, dateRange, viewType) {
+  if (!logsData) {
+    return 'No data available for this period.';
+  }
 
-export async function generateWeeklyLogsPDF(selectedSection, weeklyLogsData, weekStart) {
-  const doc = new jsPDF('p', 'mm', 'a4');
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+  const activityTotal = logsData.activity.reduce((sum, count) => sum + count, 0);
+  const socialTotal = logsData.social.reduce((sum, count) => sum + count, 0);
+  const healthTotal = logsData.health.reduce((sum, count) => sum + count, 0);
+  const sleepTotal = logsData.sleep.reduce((sum, count) => sum + count, 0);
+  const grandTotal = activityTotal + socialTotal + healthTotal + sleepTotal;
 
+  if (grandTotal === 0) {
+    return `No logs recorded during the period of ${dateRange}.`;
+  }
+
+  const activityPercent = ((activityTotal / grandTotal) * 100).toFixed(1);
+  const socialPercent = ((socialTotal / grandTotal) * 100).toFixed(1);
+  const healthPercent = ((healthTotal / grandTotal) * 100).toFixed(1);
+  const sleepPercent = ((sleepTotal / grandTotal) * 100).toFixed(1);
+
+  const periodText = viewType === 'weekly' ? `For the past 8 weeks (${dateRange})` : 
+                    viewType === 'daily' ? `For the past 30 days (${dateRange})` : 
+                    `For the past 12 months (${dateRange})`;
+
+  return `${periodText}, students recorded a total of ${grandTotal} logs across all categories. Activity logs account for ${activityPercent}% (${activityTotal} logs), Social logs for ${socialPercent}% (${socialTotal} logs), Health logs for ${healthPercent}% (${healthTotal} logs), and Sleep logs for ${sleepPercent}% (${sleepTotal} logs). This breakdown helps identify which wellness categories students are focusing on most throughout the period.`;
+}
+
+export const generateCategoricalLogsPDF = async (selectedSection, logsData, dateRange, viewType) => {
   try {
-    // Calculate date range
-    const startDate = new Date(weekStart);
-    const endDate = new Date(weekStart);
-    endDate.setDate(endDate.getDate() + 6);
-    
-    const dateRange = `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+    const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
     
     let imgData;
     
     // Capture chart image
-    const chartElement = document.querySelector('#weekly-logs-by-category-chart');
+    const chartElement = document.querySelector('#categorical-logs-chart');
     if (!chartElement) {
       throw new Error('Chart element not found');
     }
     
-    // Find the canvas within the chart element
     const canvas = chartElement.querySelector('canvas');
     if (canvas) {
       const tempCanvas = await html2canvas(canvas);
       imgData = tempCanvas.toDataURL('image/png');
     } else {
-      // Fallback: capture the whole element
       const tempCanvas = await html2canvas(chartElement);
       imgData = tempCanvas.toDataURL('image/png');
     }
     
-    // Load logos
     const tupLogo = await loadImageAsDataURL('/images/tup.png');
     const mindfulLogo = await loadImageAsDataURL('/images/logo.png');
     
-    // Header Section
     const logoSize = 20;
     const headerY = 15;
     
-    // TUP Logo (left)
     doc.addImage(tupLogo, 'PNG', 10, headerY, logoSize, logoSize);
-    
-    // Mindful Map Logo (right)
     doc.addImage(mindfulLogo, 'PNG', pageWidth - 15 - logoSize, headerY, logoSize, logoSize);
     
-    // Title (center)
     doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(85, 173, 155);
@@ -393,7 +374,6 @@ export async function generateWeeklyLogsPDF(selectedSection, weeklyLogsData, wee
     const subtitleWidth = doc.getTextWidth(subtitle);
     doc.text(subtitle, (pageWidth - subtitleWidth) / 2, headerY + 14);
     
-    // Timestamp
     doc.setFontSize(9);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
@@ -409,26 +389,51 @@ export async function generateWeeklyLogsPDF(selectedSection, weeklyLogsData, wee
     const timestampWidth = doc.getTextWidth(`Generated: ${timestamp}`);
     doc.text(`Generated: ${timestamp}`, (pageWidth - timestampWidth) / 2, headerY + 20);
     
-    // Horizontal line
     doc.setDrawColor(85, 173, 155);
     doc.setLineWidth(0.5);
     doc.line(15, headerY + 27, pageWidth - 15, headerY + 27);
     
-    // Report Details
     let yPos = headerY + 37;
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0, 0, 0);
-    doc.text('Weekly Logs by Category Report', pageWidth / 2, yPos, { align: 'center' });
+    doc.text('Categorical Logs Report', pageWidth / 2, yPos, { align: 'center' });
     
     yPos += 8;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(85, 173, 155);
+    doc.text(selectedSection, pageWidth / 2, yPos, { align: 'center' });
+    
+    yPos += 6;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(100, 100, 100);
-    doc.text(`${selectedSection} · ${dateRange}`, pageWidth / 2, yPos, { align: 'center' });
+    const viewLabel = viewType.charAt(0).toUpperCase() + viewType.slice(1);
+    doc.text(`${viewLabel} | ${dateRange}`, pageWidth / 2, yPos, { align: 'center' });
     
     yPos += 8;
     
+    // Summary Box
+    const summary = getCategoricalSummary(logsData, dateRange, viewType);
+    const summaryLines = doc.splitTextToSize(summary, pageWidth - 40);
+    const summaryHeight = (summaryLines.length * 5) + 15;
+    
+    doc.setFillColor(240, 248, 255);
+    doc.roundedRect(15, yPos, pageWidth - 30, summaryHeight, 3, 3, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(85, 173, 155);
+    doc.text('Summary Overview', 20, yPos + 7);
+    
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text(summaryLines, 20, yPos + 15, { maxWidth: pageWidth - 40, align: 'justify' });
+    
+    yPos += summaryHeight + 10;
+
     // Chart image
     doc.setFillColor(255, 255, 255);
     doc.setDrawColor(85, 173, 155);
@@ -436,25 +441,43 @@ export async function generateWeeklyLogsPDF(selectedSection, weeklyLogsData, wee
     doc.roundedRect(25, yPos, 160, 90, 3, 3, 'FD');
     doc.addImage(imgData, 'PNG', 35, yPos + 5, 140, 80);
     
-    yPos += 95;
+    yPos += 100;
+
+    // Data Table
+    doc.addPage();
+    yPos = 20;
     
-    // Summary Box
-    doc.setFillColor(240, 248, 255);
-    doc.roundedRect(15, yPos, pageWidth - 30, 90, 3, 3, 'F');
-    
-    doc.setFontSize(12);
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(85, 173, 155);
-    doc.text('Summary', 20, yPos + 7);
+    doc.text('Detailed Log Data', 15, yPos);
     
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(60, 60, 60);
-    doc.setFontSize(10);
-    const summary = getWeeklySummary(weeklyLogsData, dateRange);
-    const summaryLines = doc.splitTextToSize(summary, pageWidth - 40);
-    doc.text(summaryLines, 20, yPos + 15);
+    yPos += 10;
+
+    const tableData = [];
+    const labels = logsData.labels;
     
-    // Footer
+    labels.forEach((label, index) => {
+      const act = logsData.activity[index] || 0;
+      const soc = logsData.social[index] || 0;
+      const hlt = logsData.health[index] || 0;
+      const slp = logsData.sleep[index] || 0;
+      const total = act + soc + hlt + slp;
+      
+      tableData.push([label, act, soc, hlt, slp, total]);
+    });
+
+    autoTable(doc, {
+      startY: yPos,
+      head: [['Period', 'Activity', 'Social', 'Health', 'Sleep', 'Total']],
+      body: tableData,
+      theme: 'striped',
+      headStyles: { fillColor: [85, 173, 155], textColor: 255 },
+      alternateRowStyles: { fillColor: [240, 248, 255] },
+      margin: { left: 15, right: 15 },
+      styles: { fontSize: 9, cellPadding: 3 }
+    });
+    
     doc.setFontSize(8);
     doc.setFont('helvetica', 'italic');
     doc.setTextColor(150, 150, 150);
@@ -465,12 +488,11 @@ export async function generateWeeklyLogsPDF(selectedSection, weeklyLogsData, wee
       { align: 'center' }
     );
     
-    // Save PDF
     const sectionClean = selectedSection.replace(/\s+/g, '');
-    const filename = `WeeklyLogs_${sectionClean}.pdf`;
+    const filename = `CategoricalLogs_${viewType}_${sectionClean}.pdf`;
     doc.save(filename);
   } catch (error) {
-    console.error('Error generating weekly logs PDF:', error);
+    console.error('Error generating categorical logs PDF:', error);
     throw error;
   }
 }

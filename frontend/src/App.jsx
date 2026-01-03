@@ -45,7 +45,8 @@ import TeacherDashboard from './components/Teachers/Dashboard';
 import StudentLogs from './components/Teachers/StudentLogs';
 import SectionStudents from './components/Teachers/SectionStudents';
 import TeacherProfile from './components/Teachers/Profile';
-import TeacherAnalytics from './components/Teachers/Analytics';
+import AllMoodAnalysis from './components/Teachers/MoodAnalysis';
+import CategoricalLogs from './components/Teachers/CategoricalLogs';
 
 //Student's Inputs 
 import ChooseCategory from './components/User/Inputs/ChooseCategory';
@@ -739,10 +740,18 @@ const App = () => {
           }
         />
         <Route
-          path="/teacher/analytics"
+          path="/teacher/mood-analysis"
           element={
             <TeacherPrivateRoute>
-              <TeacherAnalytics />
+              <AllMoodAnalysis />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/categorical-logs"
+          element={
+            <TeacherPrivateRoute>
+              <CategoricalLogs />
             </TeacherPrivateRoute>
           }
         />
