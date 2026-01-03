@@ -1,0 +1,483 @@
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import Sidebar from './Sidebar';
+import { FaUsers, FaRegCommentDots, FaArrowLeft, FaEdit, FaTrash, FaSave, FaTimes, FaCheck } from 'react-icons/fa';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+
+const activityLabels = {
+  commute: 'Commuting',
+  exam: 'Having an exam',
+  homework: 'Doing their homework',
+  study: 'Studying',
+  project: 'Doing a project',
+  read: 'Reading',
+  extracurricular: 'Doing an extracurricular activity',
+  'household-chores': 'Doing household chores',
+  relax: 'Relaxing',
+  'watch-movie': 'Watching a movie',
+  'listen-music': 'Listening to music',
+  gaming: 'Gaming',
+  'browse-internet': 'Browsing the internet',
+  shopping: 'Shopping',
+  travel: 'Traveling',
+  alone: 'Being alone',
+  friends: 'Socializing with their friends',
+  family: 'Socializing with their family',
+  classmates: 'Socializing with their classmates',
+  relationship: 'Socializing with their significant other',
+  online: 'Socializing online',
+  pet: 'Being with their pet',
+  jog: 'Jogging',
+  walk: 'Walking',
+  exercise: 'Exercising',
+  sports: 'Playing a sport',
+  meditate: 'Meditating',
+  'eat-unhealthy': 'Eating unhealthy food',
+  'eat-healthy': 'Eating healthy food',
+  'no-physical': 'Not doing any physical activity',
+  'drink-alcohol': 'Drinking alcohol'
+};
+
+const generateSentence = (sectionName, emotion, activity) => {
+  const activityLabel = activityLabels[activity] || activity;
+  const emotionLower = (emotion || '').toLowerCase();
+  return `${activityLabel} left students in ${sectionName} feeling ${emotionLower}.`;
+};
+
+const ViewRecommendations = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const { rec, category, section, teacher } = location.state || {};
+  const [feedback, setFeedback] = useState({});
+  const [modalFeedbackTexts, setModalFeedbackTexts] = useState({});
+  const [savingFeedback, setSavingFeedback] = useState(false);
+  const [editingFeedback, setEditingFeedback] = useState({});
+  const [editingText, setEditingText] = useState({});
+  const [deleteModal, setDeleteModal] = useState({ open: false, recId: null, suggestionIdx: null, fbIdx: null });
+  const [feedbackEffectiveness, setFeedbackEffectiveness] = useState({});
+  const [savingFeedbackEffectiveness, setSavingFeedbackEffectiveness] = useState({});
+
+  useEffect(() => {
+    if (rec && rec._id && Array.isArray(rec.recommendations)) {
+      rec.recommendations.forEach((_, idx) => fetchFeedbackForRec(rec._id, idx));
+    }
+    // eslint-disable-next-line
+  }, [rec]);
+
+  const fetchFeedbackForRec = async (recommendationId, suggestionIdx) => {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await axios.get(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/recommendation-feedback/${recommendationId}/${suggestionIdx}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.data.success) {
+        setFeedback(prev => ({
+          ...prev,
+          [suggestionIdx]: res.data.data || []
+        }));
+        const effObj = {};
+        (res.data.data || []).forEach((fb, fbIdx) => {
+          effObj[fbIdx] = fb.effective;
+        });
+        setFeedbackEffectiveness(prev => ({
+          ...prev,
+          [suggestionIdx]: effObj
+        }));
+      } else {
+        setFeedback(prev => ({
+          ...prev,
+          [suggestionIdx]: []
+        }));
+        setFeedbackEffectiveness(prev => ({
+          ...prev,
+          [suggestionIdx]: {}
+        }));
+      }
+    } catch {
+      setFeedback(prev => ({
+        ...prev,
+        [suggestionIdx]: []
+      }));
+      setFeedbackEffectiveness(prev => ({
+        ...prev,
+        [suggestionIdx]: {}
+      }));
+    }
+  };
+
+  const submitModalFeedback = async (recId, suggestionIdx) => {
+    const feedbackText = modalFeedbackTexts[suggestionIdx] || '';
+    if (!feedbackText.trim()) {
+      toast.warn('Please enter feedback.');
+      return;
+    }
+    setSavingFeedback(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.post(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/recommendation-feedback/${recId}/${suggestionIdx}`,
+        { feedback: feedbackText },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Feedback saved.');
+      setModalFeedbackTexts(prev => ({ ...prev, [suggestionIdx]: '' }));
+      fetchFeedbackForRec(recId, suggestionIdx);
+    } catch (err) {
+      toast.error('Failed to submit feedback.');
+    } finally {
+      setSavingFeedback(false);
+    }
+  };
+
+  const handleEditFeedback = (idx, fbIdx, text) => {
+    setEditingFeedback({ idx, fbIdx });
+    setEditingText({ idx, fbIdx, text });
+  };
+
+  const handleSaveEditFeedback = async (recId, suggestionIdx, fbIdx) => {
+    const text = editingText.text;
+    if (!text.trim()) {
+      toast.warn('Feedback cannot be empty.');
+      return;
+    }
+    setSavingFeedback(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/recommendation-feedback/${recId}/${suggestionIdx}/${fbIdx}`,
+        { text },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Feedback updated.');
+      setEditingFeedback({});
+      setEditingText({});
+      fetchFeedbackForRec(recId, suggestionIdx);
+    } catch (err) {
+      toast.error('Failed to update feedback.');
+    } finally {
+      setSavingFeedback(false);
+    }
+  };
+
+  const handleDeleteFeedback = async () => {
+    const { recId, suggestionIdx, fbIdx } = deleteModal;
+    setSavingFeedback(true);
+    try {
+      const token = localStorage.getItem('token');
+      await axios.delete(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/recommendation-feedback/${recId}/${suggestionIdx}/${fbIdx}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success('Feedback deleted.');
+      fetchFeedbackForRec(recId, suggestionIdx);
+      setDeleteModal({ open: false, recId: null, suggestionIdx: null, fbIdx: null });
+    } catch (err) {
+      toast.error('Failed to delete feedback.');
+    } finally {
+      setSavingFeedback(false);
+    }
+  };
+
+  const handleFeedbackEffective = async (recId, suggestionIdx, fbIdx, value) => {
+    setSavingFeedbackEffectiveness(prev => ({
+      ...prev,
+      [`${suggestionIdx}-${fbIdx}`]: true
+    }));
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/recommendation-feedback-effective/${recId}/${suggestionIdx}/${fbIdx}`,
+        { effective: value },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setFeedbackEffectiveness(prev => ({
+        ...prev,
+        [suggestionIdx]: {
+          ...prev[suggestionIdx],
+          [fbIdx]: value
+        }
+      }));
+      toast.success('Saved!');
+    } catch (err) {
+      toast.error('Failed to save effectiveness.');
+    } finally {
+      setSavingFeedbackEffectiveness(prev => ({
+        ...prev,
+        [`${suggestionIdx}-${fbIdx}`]: false
+      }));
+    }
+  };
+
+  if (!rec) {
+    return (
+      <div className="flex min-h-screen bg-white">
+        <Sidebar teacher={teacher} />
+        <div className="flex-1 ml-72 flex items-center justify-center">
+          <div className="text-center">
+            <p className="text-lg text-[#1F8E8E] font-bold mb-4">No recommendation data found.</p>
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#55AD9B] text-white font-bold text-lg hover:bg-[#1F8E8E] transition"
+            >
+              <FaArrowLeft /> Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-screen bg-[#F6FBF7]">
+      <Sidebar teacher={teacher} />
+      <div className="flex-1 ml-72 flex flex-col">
+        <div className="max-w-6xl mx-auto w-full px-4 sm:px-8 py-10 flex-1 flex flex-col">
+          <div className="mb-6">
+            <button
+              onClick={() => navigate(-1)}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200 text-[#1F8E8E] font-semibold"
+              title="Go back to previous page"
+              style={{ minWidth: 0, width: 'auto' }}
+            >
+              <FaArrowLeft className="mr-1" /> Back
+            </button>
+          </div>
+          <div className="bg-white rounded-3xl border-2 border-[#D8EFD3] shadow-2xl p-8 w-full">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
+              <h2 className="text-3xl font-extrabold text-[#1F8E8E]">Recommendation Details</h2>
+              {category && (
+                <span className="text-xs px-4 py-2 rounded-full bg-[#E3F2EC] uppercase tracking-wide font-bold text-[#1F8E8E]">
+                  {category}
+                </span>
+              )}
+            </div>
+            {Array.isArray(rec.recommendations) && rec.recommendations.length > 0 ? (
+              <div className="mb-8">
+                <ul className="space-y-7">
+                  {rec.recommendations.map((r, i) => (
+                    <li key={i} className="p-6 rounded-xl border border-[#95D2B3] bg-[#F6FBF7]">
+                      <div className="flex items-start gap-4 mb-4">
+                        <FaRegCommentDots className="text-[#1F8E8E] font-bold text-2xl flex-shrink-0 mt-1" />
+                        <div className="flex-1">
+                          <span className="text-lg text-[#1F8E8E] leading-relaxed block font-medium">{typeof r === 'string' ? r : r.text}</span>
+                          {r.source && (
+                            <span className="block text-xs text-[#55AD9B] mt-2 italic">
+                              Source: {r.source}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Feedback log for this suggestion */}
+                      <div className="mt-6 border-t border-[#E3F2EC] pt-6">
+                        <h5 className="text-base font-bold text-[#1F8E8E] mb-4">Feedback Log</h5>
+                        <div className="space-y-4 max-h-48 overflow-y-auto">
+                          {Array.isArray(feedback?.[i]) && feedback[i].length > 0 ? (
+                            feedback[i].map((f, j) => (
+                              <div
+                                key={`modal-fb-${i}-${j}`}
+                                className="p-4 bg-white rounded-lg border border-[#D8EFD3] shadow-sm hover:shadow-md transition"
+                              >
+                                {editingFeedback.idx === i && editingFeedback.fbIdx === j ? (
+                                  <div className="flex gap-2">
+                                    <textarea
+                                      className="flex-1 text-sm border-2 border-[#55AD9B] rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-[#1F8E8E]"
+                                      value={editingText.text}
+                                      onChange={e =>
+                                        setEditingText({
+                                          ...editingText,
+                                          text: e.target.value
+                                        })
+                                      }
+                                    />
+                                    <div className="flex gap-2 flex-shrink-0">
+                                      <button
+                                        className="p-2 rounded-lg bg-green-50 text-green-600 hover:bg-green-100 transition"
+                                        onClick={() => handleSaveEditFeedback(rec._id, i, j)}
+                                        disabled={savingFeedback}
+                                        title="Save"
+                                      >
+                                        <FaCheck className="text-lg" />
+                                      </button>
+                                      <button
+                                        className="p-2 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 transition"
+                                        onClick={() => setEditingFeedback({})}
+                                        title="Cancel"
+                                      >
+                                        <FaTimes className="text-lg" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <>
+                                    <div className="flex items-start justify-between gap-4">
+                                      <div className="flex-1">
+                                        <p className="text-base text-[#1F8E8E] font-medium leading-relaxed">{f.text}</p>
+                                        <p className="text-sm text-[#95D2B3] mt-3">
+                                          {new Date(f.createdAt).toLocaleDateString()} at{' '}
+                                          {new Date(f.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </p>
+
+                                        {/* Effectiveness buttons - moved under date */}
+                                        <div className="mt-4 flex flex-col gap-3">
+                                          <div className="flex items-center gap-2">
+                                            <span className="text-sm text-[#1F8E8E] font-semibold">Effective?</span>
+                                            <button
+                                              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${
+                                                feedbackEffectiveness?.[i]?.[j] === true
+                                                  ? 'bg-[#55AD9B] text-white'
+                                                  : 'bg-[#F3F4F6] text-[#1F8E8E] hover:bg-[#e5e7eb]'
+                                              }`}
+                                              disabled={savingFeedbackEffectiveness[`${i}-${j}`]}
+                                              onClick={() => handleFeedbackEffective(rec._id, i, j, true)}
+                                            >
+                                              Yes
+                                            </button>
+                                            <button
+                                              className={`px-4 py-1.5 rounded-lg text-sm font-bold transition ${
+                                                feedbackEffectiveness?.[i]?.[j] === false
+                                                  ? 'bg-[#55AD9B] text-white'
+                                                  : 'bg-[#F3F4F6] text-[#1F8E8E] hover:bg-[#e5e7eb]'
+                                              }`}
+                                              disabled={savingFeedbackEffectiveness[`${i}-${j}`]}
+                                              onClick={() => handleFeedbackEffective(rec._id, i, j, false)}
+                                            >
+                                              No
+                                            </button>
+                                          </div>
+                                          
+                                          {feedbackEffectiveness?.[i]?.[j] !== undefined && (
+                                            <p className={`text-sm font-semibold ${
+                                              feedbackEffectiveness[i][j]
+                                                ? 'text-[#55AD9B]'
+                                                : 'text-[#E07B39]'
+                                            }`}>
+                                              {feedbackEffectiveness[i][j]
+                                                ? '✓ Thank you! The recommendation is effective'
+                                                : '⚠ We appreciate your feedback.'}
+                                            </p>
+                                          )}
+                                        </div>
+                                      </div>
+
+                                      {/* Edit and Delete buttons */}
+                                      <div className="flex gap-2 flex-shrink-0 mt-2">
+                                        <button
+                                          className="p-2.5 text-[#55AD9B] "
+                                          onClick={() => handleEditFeedback(i, j, f.text)}
+                                          title="Edit"
+                                        >
+                                          <FaEdit className="text-lg" />
+                                        </button>
+                                        <button
+                                          className="p-2.5 text-[#E07B39] "
+                                          onClick={() => setDeleteModal({ open: true, recId: rec._id, suggestionIdx: i, fbIdx: j })}
+                                          title="Delete"
+                                        >
+                                          <FaTrash className="text-lg" />
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-base text-[#95D2B3] text-center py-4">
+                              No notes yet. Start by adding feedback below.
+                            </p>
+                          )}
+                        </div>
+
+                        {/* Add Feedback Section */}
+                        <div className="mt-5 pt-5 border-t border-[#E3F2EC]">
+                          <p className="text-sm text-[#55AD9B] font-semibold mb-3">Add a note</p>
+                          <div className="flex gap-3">
+                            <textarea
+                              value={modalFeedbackTexts[i] || ''}
+                              onChange={e => setModalFeedbackTexts(prev => ({
+                                ...prev,
+                                [i]: e.target.value
+                              }))}
+                              placeholder="Share your observations..."
+                              rows={2}
+                              className="flex-1 text-base p-3 border border-[#D8EFD3] rounded-lg focus:outline-none focus:ring-2 focus:ring-[#55AD9B] resize-none"
+                            />
+                            <div className="flex flex-col gap-2">
+                              <button
+                                onClick={() => submitModalFeedback(rec._id, i)}
+                                disabled={savingFeedback || !modalFeedbackTexts[i]?.trim()}
+                                className="px-5 py-2 rounded-lg text-base font-semibold bg-[#55AD9B] text-white hover:bg-[#1F8E8E] disabled:opacity-50 disabled:cursor-not-allowed transition"
+                              >
+                                {savingFeedback ? '...' : 'Save'}
+                              </button>
+                              <button
+                                onClick={() => fetchFeedbackForRec(rec._id, i)}
+                                className="px-5 py-2 rounded-lg text-base font-semibold bg-[#E3F2EC] text-[#1F8E8E] hover:bg-[#D8EFD3] transition"
+                              >
+                                Refresh
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : (
+              <div className="mb-8 p-6 bg-[#F6FBF7] rounded-xl border border-[#95D2B3]">
+                <p className="text-lg text-[#1F8E8E] font-medium">
+                  {generateSentence(
+                    section,
+                    rec?.afterEmotion,
+                    rec?.activity || rec?.message || rec?.text
+                  )}
+                </p>
+              </div>
+            )}
+            {rec?.count && (
+              <div className="mb-8 flex items-center gap-3 text-lg">
+                <FaUsers className="text-[#95D2B3]" />
+                <span className="font-semibold text-[#1F8E8E]">
+                  {rec.count > 1
+                    ? `${rec.count} students reported this pattern`
+                    : `${rec.count} student reported this pattern`}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Feedback Modal */}
+      {deleteModal.open && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+          <div className="bg-white rounded-xl shadow-2xl p-8 max-w-xs w-full">
+            <h3 className="text-lg font-bold text-[#1F8E8E] mb-4">Delete Feedback</h3>
+            <p className="mb-6 text-[#55AD9B]">Are you sure you want to delete this feedback?</p>
+            <div className="flex justify-end gap-3">
+              <button
+                className="px-4 py-2 rounded-lg bg-[#F3F4F6] text-[#1F8E8E] hover:bg-[#e5e7eb] font-semibold transition"
+                onClick={() => setDeleteModal({ open: false, recId: null, suggestionIdx: null, fbIdx: null })}
+              >
+                Cancel
+              </button>
+              <button
+                className="px-4 py-2 rounded-lg bg-[#FF6B6B] text-white hover:bg-[#e53e3e] font-semibold transition"
+                onClick={handleDeleteFeedback}
+                disabled={savingFeedback}
+              >
+                {savingFeedback ? 'Deleting...' : 'Delete'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default ViewRecommendations;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, FileText, BarChart3, Settings, LogOut, Menu, X, BookOpen, ChevronDown } from 'lucide-react';
+import { Home, FileText, BarChart3, Settings, LogOut, Menu, X, BookOpen, ChevronDown, Sparkles } from 'lucide-react';
 
 const Sidebar = ({ teacher }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -23,6 +23,7 @@ const Sidebar = ({ teacher }) => {
     { icon: Home, label: 'Dashboard', path: '/teacher/dashboard' },
     { icon: BarChart3, label: 'Analytics', path: '/teacher/analytics' },
     { icon: Settings, label: 'Edit Profile', path: '/teacher/edit-profile' },
+    { icon: Sparkles, label: 'Recommendations', path: '/teacher/recommendations' },
   ];
 
   const handleLogout = () => {
@@ -60,7 +61,6 @@ const Sidebar = ({ teacher }) => {
           )}
         </button>
       </div>
-
 
       {/* Navigation Menu */}
       <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">

@@ -87,6 +87,10 @@ import JournalChallenge from './components/User/Journal/JournalChallenge';
 import CreateJournalEntry from './components/User/Journal/CreateJournalEntry';
 import ViewJournal from './components/User/Journal/ViewJournal';
 import EditJournal from './components/User/Journal/EditJournal';
+
+import TeacherRecommendations from './components/Teachers/Recommendations';
+import ViewTeacherReccomendations from './components/Teachers/ViewRecommendations';
+
 const useAuth = () => {
   const token = localStorage.getItem('token');
   const [userRole, setUserRole] = useState(null);
@@ -747,6 +751,22 @@ const App = () => {
           element={
             <TeacherPrivateRoute>
               <TeacherProfile />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/recommendations"
+          element={
+            <TeacherPrivateRoute>
+              <TeacherRecommendations /> 
+            </TeacherPrivateRoute>
+          }
+        />
+       <Route
+          path="/teacher/view/recommendations"
+          element={
+            <TeacherPrivateRoute>
+              <ViewTeacherReccomendations /> 
             </TeacherPrivateRoute>
           }
         />

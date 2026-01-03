@@ -1,5 +1,7 @@
 const User = require('../models/User');
 const MoodLog = require('../models/MoodLog');
+const TeacherRecommendation = require('../models/TeacherRecommendation');
+const { getTeacherRecommendations } = require('../services/teacherRecommendEngine');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
@@ -460,5 +462,290 @@ exports.getWeeklyLogsByCategory = async (req, res) => {
   } catch (error) {
     console.error('Error fetching weekly logs by category:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
+  }
+};
+
+exports.generateSectionRecommendations = async (req, res) => {
+  try {
+    const { section } = req.params;
+    const {
+      category,
+      activity,
+      moodType,
+      n,
+      period,
+      beforeEmotion,
+      afterEmotion
+    } = req.query;
+
+    // verify teacher access
+    const teacher = await User.findById(req.user._id);
+    if (!teacher || teacher.role !== 'teacher' || !teacher.assignedSections.includes(section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    }
+
+    // ALWAYS generate from teacherRecommendations.json
+    const recs = getTeacherRecommendations({
+      category,
+      activity,
+      moodType,
+      n: n ? parseInt(n, 10) : 3
+    });
+
+    let recommendations = Array.isArray(recs) ? recs.filter(Boolean) : [];
+    if (recommendations.length === 0) {
+      recommendations.push('No specific recommendations generated.');
+    }
+
+    // save only when ?save=true
+    if (String(req.query.save).toLowerCase() === 'true') {
+      const periodValue = period || 'daily';
+      const categoryValue = category || 'activity';
+
+      // Check for existing recommendation
+      const existing = await TeacherRecommendation.findOne({
+        section,
+        category: categoryValue,
+        activity: activity || undefined,
+        beforeEmotion: beforeEmotion || undefined,
+        afterEmotion: afterEmotion || undefined,
+        period: periodValue,
+        'recommendations.text': { $all: recommendations }
+      });
+      if (existing) {
+        return res.status(200).json({
+          success: true,
+          data: existing.recommendations,
+          saved: false,
+          record: existing
+        });
+      }
+
+      const recDoc = new TeacherRecommendation({
+        section,
+        category: categoryValue,
+        activity: activity || undefined,
+        beforeEmotion: beforeEmotion || undefined,
+        afterEmotion: afterEmotion || undefined,
+        period: periodValue,
+        recommendations: recommendations.map(text => ({ text, feedback: [] })),
+        teacher: teacher._id
+      });
+
+      await recDoc.save();
+
+      return res.status(200).json({
+        success: true,
+        data: recommendations,
+        saved: true,
+        record: recDoc
+      });
+    }
+
+    return res.status(200).json({ success: true, data: recommendations });
+  } catch (error) {
+    console.error('Error generating section recommendations:', error);
+    return res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// New: aggregated recommendations (daily/weekly/monthly) for section
+exports.getAggregatedRecommendations = async (req, res) => {
+  try {
+    const { section } = req.params;
+    const { period = 'daily' } = req.query; // 'daily' | 'weekly' | 'monthly'
+
+    const teacher = await User.findById(req.user._id);
+    if (!teacher || teacher.role !== 'teacher' || !teacher.assignedSections.includes(section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    }
+
+    // determine date range
+    const endDate = new Date();
+    let startDate = new Date();
+    if (period === 'daily') startDate.setDate(endDate.getDate() - 1);
+    else if (period === 'weekly') startDate.setDate(endDate.getDate() - 7);
+    else if (period === 'monthly') startDate.setMonth(endDate.getMonth() - 1);
+    else startDate.setDate(endDate.getDate() - 1);
+
+    // fetch students in section
+    const students = await User.find({ section: section, role: 'user' }).select('_id');
+    const studentIds = students.map(s => s._id);
+    if (!studentIds.length) {
+      return res.status(200).json({
+        success: true,
+        data: { activity: [], social: [], health: [] }
+      });
+    }
+
+    // aggregate by category + activity + afterEmotion
+    const agg = await MoodLog.aggregate([
+      {
+        $match: {
+          user: { $in: studentIds },
+          date: { $gte: startDate, $lte: endDate }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            category: '$category',
+            activity: '$activity',
+            afterEmotion: '$afterEmotion'
+          },
+          count: { $sum: 1 }
+        }
+      },
+      { $sort: { count: -1 } },
+      {
+        $group: {
+          _id: '$_id.category',
+          items: {
+            $push: {
+              activity: '$_id.activity',
+              afterEmotion: '$_id.afterEmotion',
+              count: '$count'
+            }
+          }
+        }
+      }
+    ]);
+
+    // helper to format activity keys
+    const fmtActivity = (a) => {
+      if (!a) return '';
+      return String(a).replace(/-/g, ' ').replace(/\b\w/g, ch => ch.toUpperCase());
+    };
+
+    const categories = { activity: [], social: [], health: [] };
+    agg.forEach(group => {
+      const cat = String(group._id || '').toLowerCase();
+      const out = (group.items || []).map(it => ({
+        message: `Students from section ${section} felt ${it.afterEmotion || 'unspecified'}${it.activity ? ` because of ${fmtActivity(it.activity)}` : ''}`,
+        count: it.count,
+        activity: it.activity || null,
+        afterEmotion: it.afterEmotion || null
+      }));
+      if (categories[cat]) categories[cat] = out;
+    });
+
+    // ensure categories exist even if empty
+    Object.keys(categories).forEach(k => { if (!categories[k]) categories[k] = []; });
+
+    res.status(200).json({
+      success: true,
+      data: {
+        activity: categories.activity,
+        social: categories.social,
+        health: categories.health
+      }
+    });
+  } catch (error) {
+    console.error('Error fetching aggregated recommendations:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+exports.getPastSectionRecommendations = async (req, res) => {
+  try {
+    const { section } = req.params;
+    const recs = await TeacherRecommendation.find({ section }).sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: recs });
+  } catch (error) {
+    console.error('Error fetching past recommendations:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+exports.provideRecommendationFeedback = async (req, res) => {
+  try {
+    const { recommendationId, recIdx } = req.params;
+    const { feedback } = req.body;
+
+    const rec = await TeacherRecommendation.findById(recommendationId);
+    if (!rec) {
+      return res.status(404).json({ success: false, message: 'Recommendation not found.' });
+    }
+    if (!rec.recommendations[recIdx]) {
+      return res.status(404).json({ success: false, message: 'Suggestion not found.' });
+    }
+
+    rec.recommendations[recIdx].feedback = rec.recommendations[recIdx].feedback || [];
+    rec.recommendations[recIdx].feedback.push({ text: feedback });
+    await rec.save();
+
+    res.status(200).json({ success: true, message: 'Feedback saved.' });
+  } catch (error) {
+    console.error('Error saving feedback:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+
+exports.getRecommendationFeedback = async (req, res) => {
+  try {
+    const { recommendationId, recIdx } = req.params;
+    const rec = await TeacherRecommendation.findById(recommendationId).select('recommendations');
+    if (!rec || !rec.recommendations[recIdx]) {
+      return res.status(404).json({ success: false, message: 'Suggestion not found.' });
+    }
+    res.status(200).json({ success: true, data: rec.recommendations[recIdx].feedback || [] });
+  } catch (error) {
+    console.error('Error fetching feedback:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+}; 
+
+// Update feedback (PUT)
+exports.editRecommendationFeedback = async (req, res) => {
+  try {
+    const { recommendationId, recIdx, fbIdx } = req.params;
+    const { text } = req.body;
+    const rec = await TeacherRecommendation.findById(recommendationId);
+    if (!rec || !rec.recommendations[recIdx] || !rec.recommendations[recIdx].feedback[fbIdx]) {
+      return res.status(404).json({ success: false, message: 'Feedback not found.' });
+    }
+    rec.recommendations[recIdx].feedback[fbIdx].text = text;
+    await rec.save();
+    res.status(200).json({ success: true, message: 'Feedback updated.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Delete feedback (DELETE)
+exports.deleteRecommendationFeedback = async (req, res) => {
+  try {
+    const { recommendationId, recIdx, fbIdx } = req.params;
+    const rec = await TeacherRecommendation.findById(recommendationId);
+    if (!rec || !rec.recommendations[recIdx] || !rec.recommendations[recIdx].feedback[fbIdx]) {
+      return res.status(404).json({ success: false, message: 'Feedback not found.' });
+    }
+    rec.recommendations[recIdx].feedback.splice(fbIdx, 1);
+    await rec.save();
+    res.status(200).json({ success: true, message: 'Feedback deleted.' });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Set effectiveness (PUT)
+exports.setFeedbackEffective = async (req, res) => {
+  try {
+    const { recommendationId, recIdx, fbIdx } = req.params;
+    const { effective } = req.body;
+    
+    const rec = await TeacherRecommendation.findById(recommendationId);
+    if (!rec || !rec.recommendations[recIdx] || !rec.recommendations[recIdx].feedback[fbIdx]) {
+      return res.status(404).json({ success: false, message: 'Feedback not found.' });
+    }
+    
+    rec.recommendations[recIdx].feedback[fbIdx].effective = effective;
+    await rec.save();
+    
+    res.status(200).json({ success: true, message: 'Feedback effectiveness updated.' });
+  } catch (error) {
+    console.error('Error saving feedback effectiveness:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

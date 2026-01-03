@@ -53,6 +53,30 @@ const categories = ['activity', 'social', 'health', 'sleep'];
 const beforeValences = ['positive', 'negative', "can't remember"];
 const afterValences = ['positive', 'negative'];
 
+// Use your provided IDs for each category
+const activityIds = [
+  'commute', 'exam', 'homework', 'study', 'project', 'read', 'extracurricular',
+  'household-chores', 'relax', 'watch-movie', 'listen-music', 'gaming',
+  'browse-internet', 'shopping', 'travel'
+];
+
+const socialIds = [
+  'alone', 'friends', 'family', 'classmates', 'relationship', 'online', 'pet'
+];
+
+const healthIds = [
+  'jog', 'walk', 'exercise', 'sports', 'meditate', 'eat-healthy',
+  'no-physical', 'eat-unhealthy', 'drink-alcohol'
+];
+
+// Generate a random date within the current month (including today)
+function getRandomDateThisMonth() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const end = now;
+  return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+}
+
 async function seedMoodLogs(count = 50) {
   await mongoose.connect(MONGO_URI);
 
@@ -71,8 +95,12 @@ async function seedMoodLogs(count = 50) {
     let hrs = undefined;
     if (category === 'sleep') {
       hrs = Math.floor(Math.random() * 10) + 1; // 1-10 hours
-    } else {
-      activity = getRandom(['studying', 'sports', 'reading', 'gaming', 'talking', 'walking', 'eating']);
+    } else if (category === 'activity') {
+      activity = getRandom(activityIds);
+    } else if (category === 'social') {
+      activity = getRandom(socialIds);
+    } else if (category === 'health') {
+      activity = getRandom(healthIds);
     }
 
     const beforeValence = getRandom(beforeValences);
@@ -96,7 +124,7 @@ async function seedMoodLogs(count = 50) {
 
     const moodLog = new MoodLog({
       user,
-      date: new Date(Date.now() - Math.floor(Math.random() * 1000000000)), // random past date
+      date: getRandomDateThisMonth(),
       category,
       activity: category !== 'sleep' ? activity : undefined,
       hrs: category === 'sleep' ? hrs : undefined,

@@ -34,4 +34,25 @@ router.get('/weekly-logs/:section', teacherController.getWeeklyLogsByCategory);
 // Get dashboard statistics
 router.get('/dashboard-stats', teacherController.getTeacherDashboardStats);
 
+// Generate recommendations for a section based on the JSON and engine
+router.get('/recommendations/:section', teacherController.generateSectionRecommendations);
+
+// Aggregated recommendations (daily/weekly/monthly) used by frontend
+router.get('/recommendations-aggregate/:section', teacherController.getAggregatedRecommendations);
+
+// Fetch past recommendations for a section
+router.get('/past-recommendations/:section', teacherController.getPastSectionRecommendations);
+
+// ...existing code...
+
+// Provide feedback for a specific suggestion in a recommendation
+router.post('/recommendation-feedback/:recommendationId/:recIdx', teacherController.provideRecommendationFeedback);
+
+// Fetch previous feedback for a specific suggestion
+router.get('/recommendation-feedback/:recommendationId/:recIdx', teacherController.getRecommendationFeedback);
+
+router.put('/recommendation-feedback/:recommendationId/:recIdx/:fbIdx', teacherController.editRecommendationFeedback);
+router.delete('/recommendation-feedback/:recommendationId/:recIdx/:fbIdx', teacherController.deleteRecommendationFeedback);
+router.put('/recommendation-feedback-effective/:recommendationId/:recIdx/:fbIdx', teacherController.setFeedbackEffective);
+
 module.exports = router;

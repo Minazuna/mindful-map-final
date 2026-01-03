@@ -1,0 +1,380 @@
+{
+  "activity": {
+    "commute": {
+      "positive": [
+        "Encourage the student to use commute time for reflection or listening to educational podcasts. (Source: [Edutopia - Mindful Commuting](https://www.edutopia.org/article/mindful-commuting))",
+        "Suggest preparing for the day by reviewing goals or schedules during the commute. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))",
+        "Praise the student for maintaining a positive attitude during daily routines. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Teach relaxation or breathing techniques to manage stress during commutes. (Source: [Mindful Schools](https://www.mindfulschools.org/))",
+        "Encourage listening to calming music or audiobooks. (Source: [Harvard - Music and Mood](https://www.health.harvard.edu/mind-and-mood/how-music-can-help-you-heal))",
+        "Suggest planning ahead to reduce commute-related anxiety. (Source: [Edutopia - Time Management](https://www.edutopia.org/article/time-management-students))"
+      ]
+    },
+    "exam": {
+      "positive": [
+        "Encourage sharing study strategies with classmates. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Praise effective preparation and stress management. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest setting new academic goals after the exam. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))"
+      ],
+      "negative": [
+        "Teach test-taking strategies and relaxation techniques. (Source: [APA - Test Anxiety](https://www.apa.org/topics/anxiety/test-anxiety))",
+        "Encourage practice exams to build confidence. (Source: [Edutopia - Practice Testing](https://www.edutopia.org/article/practice-testing))",
+        "Offer reassurance that setbacks are part of learning. (Source: [Edutopia - Growth Mindset](https://www.edutopia.org/article/growth-mindset-resources))"
+      ]
+    },
+    "homework": {
+      "positive": [
+        "Praise the student's consistency in completing homework. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Encourage sharing time management tips with peers. (Source: [Edutopia - Time Management](https://www.edutopia.org/article/time-management-students))",
+        "Suggest setting new challenges for continued growth. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))"
+      ],
+      "negative": [
+        "Break homework into smaller, manageable tasks. (Source: [Edutopia - Homework Help](https://www.edutopia.org/article/homework-help))",
+        "Encourage asking for help when needed. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Teach organizational skills to reduce overwhelm. (Source: [Edutopia - Organization](https://www.edutopia.org/article/organization-skills))"
+      ]
+    },
+    "project": {
+      "positive": [
+        "Encourage the student to take on leadership roles in group projects. (Source: [Edutopia - Student Leadership](https://www.edutopia.org/article/student-leadership))",
+        "Praise creativity and collaboration. (Source: [Edutopia - Collaborative Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Suggest reflecting on what went well for future projects. (Source: [Edutopia - Reflection](https://www.edutopia.org/article/student-reflection))"
+      ],
+      "negative": [
+        "Break the project into smaller steps with clear deadlines. (Source: [Edutopia - Project Management](https://www.edutopia.org/article/project-management-students))",
+        "Encourage seeking feedback from peers or teachers. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Teach stress management techniques for group work. (Source: [Mindful Schools](https://www.mindfulschools.org/))"
+      ]
+    },
+    "study": {
+      "positive": [
+        "Encourage sharing effective study habits with classmates. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Praise the student's dedication and focus. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest setting new learning goals. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))"
+      ],
+      "negative": [
+        "Teach active study techniques like summarizing and self-quizzing. (Source: [Edutopia - Study Skills](https://www.edutopia.org/article/study-skills))",
+        "Encourage short, focused study sessions with breaks. (Source: [Edutopia - Pomodoro Technique](https://www.edutopia.org/article/pomodoro-technique))",
+        "Offer support for challenging subjects or topics. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))"
+      ]
+    },
+    "read": {
+      "positive": [
+        "Encourage participation in book clubs or reading groups. (Source: [Edutopia - Book Clubs](https://www.edutopia.org/article/book-clubs))",
+        "Suggest sharing favorite books with peers. (Source: [Edutopia - Reading for Pleasure](https://www.edutopia.org/article/reading-pleasure))",
+        "Praise the student's love for reading. (Source: [Edutopia - Reading for Pleasure](https://www.edutopia.org/article/reading-pleasure))"
+      ],
+      "negative": [
+        "Suggest exploring new genres or authors. (Source: [Edutopia - Reading for Pleasure](https://www.edutopia.org/article/reading-pleasure))",
+        "Encourage setting small reading goals. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))",
+        "Offer support for reading comprehension challenges. (Source: [Edutopia - Reading Strategies](https://www.edutopia.org/article/reading-strategies))"
+      ]
+    },
+    "extracurricular": {
+      "positive": [
+        "Encourage continued participation and trying new activities. (Source: [CDC - Physical Activity](https://www.cdc.gov/healthyschools/physicalactivity/guidelines.htm))",
+        "Praise teamwork and leadership skills. (Source: [Edutopia - Student Leadership](https://www.edutopia.org/article/student-leadership))",
+        "Suggest reflecting on skills gained from extracurriculars. (Source: [Edutopia - Reflection](https://www.edutopia.org/article/student-reflection))"
+      ],
+      "negative": [
+        "Encourage trying different activities to find the best fit. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))",
+        "Teach time management to balance extracurriculars and academics. (Source: [Edutopia - Time Management](https://www.edutopia.org/article/time-management-students))",
+        "Offer support for social or performance anxiety. (Source: [Mindful Schools](https://www.mindfulschools.org/))"
+      ]
+    },
+    "household-chores": {
+      "positive": [
+        "Praise responsibility and consistency in completing chores. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Encourage sharing strategies for making chores enjoyable. (Source: [Edutopia - Time Management](https://www.edutopia.org/article/time-management-students))",
+        "Suggest setting new goals for responsibility at home. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))"
+      ],
+      "negative": [
+        "Break chores into smaller, manageable steps. (Source: [Edutopia - Organization](https://www.edutopia.org/article/organization-skills))",
+        "Encourage taking breaks and not overburdening oneself. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))",
+        "Offer support and reassurance for their efforts. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ]
+    },
+    "relax": {
+      "positive": [
+        "Encourage sharing relaxation techniques with peers. (Source: [Mindful Schools](https://www.mindfulschools.org/))",
+        "Praise the student's ability to manage stress. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest maintaining a balance between relaxation and productivity. (Source: [Edutopia - Time Management](https://www.edutopia.org/article/time-management-students))"
+      ],
+      "negative": [
+        "Teach mindfulness and relaxation exercises. (Source: [Mindful Schools](https://www.mindfulschools.org/))",
+        "Encourage participation in calming activities like art or music. (Source: [Edutopia - Art and SEL](https://www.edutopia.org/article/using-art-support-social-emotional-learning))",
+        "Offer support for managing stress or anxiety. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "watch-movie": {
+      "positive": [
+        "Encourage discussing favorite movies with friends to build social connections. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Suggest exploring movies from different cultures for learning. (Source: [Edutopia - Cultural Learning](https://www.edutopia.org/article/cultural-learning))",
+        "Praise the student's ability to balance leisure and academics. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Encourage limiting screen time and balancing with other activities. (Source: [CDC - Screen Time](https://www.cdc.gov/ncbddd/fasd/features/screen-time.html))",
+        "Suggest watching uplifting or educational movies. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))",
+        "Offer support for feelings of isolation or boredom. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "listen-music": {
+      "positive": [
+        "Encourage sharing favorite music with classmates. (Source: [Edutopia - Music in the Classroom](https://www.edutopia.org/article/music-classroom))",
+        "Suggest joining a music club or group. (Source: [Edutopia - Music in the Classroom](https://www.edutopia.org/article/music-classroom))",
+        "Praise the use of music as a positive outlet. (Source: [Harvard - Music and Mood](https://www.health.harvard.edu/mind-and-mood/how-music-can-help-you-heal))"
+      ],
+      "negative": [
+        "Encourage listening to calming or uplifting music. (Source: [Harvard - Music and Mood](https://www.health.harvard.edu/mind-and-mood/how-music-can-help-you-heal))",
+        "Suggest expressing emotions through music or songwriting. (Source: [Edutopia - Music in the Classroom](https://www.edutopia.org/article/music-classroom))",
+        "Offer support for using music to manage stress. (Source: [Mindful Schools](https://www.mindfulschools.org/))"
+      ]
+    },
+    "gaming": {
+      "positive": [
+        "Encourage sharing gaming strategies with friends to build teamwork. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Suggest balancing gaming with physical activity. (Source: [CDC - Physical Activity](https://www.cdc.gov/healthyschools/physicalactivity/guidelines.htm))",
+        "Praise the student's ability to manage leisure time. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Encourage setting time limits for gaming. (Source: [CDC - Screen Time](https://www.cdc.gov/ncbddd/fasd/features/screen-time.html))",
+        "Suggest exploring other hobbies or activities. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))",
+        "Offer support for managing frustration or anger from gaming. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))"
+      ]
+    },
+    "browse-internet": {
+      "positive": [
+        "Encourage using the internet for learning and research. (Source: [Edutopia - Digital Literacy](https://www.edutopia.org/article/digital-literacy))",
+        "Suggest sharing interesting findings with classmates. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Praise responsible internet use. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Teach digital citizenship and safe internet practices. (Source: [Edutopia - Digital Citizenship](https://www.edutopia.org/article/digital-citizenship))",
+        "Encourage balancing screen time with offline activities. (Source: [CDC - Screen Time](https://www.cdc.gov/ncbddd/fasd/features/screen-time.html))",
+        "Offer support for feelings of isolation or negativity online. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "shopping": {
+      "positive": [
+        "Encourage responsible spending and budgeting. (Source: [Edutopia - Financial Literacy](https://www.edutopia.org/article/financial-literacy))",
+        "Suggest reflecting on needs versus wants. (Source: [Edutopia - Financial Literacy](https://www.edutopia.org/article/financial-literacy))",
+        "Praise independence and decision-making skills. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Teach budgeting and mindful spending habits. (Source: [Edutopia - Financial Literacy](https://www.edutopia.org/article/financial-literacy))",
+        "Encourage discussing feelings that lead to impulse buying. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))",
+        "Offer support for stress or anxiety related to shopping. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))"
+      ]
+    },
+    "travel": {
+      "positive": [
+        "Encourage sharing travel experiences with classmates. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Suggest reflecting on what was learned from travel. (Source: [Edutopia - Reflection](https://www.edutopia.org/article/student-reflection))",
+        "Praise adaptability and openness to new experiences. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Teach coping strategies for travel-related stress or anxiety. (Source: [Mindful Schools](https://www.mindfulschools.org/))",
+        "Encourage documenting travel experiences through journaling or photos. (Source: [Edutopia - Journaling](https://www.edutopia.org/article/journaling-benefits-students))",
+        "Offer support for homesickness or adjustment issues. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    }
+  },
+  "social": {
+    "alone": {
+      "positive": [
+        "Encourage the student to use alone time for self-reflection or creative activities. (Source: [Edutopia - Journaling](https://www.edutopia.org/article/journaling-benefits-students))",
+        "Suggest practicing mindfulness or relaxation techniques while alone. (Source: [Mindful Schools](https://www.mindfulschools.org/))",
+        "Praise the student's ability to enjoy their own company and recharge. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Encourage reaching out to friends or family for support. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))",
+        "Suggest joining clubs or group activities to build connections. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))",
+        "Teach coping strategies for feelings of loneliness. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))"
+      ]
+    },
+    "friends": {
+      "positive": [
+        "Encourage maintaining regular contact with friends. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Praise positive social interactions and teamwork. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest organizing group activities or study sessions. (Source: [Edutopia - Collaborative Learning](https://www.edutopia.org/classroom-collaboration-tips))"
+      ],
+      "negative": [
+        "Teach conflict resolution and communication skills. (Source: [APA - Communication](https://www.apa.org/topics/communication))",
+        "Encourage reaching out to resolve misunderstandings. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Offer support for building new friendships. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "family": {
+      "positive": [
+        "Encourage spending quality time with family members. (Source: [Edutopia - Family Engagement](https://www.edutopia.org/article/family-engagement))",
+        "Praise positive family relationships and support. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest sharing daily experiences with family. (Source: [Edutopia - Family Engagement](https://www.edutopia.org/article/family-engagement))"
+      ],
+      "negative": [
+        "Teach communication and problem-solving skills for family conflicts. (Source: [APA - Communication](https://www.apa.org/topics/communication))",
+        "Encourage seeking support from trusted adults or counselors. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))",
+        "Suggest family activities to strengthen bonds. (Source: [Edutopia - Family Engagement](https://www.edutopia.org/article/family-engagement))"
+      ]
+    },
+    "classmates": {
+      "positive": [
+        "Encourage collaboration and teamwork in class projects. (Source: [Edutopia - Collaborative Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Praise respectful and inclusive behavior towards classmates. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest sharing study tips and resources with peers. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))"
+      ],
+      "negative": [
+        "Teach strategies for resolving disagreements with classmates. (Source: [APA - Communication](https://www.apa.org/topics/communication))",
+        "Encourage seeking help from teachers if conflicts persist. (Source: [Edutopia - Collaborative Learning](https://www.edutopia.org/classroom-collaboration-tips))",
+        "Offer support for building positive peer relationships. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "relationship": {
+      "positive": [
+        "Encourage open and honest communication in relationships. (Source: [APA - Communication](https://www.apa.org/topics/communication))",
+        "Praise healthy relationship habits and mutual respect. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest spending quality time together and supporting each other's goals. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))"
+      ],
+      "negative": [
+        "Teach conflict resolution and empathy in relationships. (Source: [APA - Communication](https://www.apa.org/topics/communication))",
+        "Encourage seeking advice from trusted adults or counselors. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))",
+        "Offer support for managing relationship stress or breakups. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))"
+      ]
+    },
+    "online": {
+      "positive": [
+        "Encourage positive and respectful online interactions. (Source: [Edutopia - Digital Citizenship](https://www.edutopia.org/article/digital-citizenship))",
+        "Suggest sharing helpful resources or uplifting content online. (Source: [Edutopia - Digital Literacy](https://www.edutopia.org/article/digital-literacy))",
+        "Praise responsible use of technology and social media. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ],
+      "negative": [
+        "Teach strategies for dealing with online negativity or cyberbullying. (Source: [Edutopia - Digital Citizenship](https://www.edutopia.org/article/digital-citizenship))",
+        "Encourage taking breaks from screens and social media. (Source: [CDC - Screen Time](https://www.cdc.gov/ncbddd/fasd/features/screen-time.html))",
+        "Offer support for feelings of isolation or negativity online. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "pet": {
+      "positive": [
+        "Encourage spending quality time with pets for emotional support. (Source: [CDC - Pets and Mental Health](https://www.cdc.gov/healthypets/health-benefits/index.html))",
+        "Praise responsibility in caring for pets. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest sharing positive pet experiences with others. (Source: [Edutopia - Peer Learning](https://www.edutopia.org/classroom-collaboration-tips))"
+      ],
+      "negative": [
+        "Encourage using time with pets as a way to manage stress. (Source: [CDC - Pets and Mental Health](https://www.cdc.gov/healthypets/health-benefits/index.html))",
+        "Teach gentle pet care routines for comfort. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for feelings of sadness or loss related to pets. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    }
+  },
+  "health": {
+    "jog": {
+      "positive": [
+        "Encourage maintaining a regular jogging routine for physical and mental health. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Praise the student's commitment to staying active. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest setting new fitness goals to stay motivated. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))"
+      ],
+      "negative": [
+        "Encourage starting with short, manageable jogs if feeling low. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Teach the importance of warming up and cooling down. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Offer support for building a consistent exercise habit. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ]
+    },
+    "walk": {
+      "positive": [
+        "Encourage regular walks for both physical and mental well-being. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Praise the student's effort to stay active. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest exploring new walking routes for variety. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))"
+      ],
+      "negative": [
+        "Encourage starting with short walks if motivation is low. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Teach the benefits of walking for mood improvement. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for making walking a daily habit. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ]
+    },
+    "exercise": {
+      "positive": [
+        "Encourage a balanced exercise routine including strength, cardio, and flexibility. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Praise consistency and effort in exercising. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest setting new fitness challenges. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))"
+      ],
+      "negative": [
+        "Encourage starting with light exercises if feeling unmotivated. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Teach the importance of gradual progression in exercise. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Offer support for overcoming barriers to exercise. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))"
+      ]
+    },
+    "sports": {
+      "positive": [
+        "Encourage participation in sports for teamwork and fitness. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Praise sportsmanship and effort. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest trying new sports for variety. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))"
+      ],
+      "negative": [
+        "Encourage focusing on enjoyment rather than competition. (Source: [Positive Coaching Alliance](https://devzone.positivecoach.org/resource/article/effort-over-outcome))",
+        "Teach coping strategies for performance anxiety. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for building confidence in sports. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ]
+    },
+    "meditate": {
+      "positive": [
+        "Encourage regular meditation for stress management. (Source: [Mindful Schools](https://www.mindfulschools.org/))",
+        "Praise the student's commitment to mindfulness practices. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest exploring different meditation techniques. (Source: [Mindful Schools](https://www.mindfulschools.org/))"
+      ],
+      "negative": [
+        "Encourage starting with short, guided meditations. (Source: [Mindful Schools](https://www.mindfulschools.org/))",
+        "Teach the benefits of mindfulness for emotional regulation. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for building a meditation habit. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))"
+      ]
+    },
+    "eat-healthy": {
+      "positive": [
+        "Encourage balanced meals and healthy snacks. (Source: [CDC - Nutrition](https://www.cdc.gov/nutrition/index.html))",
+        "Praise healthy eating habits and choices. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest trying new healthy recipes. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))"
+      ],
+      "negative": [
+        "Encourage making small, gradual changes towards healthier eating. (Source: [CDC - Nutrition](https://www.cdc.gov/nutrition/index.html))",
+        "Teach the importance of balanced nutrition for mood and energy. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for overcoming barriers to healthy eating. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "no-physical": {
+      "positive": [
+        "Encourage gentle stretching or light movement even on rest days. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Praise the importance of rest and recovery. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest planning future physical activities. (Source: [Harvard - Goal Setting](https://www.gse.harvard.edu/news/uk/18/12/goal-setting-students))"
+      ],
+      "negative": [
+        "Encourage starting with small, manageable activities to build momentum. (Source: [CDC - Physical Activity](https://www.cdc.gov/physicalactivity/basics/pa-health/index.htm))",
+        "Teach the benefits of regular movement for mood and health. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for overcoming inactivity. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "eat-unhealthy": {
+      "positive": [
+        "Encourage moderation and balance in food choices. (Source: [CDC - Nutrition](https://www.cdc.gov/nutrition/index.html))",
+        "Praise efforts to make healthier choices. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest substituting unhealthy snacks with healthier options. (Source: [Edutopia - Engagement](https://www.edutopia.org/article/engagement-strategies))"
+      ],
+      "negative": [
+        "Encourage gradual reduction of unhealthy foods. (Source: [CDC - Nutrition](https://www.cdc.gov/nutrition/index.html))",
+        "Teach the impact of nutrition on mood and energy. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for making sustainable dietary changes. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    },
+    "drink-alcohol": {
+      "positive": [
+        "Encourage moderation and awareness of safe drinking guidelines. (Source: [CDC - Alcohol and Public Health](https://www.cdc.gov/alcohol/index.htm))",
+        "Praise responsible choices regarding alcohol. (Source: [APA - Encouraging Students](https://www.apa.org/ed/precollege/psn/2013/09/classroom-motivation))",
+        "Suggest discussing alcohol use openly with trusted adults. (Source: [Edutopia - Family Engagement](https://www.edutopia.org/article/family-engagement))"
+      ],
+      "negative": [
+        "Encourage seeking help if struggling with alcohol use. (Source: [CDC - Alcohol and Public Health](https://www.cdc.gov/alcohol/index.htm))",
+        "Teach the risks associated with excessive drinking. (Source: [APA - Coping Skills](https://www.apa.org/topics/children/healthy-coping))",
+        "Offer support for making healthier choices regarding alcohol. (Source: [Mental Health Foundation](https://www.mentalhealth.org.uk/explore-mental-health/publications/supporting-children-young-peoples-mental-health))"
+      ]
+    }
+  }
+}
