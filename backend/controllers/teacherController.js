@@ -370,6 +370,91 @@ exports.getTeacherDashboardStats = async (req, res) => {
   }
 };
 
+// Update mood log observation
+exports.updateMoodLogObservation = async (req, res) => {
+  try {
+    const { logId } = req.params;
+    const { teacherObservation, observationMatch } = req.body;
+    const teacher = await User.findById(req.user._id);
+
+    if (!teacher || teacher.role !== 'teacher') {
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    }
+
+    const moodLog = await MoodLog.findById(logId).populate('user');
+    if (!moodLog) {
+      return res.status(404).json({ success: false, message: 'Mood log not found.' });
+    }
+
+    // Verify teacher has access to this student's section
+    if (!teacher.assignedSections || !teacher.assignedSections.includes(moodLog.user.section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this student.' });
+    }
+
+    // Check if log is older than 2 weeks
+    const twoWeeksAgo = moment().subtract(2, 'weeks');
+    const logDate = moment(moodLog.date);
+
+    if (logDate.isBefore(twoWeeksAgo)) {
+      return res.status(403).json({ 
+        success: false, 
+        message: 'Observations can only be added or edited for logs from the last 2 weeks.' 
+      });
+    }
+
+    moodLog.teacherObservation = teacherObservation;
+    moodLog.observationMatch = observationMatch;
+    moodLog.observationUpdatedAt = new Date();
+
+    await moodLog.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Observation updated successfully',
+      data: moodLog
+    });
+  } catch (error) {
+    console.error('Error updating mood log observation:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Delete mood log observation
+exports.deleteMoodLogObservation = async (req, res) => {
+  try {
+    const { logId } = req.params;
+    const teacher = await User.findById(req.user._id);
+
+    if (!teacher || teacher.role !== 'teacher') {
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    }
+
+    const moodLog = await MoodLog.findById(logId).populate('user');
+    if (!moodLog) {
+      return res.status(404).json({ success: false, message: 'Mood log not found.' });
+    }
+
+    // Verify teacher has access to this student's section
+    if (!teacher.assignedSections || !teacher.assignedSections.includes(moodLog.user.section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this student.' });
+    }
+
+    moodLog.teacherObservation = null;
+    moodLog.observationMatch = null;
+    moodLog.observationUpdatedAt = null;
+
+    await moodLog.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Observation deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting mood log observation:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
 // Get logs by category for a section with filtering (weekly, daily, monthly)
 exports.getLogsByCategory = async (req, res) => {
   try {
@@ -483,7 +568,6 @@ exports.getLogsByCategory = async (req, res) => {
     res.status(200).json({
       success: true,
       data: {
-        days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
         labels,
         activity: chartData.activity,
         health: chartData.health,

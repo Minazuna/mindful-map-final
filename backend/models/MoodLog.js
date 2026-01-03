@@ -77,6 +77,19 @@ const MoodLogSchema = new mongoose.Schema({
     type: String,
     default: '',
     maxlength: 500
+  },
+  teacherObservation: {
+    type: String,
+    default: null,
+    maxlength: 1000
+  },
+  observationMatch: {
+    type: Boolean,
+    default: null
+  },
+  observationUpdatedAt: {
+    type: Date,
+    default: null
   }
 });
 

@@ -16,6 +16,13 @@ const StudentLogs = () => {
   const [currentSection, setCurrentSection] = useState(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Observation Modal State
+  const [isObservationModalOpen, setIsObservationModalOpen] = useState(false);
+  const [selectedLog, setSelectedLog] = useState(null);
+  const [observationText, setObservationText] = useState('');
+  const [observationMatch, setObservationMatch] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
+
   // Filter states
   const [filters, setFilters] = useState({
     category: '',
@@ -170,6 +177,87 @@ const StudentLogs = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleOpenObservationModal = (log) => {
+    setSelectedLog(log);
+    setObservationText(log.teacherObservation || '');
+    setObservationMatch(log.observationMatch);
+    setIsObservationModalOpen(true);
+  };
+
+  const handleSaveObservation = async () => {
+    if (!observationText.trim()) {
+      toast.error('Please enter an observation');
+      return;
+    }
+    if (observationMatch === null) {
+      toast.error('Please select if the observation matches the mood log');
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.put(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/mood-logs/${selectedLog._id}/observation`,
+        {
+          teacherObservation: observationText,
+          observationMatch: observationMatch
+        },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        toast.success('Observation saved successfully');
+        // Update local state
+        setMoodLogs(prevLogs => prevLogs.map(log => 
+          log._id === selectedLog._id ? { ...log, ...response.data.data } : log
+        ));
+        setIsObservationModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error saving observation:', error);
+      toast.error(error.response?.data?.message || 'Failed to save observation');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteObservation = async () => {
+    if (!window.confirm('Are you sure you want to delete this observation?')) return;
+
+    setIsSaving(true);
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.delete(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/mood-logs/${selectedLog._id}/observation`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.data.success) {
+        toast.success('Observation deleted successfully');
+        // Update local state
+        setMoodLogs(prevLogs => prevLogs.map(log => 
+          log._id === selectedLog._id 
+            ? { ...log, teacherObservation: null, observationMatch: null, observationUpdatedAt: null } 
+            : log
+        ));
+        setIsObservationModalOpen(false);
+      }
+    } catch (error) {
+      console.error('Error deleting observation:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete observation');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const isWithinTwoWeeks = (dateString) => {
+    const logDate = new Date(dateString);
+    const twoWeeksAgo = new Date();
+    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
+    return logDate >= twoWeeksAgo;
   };
 
   // Pagination
@@ -495,6 +583,9 @@ const StudentLogs = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ width: '400px' }}>
                       After Reason
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Observation
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -564,6 +655,27 @@ const StudentLogs = () => {
                         <div className="break-words" style={{ maxWidth: '380px' }}>
                           {log.afterReason || 'N/A'}
                         </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        {log.teacherObservation ? (
+                          <button
+                            onClick={() => handleOpenObservationModal(log)}
+                            className="text-blue-600 hover:text-blue-900 bg-blue-50 px-3 py-1 rounded-md transition-colors"
+                          >
+                            View Observation
+                          </button>
+                        ) : (
+                          isWithinTwoWeeks(log.date) ? (
+                            <button
+                              onClick={() => handleOpenObservationModal(log)}
+                              className="text-green-600 hover:text-green-900 bg-green-50 px-3 py-1 rounded-md transition-colors"
+                            >
+                              Add Comment
+                            </button>
+                          ) : (
+                            <span className="text-gray-400 italic">No observation</span>
+                          )
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -641,6 +753,135 @@ const StudentLogs = () => {
           </div>
         </div>
       </div>
+
+      {/* Observation Modal */}
+      {isObservationModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
+              <h3 className="text-xl font-bold text-gray-800">
+                {selectedLog?.teacherObservation ? 'View/Edit Observation' : 'Add Observation'}
+              </h3>
+              <button 
+                onClick={() => setIsObservationModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="p-6">
+              <div className="mb-6 bg-blue-50 border-l-4 border-blue-400 p-4 rounded-r-md">
+                <p className="text-sm text-blue-700">
+                  <strong>Purpose:</strong> Please add your observation to see if your view of the student's mood is consistent with their self-reported experience.
+                  For instance, if you notice a student is upset during exam week, this can help explain their negative mood log.
+                </p>
+              </div>
+
+              <div className="mb-6">
+                <div className="flex justify-between items-center mb-2">
+                  <label className="block text-sm font-semibold text-gray-700">
+                    Your Observation/Comment
+                  </label>
+                  <span className="text-xs text-gray-400">
+                    {observationText.length}/1000
+                  </span>
+                </div>
+                <textarea
+                  value={observationText}
+                  onChange={(e) => setObservationText(e.target.value)}
+                  placeholder="Enter your observations about the student's mood or behavior..."
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none h-32 text-sm"
+                  maxLength={1000}
+                  disabled={!isWithinTwoWeeks(selectedLog?.date)}
+                />
+              </div>
+
+              <div className="mb-8">
+                <p className="block text-sm font-semibold text-gray-700 mb-3">
+                  Does your observation match the student's mood log?
+                </p>
+                <div className="flex gap-4">
+                  <button
+                    onClick={() => isWithinTwoWeeks(selectedLog?.date) && setObservationMatch(true)}
+                    className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                      observationMatch === true
+                        ? 'bg-green-500 border-green-500 text-white shadow-md'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-green-200'
+                    } ${!isWithinTwoWeeks(selectedLog?.date) ? 'cursor-not-allowed opacity-70' : ''}`}
+                    disabled={!isWithinTwoWeeks(selectedLog?.date)}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Yes, it matches
+                  </button>
+                  <button
+                    onClick={() => isWithinTwoWeeks(selectedLog?.date) && setObservationMatch(false)}
+                    className={`flex-1 py-3 px-4 rounded-lg border-2 transition-all flex items-center justify-center gap-2 ${
+                      observationMatch === false
+                        ? 'bg-red-500 border-red-500 text-white shadow-md'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-red-200'
+                    } ${!isWithinTwoWeeks(selectedLog?.date) ? 'cursor-not-allowed opacity-70' : ''}`}
+                    disabled={!isWithinTwoWeeks(selectedLog?.date)}
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    No, it doesn't match
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center pt-4 border-t border-gray-100">
+                <div>
+                  {selectedLog?.teacherObservation && (
+                    <button
+                      onClick={handleDeleteObservation}
+                      disabled={isSaving}
+                      className="text-red-600 hover:text-red-800 text-sm font-medium flex items-center gap-1 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      </svg>
+                      Delete Observation
+                    </button>
+                  )}
+                </div>
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setIsObservationModalOpen(false)}
+                    className="px-6 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  {isWithinTwoWeeks(selectedLog?.date) && (
+                    <button
+                      onClick={handleSaveObservation}
+                      disabled={isSaving}
+                      className="px-8 py-2 bg-[#55AD9B] hover:bg-[#448a7b] text-white rounded-lg font-bold shadow-lg transition-all disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {isSaving ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Saving...
+                        </>
+                      ) : (
+                        'Save Observation'
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

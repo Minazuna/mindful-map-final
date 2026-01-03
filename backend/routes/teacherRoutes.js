@@ -34,4 +34,10 @@ router.get('/categorical-logs/:section', teacherController.getLogsByCategory);
 // Get dashboard statistics
 router.get('/dashboard-stats', teacherController.getTeacherDashboardStats);
 
+// Update mood log observation
+router.put('/mood-logs/:logId/observation', teacherController.updateMoodLogObservation);
+
+// Delete mood log observation
+router.delete('/mood-logs/:logId/observation', teacherController.deleteMoodLogObservation);
+
 module.exports = router;
