@@ -43,7 +43,11 @@ router.get('/recommendations-aggregate/:section', teacherController.getAggregate
 // Fetch past recommendations for a section
 router.get('/past-recommendations/:section', teacherController.getPastSectionRecommendations);
 
-// ...existing code...
+// Update mood log observation
+router.put('/mood-logs/:logId/observation', teacherController.updateMoodLogObservation);
+
+// Delete mood log observation
+router.delete('/mood-logs/:logId/observation', teacherController.deleteMoodLogObservation);
 
 // Provide feedback for a specific suggestion in a recommendation
 router.post('/recommendation-feedback/:recommendationId/:recIdx', teacherController.provideRecommendationFeedback);
