@@ -21,7 +21,6 @@ const Sidebar = ({ teacher }) => {
 
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/teacher/dashboard' },
-    { icon: BarChart3, label: 'Analytics', path: '/teacher/analytics' },
     { icon: Settings, label: 'Edit Profile', path: '/teacher/edit-profile' },
   ];
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
+import MoodAnalysis from './MoodAnalysis';
+import CategoricalLogs from './CategoricalLogs';
 
 const Dashboard = () => {
   const [teacher, setTeacher] = useState(null);
@@ -291,6 +293,12 @@ const Dashboard = () => {
               )}
             </div>
           </div>
+        </div>
+
+        {/* Detailed Analytics */}
+        <div className="mt-10 grid grid-cols-1 gap-10">
+          <MoodAnalysis isDashboard={true} teacher={teacher} />
+          <CategoricalLogs isDashboard={true} teacher={teacher} />
         </div>
       </div>
     </div>

@@ -28,8 +28,8 @@ router.get('/section-students/:section', teacherController.getSectionStudents);
 // Get mood logs for a specific student
 router.get('/student-mood-logs/:studentId', teacherController.getStudentMoodLogsById);
 
-// Get weekly logs by category for a section
-router.get('/weekly-logs/:section', teacherController.getWeeklyLogsByCategory);
+// Get logs by category for a section (with daily/weekly/monthly filters)
+router.get('/categorical-logs/:section', teacherController.getLogsByCategory);
 
 // Get dashboard statistics
 router.get('/dashboard-stats', teacherController.getTeacherDashboardStats);

@@ -14,6 +14,8 @@ const storage = new CloudinaryStorage({
 
 const upload = multer({ storage: storage });
 
+const moment = require('moment');
+
 // Get teacher profile
 exports.getTeacherProfile = async (req, res) => {
   try {
@@ -368,11 +370,11 @@ exports.getTeacherDashboardStats = async (req, res) => {
   }
 };
 
-// Get weekly logs by category for a section
-exports.getWeeklyLogsByCategory = async (req, res) => {
+// Get logs by category for a section with filtering (weekly, daily, monthly)
+exports.getLogsByCategory = async (req, res) => {
   try {
     const { section } = req.params;
-    const { weekStartDate } = req.query;
+    const { viewType = 'weekly' } = req.query;
     
     const teacher = await User.findById(req.user._id);
     if (!teacher || teacher.role !== 'teacher') {
@@ -384,15 +386,6 @@ exports.getWeeklyLogsByCategory = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Access denied to this section.' });
     }
 
-    // Parse the week start date (Monday)
-    let startDate = new Date(weekStartDate);
-    startDate.setHours(0, 0, 0, 0);
-    
-    // Calculate end date (Sunday)
-    let endDate = new Date(startDate);
-    endDate.setDate(endDate.getDate() + 6);
-    endDate.setHours(23, 59, 59, 999);
-
     // Get all students in the section
     const students = await User.find({ 
       section: section,
@@ -401,7 +394,49 @@ exports.getWeeklyLogsByCategory = async (req, res) => {
 
     const studentIds = students.map(s => s._id);
 
-    // Get mood logs for the week by category and day
+    let startDate, endDate, groupBy, labels = [], dateRanges = [];
+    const categories = ['activity', 'health', 'social', 'sleep'];
+
+    if (viewType === 'weekly') {
+      // Last 8 weeks comparison
+      endDate = moment().endOf('isoWeek').toDate();
+      startDate = moment(endDate).subtract(8, 'weeks').add(1, 'day').startOf('day').toDate();
+      
+      // Group by week
+      groupBy = { $isoWeek: "$date" };
+      
+      for (let i = 7; i >= 0; i--) {
+        const s = moment().subtract(i, 'weeks').startOf('isoWeek');
+        const e = moment(s).endOf('isoWeek');
+        labels.push(`${s.format('MMM D')}-${e.format('MMM D')}`);
+        dateRanges.push({ week: s.isoWeek(), year: s.isoWeekYear() });
+      }
+    } else if (viewType === 'daily') {
+      // Past 30 days
+      endDate = moment().endOf('day').toDate();
+      startDate = moment(endDate).subtract(29, 'days').startOf('day').toDate();
+      groupBy = { $dateToString: { format: "%Y-%m-%d", date: "$date" } };
+      
+      for (let i = 0; i < 30; i++) {
+        labels.push(moment(startDate).add(i, 'days').format('MMM D'));
+      }
+    } else if (viewType === 'monthly') {
+      // Last 12 months comparison
+      endDate = moment().endOf('month').toDate();
+      startDate = moment(endDate).subtract(11, 'months').startOf('month').toDate();
+      groupBy = { 
+        month: { $month: "$date" },
+        year: { $year: "$date" }
+      };
+      
+      for (let i = 11; i >= 0; i--) {
+        const m = moment().subtract(i, 'months');
+        labels.push(m.format('MMM \'YY'));
+        dateRanges.push({ month: m.month() + 1, year: m.year() });
+      }
+    }
+
+    // Get mood logs for the period by category and time unit
     const logs = await MoodLog.aggregate([
       {
         $match: {
@@ -413,52 +448,54 @@ exports.getWeeklyLogsByCategory = async (req, res) => {
         $group: {
           _id: {
             category: '$category',
-            dayOfWeek: { $dayOfWeek: '$date' }
+            timeUnit: groupBy
           },
           count: { $sum: 1 }
         }
       }
     ]);
 
-    // Organize data by category and day
-    const categories = ['activity', 'health', 'social', 'sleep'];
-    const dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-    
     const chartData = {};
     categories.forEach(cat => {
-      chartData[cat] = [0, 0, 0, 0, 0, 0, 0]; // Sun to Sat
+      chartData[cat] = new Array(labels.length).fill(0);
     });
 
     logs.forEach(log => {
-      const { category, dayOfWeek } = log._id;
-      const dayIndex = dayOfWeek === 1 ? 0 : dayOfWeek - 1; // Convert MongoDB dayOfWeek (1-7) to array index (0-6)
-      if (chartData[category]) {
-        chartData[category][dayIndex] = log.count;
+      const { category, timeUnit } = log._id;
+      if (categories.includes(category)) {
+        let index = -1;
+        
+        if (viewType === 'weekly') {
+          index = dateRanges.findIndex(dr => dr.week === timeUnit);
+        } else if (viewType === 'monthly') {
+          index = dateRanges.findIndex(dr => dr.month === timeUnit.month && dr.year === timeUnit.year);
+        } else {
+          const dateStr = moment(timeUnit).format('MMM D');
+          index = labels.indexOf(dateStr);
+        }
+        
+        if (index !== -1 && index < labels.length) {
+          chartData[category][index] = log.count;
+        }
       }
-    });
-
-    // Reorder to start with Monday
-    const reorderedChartData = {};
-    categories.forEach(cat => {
-      const days = chartData[cat];
-      // Move Sunday (index 0) to the end
-      reorderedChartData[cat] = [...days.slice(1), days[0]];
     });
 
     res.status(200).json({
       success: true,
       data: {
         days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
-        activity: reorderedChartData.activity,
-        health: reorderedChartData.health,
-        social: reorderedChartData.social,
-        sleep: reorderedChartData.sleep,
-        weekStart: startDate,
-        weekEnd: endDate
+        labels,
+        activity: chartData.activity,
+        health: chartData.health,
+        social: chartData.social,
+        sleep: chartData.sleep,
+        startDate,
+        endDate,
+        viewType
       }
     });
   } catch (error) {
-    console.error('Error fetching weekly logs by category:', error);
+    console.error('Error fetching logs by category:', error);
     res.status(500).json({ success: false, message: 'Server Error', error: error.message });
   }
 };
