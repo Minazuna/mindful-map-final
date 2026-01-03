@@ -241,9 +241,9 @@ const StudentLogs = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F1F8E8]">
+    <div className="flex min-h-screen w-full bg-[#F7F7F7]">
       <TeacherSidebar teacher={teacher} />
-      <div className="flex-1 ml-72 p-6">
+      <div className="flex-1 ml-72 p-6 bg-[#F7F7F7]">
         <div className="max-w-7xl mx-auto">
           {/* Header */}
           <div className="mb-8">
