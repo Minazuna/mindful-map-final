@@ -213,36 +213,43 @@ exports.getUsers = async (req, res) => {
     const twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
-    const activeUsers = await MoodLog.aggregate([
-      {
-        $match: {
-          date: { $gte: twoWeeksAgo },
-        },
-      },
+    // Get last logged date for all users from MoodLog
+    const lastLogs = await MoodLog.aggregate([
       {
         $group: {
           _id: "$user",
-        },
-      },
+          lastLogged: { $max: "$date" }
+        }
+      }
     ]);
 
-    const activeUserIds = activeUsers.map(user => user._id.toString());
+    const lastLogMap = {};
+    lastLogs.forEach(log => {
+      lastLogMap[log._id.toString()] = log.lastLogged;
+    });
 
     const users = await User.find({ role: 'user' }).select('firstName lastName email avatar section createdAt');
 
-    const usersWithStatus = users.map(user => ({
-      id: user._id,
-      name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'No Name',
-      email: user.email,
-      avatar: user.avatar,
-      section: user.section || 'Not Assigned',
-      createdAt: user.createdAt.toISOString(),
-      status: activeUserIds.includes(user._id.toString()) ? 'Active' : 'Inactive',
-    }));
+    const usersWithStatus = users.map(user => {
+      const lastLogged = lastLogMap[user._id.toString()];
+      const isActive = lastLogged && new Date(lastLogged) >= twoWeeksAgo;
+
+      return {
+        id: user._id,
+        name: `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'No Name',
+        email: user.email,
+        avatar: user.avatar,
+        section: user.section || 'Not Assigned',
+        createdAt: user.createdAt.toISOString(),
+        status: isActive ? 'Active' : 'Inactive',
+        lastLogged: lastLogged || null
+      };
+    });
 
     res.json(usersWithStatus);
   } catch (error) {
-    res.status(500).json({ message: "Error fetching users", error });
+    console.error("Error fetching users:", error);
+    res.status(500).json({ message: "Error fetching users", error: error.message });
   }
 };
 
