@@ -56,18 +56,6 @@ const activities = [
     shadow: 'shadow-[#b084c8]/10',
   },
   {
-    id: 'affirmation',
-    title: 'Daily Affirmation',
-    description: 'Build confidence and positive mindset through affirmations. ',
-    color: '#9c75d5',
-    icon: activityIcons.affirmation,
-    onClick: (navigate) => navigate('/affirmation'),
-    border: 'border-[#9c75d5]',
-    text: 'text-[#5a3a7a]',
-    bg: 'bg-[#f3eafc]',
-    shadow: 'shadow-[#9c75d5]/10',
-  },
-  {
     id: 'music',
     title: 'Calming Music',
     description: 'Relax with soothing melodies to reduce stress.',
