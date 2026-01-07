@@ -8,6 +8,61 @@ import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 
+// Modal for Terms and Conditions
+function TermsModal({ open, onClose }) {
+  const [agreed, setAgreed] = useState(false);
+
+  useEffect(() => {
+    if (!open) setAgreed(false);
+  }, [open]);
+
+  return (
+    open && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
+          <div className="text-2xl font-bold mb-4 text-[#1b5f52] text-center">Terms &amp; Conditions</div>
+          <div className="text-gray-700 text-base mb-6 max-h-72 overflow-y-auto">
+            <p>
+              <strong>Data Usage:</strong> Mindful Map collects and stores your journal entries, activity logs, and profile information solely for the purpose of providing personalized insights, progress tracking, and enhancing your experience within the system.
+            </p>
+            <ul className="list-disc pl-6 my-3">
+              <li>Your data is <strong>never</strong> sold or shared with third parties.</li>
+              <li>All data is used only for analysis and features within Mindful Map.</li>
+              <li>We use industry-standard security to protect your privacy and information.</li>
+            </ul>
+            <p>
+              By using Mindful Map, you agree to our use of your data as described above. Your privacy and trust are our top priorities.
+            </p>
+          </div>
+          <div className="flex items-center mb-6">
+            <input
+              id="agree"
+              type="checkbox"
+              checked={agreed}
+              onChange={() => setAgreed(!agreed)}
+              className="w-5 h-5 accent-[#55AD9B] mr-2"
+            />
+            <label htmlFor="agree" className="text-[#1b5f52] font-medium cursor-pointer">
+              I have read and agree to the Terms &amp; Conditions
+            </label>
+          </div>
+          <button
+            className={`w-full py-3 rounded-xl font-bold text-white transition-colors ${
+              agreed
+                ? 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:from-[#3e8e7e] hover:to-[#55AD9B]'
+                : 'bg-gray-300 cursor-not-allowed'
+            }`}
+            disabled={!agreed}
+            onClick={onClose}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    )
+  );
+}
+
 const Signin = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -17,7 +72,8 @@ const Signin = () => {
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  
+  const [showTerms, setShowTerms] = useState(false);
+
   useEffect(() => {
     const firebaseConfig = {
       apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -27,7 +83,6 @@ const Signin = () => {
       messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
       appId: import.meta.env.VITE_FIREBASE_APP_ID
     };
-    
     initializeApp(firebaseConfig);
   }, []);
 
@@ -58,7 +113,7 @@ const Signin = () => {
     } else if (name === 'password') {
       error = validatePassword(value);
     }
-    
+
     setValidationErrors(prev => ({
       ...prev,
       [name]: error
@@ -67,7 +122,7 @@ const Signin = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     // Validate all fields
     const errors = {
       email: validateEmail(formData.email),
@@ -75,7 +130,7 @@ const Signin = () => {
     };
 
     const hasErrors = Object.values(errors).some(error => error !== '');
-    
+
     if (hasErrors) {
       setValidationErrors(errors);
       toast.error('Please fix the validation errors before submitting.');
@@ -86,21 +141,21 @@ const Signin = () => {
       email: formData.email,
       password: formData.password,
     };
-  
+
     try {
       const response = await axios.post(`${import.meta.env.VITE_NODE_API}/api/auth/login`, data);
-  
+
       if (response.data.success) {
         localStorage.setItem('token', response.data.token);
         toast.success("Login successful!");
-  
+
         // Fetch user role
         const userResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/auth/me`, {
           headers: {
             Authorization: `Bearer ${response.data.token}`,
           },
         });
-  
+
         if (userResponse.data.role === 'admin') {
           navigate('/admin/dashboard');
         } else if (userResponse.data.role === 'teacher') {
@@ -116,7 +171,7 @@ const Signin = () => {
     } catch (error) {
       if (error.response) {
         const errorMessage = error.response.data.message;
-  
+
         if (error.response.status === 403) {
           if (errorMessage === "Please verify your email to log in.") {
             toast.error("Please verify your email before logging in.");
@@ -135,11 +190,11 @@ const Signin = () => {
   const handleGoogleSignIn = async () => {
     const auth = getAuth();
     const provider = new GoogleAuthProvider();
-    
+
     try {
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
-      
+
       const googleUserData = {
         email: user.email,
         firstName: user.displayName ? user.displayName.split(' ')[0] : '',
@@ -147,16 +202,16 @@ const Signin = () => {
         avatar: user.photoURL || '',
         firebaseUid: user.uid,
       };
-      
+
       const response = await axios.post(
         `${import.meta.env.VITE_NODE_API}/api/auth/google-auth`,
         googleUserData
       );
-      
+
       if (response.data.success) {
         localStorage.setItem('token', response.data.token);
         toast.success("Google sign-in successful!");
-        
+
         if (response.data.role === 'admin') {
           navigate('/admin/dashboard');
         } else if (response.data.role === 'teacher') {
@@ -173,7 +228,7 @@ const Signin = () => {
 
   return (
     <div className="min-h-screen flex bg-white">
-      <ToastContainer 
+      <ToastContainer
         position="top-right"
         autoClose={3000}
         hideProgressBar={false}
@@ -185,14 +240,17 @@ const Signin = () => {
         pauseOnHover
         theme="light"
       />
-      
+
+      {/* Terms Modal */}
+      <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
+
       {/* Left Side - Form */}
       <div className="w-1/2 flex items-center justify-center p-8">
         <form className="w-full max-w-lg flex flex-col" onSubmit={handleSubmit}>
           <h1 className="text-5xl font-bold mb-2 text-[#3a3939] text-center">
             Welcome back!
           </h1>
-          
+
           {/* Email */}
           <div className="mb-6">
             <input
@@ -200,8 +258,8 @@ const Signin = () => {
               name="email"
               placeholder="Email Address"
               className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200
-                ${validationErrors.email 
-                  ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                ${validationErrors.email
+                  ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200'
                   : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
                 }
                 bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
@@ -221,8 +279,8 @@ const Signin = () => {
                 name="password"
                 placeholder="Password"
                 className={`w-full px-4 py-4 text-xl rounded-xl border-2 transition-all duration-200 pr-12
-                  ${validationErrors.password 
-                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200' 
+                  ${validationErrors.password
+                    ? 'border-red-500 focus:border-red-500 focus:ring-2 focus:ring-red-200'
                     : 'border-[#D8EFD3] focus:border-[#55AD9B] focus:ring-2 focus:ring-[#55AD9B]/20'
                   }
                   bg-white text-gray-900 placeholder:text-gray-400 outline-none`}
@@ -256,7 +314,7 @@ const Signin = () => {
           >
             Sign In
           </button>
-          
+
           {/* Divider */}
           <div className="relative mb-4">
             <div className="absolute inset-0 flex items-center">
@@ -268,7 +326,7 @@ const Signin = () => {
           </div>
 
           {/* Google Sign In Button */}
-          <button 
+          <button
             type="button"
             onClick={handleGoogleSignIn}
             className="w-full py-4 text-lg font-semibold rounded-xl border-2 border-[#D8EFD3] 
@@ -284,7 +342,17 @@ const Signin = () => {
             </svg>
             Sign in with Google
           </button>
-          
+
+          {/* Terms and Conditions */}
+          <div className="mb-4 text-center">
+            <span
+              className="text-md text-[#55AD9B] underline cursor-pointer hover:text-[#3e8e7e] transition-colors"
+              onClick={() => setShowTerms(true)}
+            >
+              Terms &amp; Conditions
+            </span>
+          </div>
+
           {/* Sign Up Link */}
           <p className="text-center text-base text-gray-600">
             Don't have an account?{' '}
@@ -298,7 +366,7 @@ const Signin = () => {
         </form>
       </div>
 
-    {/* Right Side - Logo Container */}
+      {/* Right Side - Logo Container */}
       <div className="w-1/2 flex items-center justify-center">
         <div className="bg-[#95D2B3] rounded-3xl shadow-lg p-24 flex items-center justify-center w-200 h-200">
           <img
