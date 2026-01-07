@@ -5,7 +5,6 @@ import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import axios from "axios";
-import DeleteIcon from '@mui/icons-material/Delete';
 import Table from '@mui/material/Table';
 import TableBody from '@mui/material/TableBody';
 import TableCell from '@mui/material/TableCell';
@@ -23,7 +22,6 @@ const Users = () => {
   const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]); 
-  const [selectedUsers, setSelectedUsers] = useState([]); 
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sectionFilter, setSectionFilter] = useState("");
@@ -71,28 +69,6 @@ const Users = () => {
     const sections = users.map(user => user.section || "Not Assigned");
     return ["", ...new Set(sections)].sort();
   };
-
-  const handleSelectUser = (id) => {
-    setSelectedUsers((prevSelected) => 
-      prevSelected.includes(id) ? prevSelected.filter((userId) => userId !== id) : [...prevSelected, id]
-    );
-  };
-
-  const handleBulkDelete = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      // Bulk delete functionality will be implemented if needed
-      setSelectedUsers([]); 
-    } catch (error) {
-      console.error("Error during bulk delete:", error);
-    }
-  };
-
-  const handleAction = async (userId, action, deactivatedAt) => {
-    // User deletion action will be implemented if needed
-  };
-
-
 
   const exportPDF = () => {
     const doc = new jsPDF();
@@ -165,11 +141,12 @@ const Users = () => {
         user.email,
         user.section || "Not Assigned",
         user.status,
-        new Date(user.createdAt).toLocaleDateString(),
+        user.lastLogged ? new Date(user.lastLogged).toISOString().slice(0, 10) : "Never",
+        user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "N/A",
       ]);
 
       doc.autoTable({
-        head: [["Name", "Email", "Section", "Status", "Created At"]],
+        head: [["Name", "Email", "Section", "Status", "Last Logged", "Created At"]],
         body: usersData,
         startY: lineY + 30,
         margin: { left: margin, right: margin },
@@ -191,123 +168,6 @@ const Users = () => {
     });
   };
   
-
-
-
-  const columns = [
-    {
-      field: "checkbox",
-      headerName: "Select",
-      width: 80,
-      renderCell: (params) => (
-        <Checkbox
-          checked={selectedUsers.includes(params.row.id)}
-          onChange={() => handleSelectUser(params.row.id)}
-          sx={{ color: '#4CAF50' }}
-        />
-      ),
-      sortable: false,
-      filterable: false,
-    },
-    {
-      field: "expand",
-      headerName: "Details",
-      width: 80,
-      renderCell: (params) => (
-        <IconButton 
-          onClick={(event) => handleExpandClick(event, params.row.id)}
-          aria-label="expand row"
-        >
-          {expandedRowId === params.row.id ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
-        </IconButton>
-      ),
-      sortable: false,
-      filterable: false,
-    },
-    {
-      field: "avatar",
-      headerName: "Avatar",
-      width: 100,
-      renderCell: (params) => (
-        <Avatar src={params.value} alt="User Avatar" />
-      ),
-      sortable: false,
-      filterable: false,
-    },
-    {
-      field: "name", 
-      headerName: "Name",
-      flex: 1,
-    },
-    {
-      field: "email",
-      headerName: "Email", 
-      flex: 1,
-    },
-    {
-      field: "section",
-      headerName: "Section",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography
-          sx={{
-            bgcolor: params.value === "Not Assigned" ? '#FFF3E0' : '#E3F2FD',
-            color: params.value === "Not Assigned" ? '#FF9800' : '#1976D2',
-            px: 2,
-            py: 0.5,
-            borderRadius: 1,
-          }}
-        >
-          {params.value}
-        </Typography>
-      ),
-    },
-    {
-      field: "status",
-      headerName: "Status",
-      flex: 1,
-      renderCell: (params) => (
-        <Typography
-          sx={{
-            bgcolor: params.value === "Active" ? '#E8F5E9' : '#FFEBEE',
-            color: params.value === "Active" ? '#4CAF50' : '#F44336',
-            px: 2,
-            py: 0.5,
-            borderRadius: 1,
-          }}
-        >
-          {params.value}
-        </Typography>
-      ),
-    },
-    {
-      field: "createdAt",
-      headerName: "Created At",
-      flex: 1,
-      renderCell: (params) => {
-        if (!params.value) return "No Date Available";
-        try {
-          return new Date(params.value).toISOString().slice(0, 10);
-        } catch (error) {
-          return "Invalid Date";
-        }
-      }
-    },
-    {
-      field: "actions",
-      headerName: "Actions",
-      width: 100,
-      renderCell: (params) => {
-        const { id } = params.row;
-        return (
-          <IconButton disabled>
-            <DeleteIcon sx={{ color: "#9E9E9E" }} />
-          </IconButton>
-        );
-      },
-    }
-   ];
-   
    return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F8FAF9" }}>
       {/* Sidebar */}
@@ -378,21 +238,6 @@ const Users = () => {
                 </Select>
               </FormControl>
 
-              <Button
-                variant="contained"
-                color="error"
-                startIcon={<DeleteIcon />}
-                onClick={handleBulkDelete}
-                disabled={selectedUsers.length === 0}
-                sx={{
-                  bgcolor: selectedUsers.length > 0 ? "#F44336" : "#D32F2F",
-                  fontSize: "0.875rem",
-                  px: 3,
-                }}
-              >
-                BULK DELETE
-              </Button>
-
               <IconButton onClick={exportPDF} sx={{ color: "#1976D2" }}>
                 <FileDownloadIcon />
               </IconButton>
@@ -404,14 +249,13 @@ const Users = () => {
             <Table aria-label="collapsible table">
               <TableHead>
                 <TableRow>
-                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Select</TableCell>
                   <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Avatar</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Email</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Section</TableCell>
                   <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Account Status</TableCell>
+                  <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Last Logged</TableCell>
                   <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Created At</TableCell>
-                  <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -434,13 +278,6 @@ const Users = () => {
                       hover 
                       sx={{ '&:hover': { bgcolor: '#FAFAFA' } }}
                     >
-                      <TableCell>
-                        <Checkbox
-                          checked={selectedUsers.includes(user.id)}
-                          onChange={() => handleSelectUser(user.id)}
-                          sx={{ color: '#4CAF50' }}
-                        />
-                      </TableCell>
                       <TableCell sx={{ fontSize: '0.875rem' }}>
                         <Avatar src={user.avatar} alt="User Avatar" />
                       </TableCell>
@@ -477,14 +314,10 @@ const Users = () => {
                         </Typography>
                       </TableCell>
                       <TableCell sx={{ fontSize: '0.875rem' }}>
-                        {user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "No Date Available"}
+                        {user.lastLogged ? new Date(user.lastLogged).toISOString().slice(0, 10) : "Never"}
                       </TableCell>
-                      <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                          <IconButton disabled size="small">
-                            <DeleteIcon sx={{ color: "#9E9E9E" }} />
-                          </IconButton>
-                        </Box>
+                      <TableCell sx={{ fontSize: '0.875rem' }}>
+                        {user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "No Date Available"}
                       </TableCell>
                     </TableRow>
                   ))
