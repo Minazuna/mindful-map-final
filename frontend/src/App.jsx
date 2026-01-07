@@ -92,6 +92,7 @@ import EditJournal from './components/User/Journal/EditJournal';
 import TeacherRecommendations from './components/Teachers/Recommendations';
 import ViewTeacherReccomendations from './components/Teachers/ViewRecommendations';
 
+import MonitorStudents from './components/Teachers/MonitorStudents';
 const useAuth = () => {
   const token = localStorage.getItem('token');
   const [userRole, setUserRole] = useState(null);
@@ -776,6 +777,14 @@ const App = () => {
           element={
             <TeacherPrivateRoute>
               <ViewTeacherReccomendations /> 
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/monitor-students"
+          element={
+            <TeacherPrivateRoute>
+              <MonitorStudents /> 
             </TeacherPrivateRoute>
           }
         />

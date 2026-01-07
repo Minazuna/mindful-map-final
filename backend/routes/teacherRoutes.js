@@ -59,4 +59,8 @@ router.put('/recommendation-feedback/:recommendationId/:recIdx/:fbIdx', teacherC
 router.delete('/recommendation-feedback/:recommendationId/:recIdx/:fbIdx', teacherController.deleteRecommendationFeedback);
 router.put('/recommendation-feedback-effective/:recommendationId/:recIdx/:fbIdx', teacherController.setFeedbackEffective);
 
+router.post('/compute-section-severity/:sectionId', teacherController.computeSectionSeverity);
+router.get('/section-severity/:sectionId', teacherController.getSectionSeverity);
+router.get('/student-severity/:studentId', teacherController.getStudentSeverity);
+
 module.exports = router;

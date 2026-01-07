@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { FaLeaf, FaSpa, FaEye, FaMusic, FaDotCircle } from 'react-icons/fa';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
@@ -67,16 +68,16 @@ const meditationTypes = [
 const GuidedMeditation = ({ onBack }) => {
   const [meditationType, setMeditationType] = useState('mindfulness');
   const [duration, setDuration] = useState('5');
+  const navigate = useNavigate();
 
   const currentMeditation = meditationData[meditationType][duration];
 
-  // UI improvement: add header, back button, and more modern layout/colors
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#e0f7fa] via-[#f1f8e8] to-[#eaf7f3] text-[#1b5f52] flex flex-col">
       {/* Header */}
       <div className="sticky top-0 z-10 bg-white/80 backdrop-blur-md border-b border-[#CBE7DC] py-4 px-4 flex items-center shadow-sm">
         <button
-          onClick={onBack ? onBack : () => window.history.back()}
+          onClick={() => navigate('/activities')}
           className="p-2 rounded-full hover:bg-[#E6F4EA] transition"
           aria-label="Back"
         >

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const MoodLog = require('../models/MoodLog');
 const TeacherRecommendation = require('../models/TeacherRecommendation');
+const StudentSeverity = require('../models/StudentSeverity');
 const { getTeacherRecommendations } = require('../services/teacherRecommendEngine');
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
@@ -867,6 +868,146 @@ exports.setFeedbackEffective = async (req, res) => {
     res.status(200).json({ success: true, message: 'Feedback effectiveness updated.' });
   } catch (error) {
     console.error('Error saving feedback effectiveness:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+const CONCERNING_KEYWORDS = [
+  'depression', 'suicide', 'hopeless', 'worthless', 'self-harm', 'tired', 'overwhelmed', 'empty', 'give up', 'kill myself', 'no point', 'useless', 'pakamatay', 'magpakamatay', 'gusto ko na mamatay', 'ayoko na', 'ayaw ko na', 'laslas', 'maglaslas', 'i wanna kill myself', 'cut myself'
+];
+
+// Helper: Check for concerning keywords in a string
+function hasConcerningKeyword(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return CONCERNING_KEYWORDS.some(word => lower.includes(word));
+}
+
+// Helper: Compute severity level based on risk score
+function getSeverityLevel(score) {
+  if (score >= 5) return 'high';
+  if (score >= 3) return 'moderate';
+  return 'low';
+}
+
+// Compute and save severity for all students in a section
+exports.computeSectionSeverity = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const daysWindow = 7;
+    const sinceDate = new Date();
+    sinceDate.setDate(sinceDate.getDate() - daysWindow);
+
+    // Get all students in section
+    const students = await User.find({ section: sectionId, role: 'user' }).select('_id');
+    if (!students.length) {
+      return res.status(200).json({ success: true, message: 'No students in section.' });
+    }
+
+    // Get all mood logs in window
+    const studentIds = students.map(s => s._id);
+    const moodLogs = await MoodLog.find({
+      user: { $in: studentIds },
+      date: { $gte: sinceDate }
+    });
+
+    // Compute section average mood score for outlier detection
+    const allScores = moodLogs.map(l => l.afterIntensity);
+    const avgScore = allScores.length ? (allScores.reduce((a, b) => a + b, 0) / allScores.length) : 0;
+    const stdDev = allScores.length
+      ? Math.sqrt(allScores.reduce((a, b) => a + Math.pow(b - avgScore, 2), 0) / allScores.length)
+      : 0;
+
+    // For each student, compute risk
+    for (const student of students) {
+      const logs = moodLogs.filter(l => l.user.equals(student._id));
+      const negativeLogs = logs.filter(l => l.afterValence === 'negative');
+      const concerningLogs = negativeLogs.filter(l => hasConcerningKeyword(l.afterReason));
+      const recentMoodScores = logs.map(l => l.afterIntensity);
+
+      // Mood score drop: compare avg of last 3 logs vs previous 3 logs (if enough data)
+      let moodScoreDrop = 0;
+      if (logs.length >= 6) {
+        const sorted = logs.sort((a, b) => b.date - a.date);
+        const last3 = sorted.slice(0, 3).map(l => l.afterIntensity);
+        const prev3 = sorted.slice(3, 6).map(l => l.afterIntensity);
+        const avgLast3 = last3.reduce((a, b) => a + b, 0) / 3;
+        const avgPrev3 = prev3.reduce((a, b) => a + b, 0) / 3;
+        moodScoreDrop = avgPrev3 - avgLast3;
+      }
+
+      // Outlier: if student's avg mood score is >1.5 std dev below section avg
+      const studentAvg = recentMoodScores.length
+        ? recentMoodScores.reduce((a, b) => a + b, 0) / recentMoodScores.length
+        : 0;
+      const isOutlier = stdDev > 0 && (studentAvg < avgScore - 1.5 * stdDev);
+
+      // Risk score computation (adjust weights as needed)
+      let riskScore = 0;
+      riskScore += negativeLogs.length; // +1 per negative log
+      riskScore += concerningLogs.length * 2; // +2 per concerning keyword
+      if (moodScoreDrop > 1) riskScore += 2; // +2 if significant drop
+      if (isOutlier) riskScore += 1;
+
+      const severityLevel = getSeverityLevel(riskScore);
+
+      // Save or update StudentSeverity
+      await StudentSeverity.findOneAndUpdate(
+        { studentId: student._id, sectionId },
+        {
+          studentId: student._id,
+          sectionId,
+          severityLevel,
+          riskScore,
+          negativeMoodCount: negativeLogs.length,
+          concerningKeywords: concerningLogs.map(l => l.afterReason),
+          recentMoodLogs: logs.slice(0, 5).map(l => ({
+            moodLogId: l._id,
+            moodScore: l.afterIntensity,
+            reason: l.afterReason,
+            date: l.date
+          })),
+          moodScoreDrop,
+          isOutlier,
+          lastEvaluated: new Date()
+        },
+        { upsert: true, new: true }
+      );
+    }
+
+    res.status(200).json({ success: true, message: 'Severity computed for section.' });
+  } catch (error) {
+    console.error('Error computing section severity:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Get all students' severity in a section
+exports.getSectionSeverity = async (req, res) => {
+  try {
+    const { sectionId } = req.params;
+    const severities = await StudentSeverity.find({ sectionId })
+      .populate('studentId', 'firstName lastName email avatar section')
+      .sort({ severityLevel: -1, riskScore: -1 });
+    res.status(200).json({ success: true, data: severities });
+  } catch (error) {
+    console.error('Error fetching section severity:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Get severity details for a student
+exports.getStudentSeverity = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const severity = await StudentSeverity.findOne({ studentId })
+      .populate('studentId', 'firstName lastName email avatar section');
+    if (!severity) {
+      return res.status(404).json({ success: false, message: 'No severity data for student.' });
+    }
+    res.status(200).json({ success: true, data: severity });
+  } catch (error) {
+    console.error('Error fetching student severity:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
