@@ -93,6 +93,7 @@ import TeacherRecommendations from './components/Teachers/Recommendations';
 import ViewTeacherReccomendations from './components/Teachers/ViewRecommendations';
 
 import MonitorStudents from './components/Teachers/MonitorStudents';
+import MonitorStudentsDetails from './components/Teachers/MonitorStudentsDetails';
 const useAuth = () => {
   const token = localStorage.getItem('token');
   const [userRole, setUserRole] = useState(null);
@@ -788,6 +789,14 @@ const App = () => {
             </TeacherPrivateRoute>
           }
         />
+        <Route
+        path="/monitor-students-details"
+        element={
+          <TeacherPrivateRoute>
+            <MonitorStudentsDetails />
+          </TeacherPrivateRoute>
+        }
+      />
       </Routes>
     </Router>
   );

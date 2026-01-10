@@ -62,5 +62,7 @@ router.put('/recommendation-feedback-effective/:recommendationId/:recIdx/:fbIdx'
 router.post('/compute-section-severity/:sectionId', teacherController.computeSectionSeverity);
 router.get('/section-severity/:sectionId', teacherController.getSectionSeverity);
 router.get('/student-severity/:studentId', teacherController.getStudentSeverity);
-
+router.post('/update-severity-status', teacherController.updateSeverityStatus);
+router.get('/severity-status-history', teacherController.getSeverityStatusHistory);
+router.get('/student-severity-details', teacherController.getStudentSeverityDetails);
 module.exports = router;
