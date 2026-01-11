@@ -112,15 +112,21 @@ exports.getStudentsBySection = async (req, res) => {
 // Get mood logs for students in teacher's sections
 exports.getStudentMoodLogs = async (req, res) => {
   try {
+    const { section } = req.query;
     const teacher = await User.findById(req.user._id);
     
     if (!teacher || teacher.role !== 'teacher') {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
+    // Determine segments to filter by
+    const segmentsToFilter = section && section !== 'All' 
+      ? [section] 
+      : teacher.assignedSections;
+
     // Get all students in teacher's assigned sections
     const students = await User.find({ 
-      section: { $in: teacher.assignedSections },
+      section: { $in: segmentsToFilter },
       role: 'user' 
     }).select('_id firstName lastName email section');
 
@@ -163,16 +169,22 @@ exports.getMoodLogsBySection = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    // Verify teacher has access to this section
-    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
-      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    let segmentsToFilter;
+    if (section === 'All') {
+      segmentsToFilter = teacher.assignedSections;
+    } else {
+      // Verify teacher has access to this section
+      if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+        return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+      }
+      segmentsToFilter = [section];
     }
 
-    // Get all students in the specified section
+    // Get all students in the specified sections
     const students = await User.find({ 
-      section: section,
+      section: { $in: segmentsToFilter },
       role: 'user' 
-    }).select('_id firstName lastName email');
+    }).select('_id firstName lastName email section');
 
     const studentIds = students.map(student => student._id);
 
@@ -313,21 +325,27 @@ exports.getStudentMoodLogsById = async (req, res) => {
 // Get dashboard statistics for teacher
 exports.getTeacherDashboardStats = async (req, res) => {
   try {
+    const { section = 'All', valence = 'Both' } = req.query;
     const teacher = await User.findById(req.user._id);
     
     if (!teacher || teacher.role !== 'teacher') {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
+    // Determine segments to filter by
+    const segmentsToFilter = section && section !== 'All' 
+      ? [section] 
+      : teacher.assignedSections;
+
     // Get students count in teacher's sections
     const studentsCount = await User.countDocuments({ 
-      section: { $in: teacher.assignedSections },
+      section: { $in: segmentsToFilter },
       role: 'user' 
     });
 
     // Get students in sections
     const students = await User.find({ 
-      section: { $in: teacher.assignedSections },
+      section: { $in: segmentsToFilter },
       role: 'user' 
     }).select('_id');
 
@@ -347,9 +365,17 @@ exports.getTeacherDashboardStats = async (req, res) => {
       date: { $gte: sevenDaysAgo }
     });
 
+    // Mood distribution aggregation with valence filter
+    const matchQuery = { user: { $in: studentIds } };
+    if (valence === 'Positive') {
+      matchQuery.afterValence = 'positive';
+    } else if (valence === 'Negative') {
+      matchQuery.afterValence = 'negative';
+    }
+
     // Get mood distribution for the section
     const moodDistribution = await MoodLog.aggregate([
-      { $match: { user: { $in: studentIds } } },
+      { $match: matchQuery },
       { $group: { 
         _id: '$afterEmotion', 
         count: { $sum: 1 } 
@@ -469,14 +495,20 @@ exports.getLogsByCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    // Verify teacher has access to this section
-    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
-      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    let segmentsToFilter;
+    if (section === 'All') {
+      segmentsToFilter = teacher.assignedSections;
+    } else {
+      // Verify teacher has access to this section
+      if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+        return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+      }
+      segmentsToFilter = [section];
     }
 
-    // Get all students in the section
+    // Get all students in the sections
     const students = await User.find({ 
-      section: section,
+      section: { $in: segmentsToFilter },
       role: 'user'
     }).select('_id');
 

@@ -4,18 +4,31 @@ import { toast } from 'react-toastify';
 import Sidebar from './Sidebar';
 import MoodAnalysis from './MoodAnalysis';
 import CategoricalLogs from './CategoricalLogs';
+import FileDownloadIcon from '@mui/icons-material/FileDownload';
+import { generateMoodDistributionPDF } from '../PDFTemplates/AnalysisPDF';
 
 const Dashboard = () => {
   const [teacher, setTeacher] = useState(null);
   const [dashboardStats, setDashboardStats] = useState(null);
   const [recentLogs, setRecentLogs] = useState([]);
   const [loading, setLoading] = useState(true);
+  
+  // New Filter States
+  const [statsSection, setStatsSection] = useState('All');
+  const [statsValence, setStatsValence] = useState('Both');
+  const [logsSection, setLogsSection] = useState('All');
 
   useEffect(() => {
     fetchTeacherProfile();
-    fetchDashboardStats();
-    fetchRecentLogs();
   }, []);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, [statsSection, statsValence]);
+
+  useEffect(() => {
+    fetchRecentLogs();
+  }, [logsSection]);
 
   const fetchTeacherProfile = async () => {
     try {
@@ -36,7 +49,8 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/teacher/dashboard-stats`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: { section: statsSection, valence: statsValence }
       });
       if (response.data.success) {
         setDashboardStats(response.data.data);
@@ -51,7 +65,8 @@ const Dashboard = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/teacher/student-mood-logs`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: { section: logsSection }
       });
       if (response.data.success) {
         setRecentLogs(response.data.data.slice(0, 5));
@@ -60,6 +75,17 @@ const Dashboard = () => {
       console.error('Error fetching recent logs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDownloadStatsPDF = async () => {
+    try {
+      if (!dashboardStats) return;
+      await generateMoodDistributionPDF(statsSection, statsValence, dashboardStats.moodDistribution);
+      toast.success('PDF downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading PDF:', error);
+      toast.error('Failed to download PDF');
     }
   };
 
@@ -186,8 +212,24 @@ const Dashboard = () => {
           {/* Recent Mood Logs */}
           <div className="bg-white rounded-2xl shadow-lg">
             <div className="p-8 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-800">Recent Mood Logs</h2>
-              <p className="text-base text-gray-600 mt-1">Latest submissions from your students</p>
+              <div className="flex justify-between items-center mb-2">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">Recent Mood Logs</h2>
+                  <p className="text-base text-gray-600 mt-1">Latest submissions from your students</p>
+                </div>
+                {teacher && teacher.assignedSections && (
+                  <select
+                    value={logsSection}
+                    onChange={(e) => setLogsSection(e.target.value)}
+                    className="px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 focus:outline-none focus:border-blue-500 font-medium text-sm"
+                  >
+                    <option value="All">All Sections</option>
+                    {teacher.assignedSections.map(sec => (
+                      <option key={sec} value={sec}>{sec}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
             </div>
             <div className="p-8">
               {recentLogs.length > 0 ? (
@@ -254,8 +296,44 @@ const Dashboard = () => {
           {/* Mood Distribution */}
           <div className="bg-white rounded-2xl shadow-lg">
             <div className="p-8 border-b border-gray-200">
-              <h2 className="text-2xl font-bold text-gray-800">Mood Distribution</h2>
-              <p className="text-base text-gray-600 mt-1">Overview of emotions in your section</p>
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800">Mood Distribution</h2>
+                  <p className="text-base text-gray-600 mt-1">Overview of emotions in your section</p>
+                </div>
+                {dashboardStats && (
+                  <button
+                    onClick={handleDownloadStatsPDF}
+                    className="p-2 rounded-lg text-blue-600 hover:bg-gray-100 transition-colors"
+                    title="Download Mood Distribution PDF"
+                  >
+                    <FileDownloadIcon />
+                  </button>
+                )}
+              </div>
+              <div className="flex gap-4 mt-4">
+                {teacher && teacher.assignedSections && (
+                  <select
+                    value={statsSection}
+                    onChange={(e) => setStatsSection(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 focus:outline-none focus:border-blue-500 font-medium text-sm"
+                  >
+                    <option value="All">All Sections</option>
+                    {teacher.assignedSections.map(sec => (
+                      <option key={sec} value={sec}>{sec}</option>
+                    ))}
+                  </select>
+                )}
+                <select
+                  value={statsValence}
+                  onChange={(e) => setStatsValence(e.target.value)}
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 focus:outline-none focus:border-blue-500 font-medium text-sm"
+                >
+                  <option value="Both">Both Valences</option>
+                  <option value="Positive">Positive</option>
+                  <option value="Negative">Negative</option>
+                </select>
+              </div>
             </div>
             <div className="p-8">
               {dashboardStats && dashboardStats.moodDistribution.length > 0 ? (

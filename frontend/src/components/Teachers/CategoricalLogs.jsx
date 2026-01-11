@@ -21,8 +21,8 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip,
 
 const CategoricalLogs = ({ isDashboard = false, teacher: propTeacher }) => {
   const [teacher, setTeacher] = useState(propTeacher || null);
-  const [selectedSection, setSelectedSection] = useState(null);
-  const [sections, setSections] = useState(propTeacher?.assignedSections || []);
+  const [selectedSection, setSelectedSection] = useState('All');
+  const [sections, setSections] = useState(['All', ...(propTeacher?.assignedSections || [])]);
   const [logsData, setLogsData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [viewType, setViewType] = useState('weekly');
@@ -36,9 +36,9 @@ const CategoricalLogs = ({ isDashboard = false, teacher: propTeacher }) => {
   useEffect(() => {
     if (propTeacher) {
       setTeacher(propTeacher);
-      setSections(propTeacher.assignedSections || []);
-      if (propTeacher.assignedSections?.length > 0 && !selectedSection) {
-        setSelectedSection(propTeacher.assignedSections[0]);
+      setSections(['All', ...(propTeacher.assignedSections || [])]);
+      if (!selectedSection) {
+        setSelectedSection('All');
       }
     }
   }, [propTeacher]);
@@ -58,10 +58,8 @@ const CategoricalLogs = ({ isDashboard = false, teacher: propTeacher }) => {
       
       if (response.data.success) {
         setTeacher(response.data.data);
-        setSections(response.data.data.assignedSections || []);
-        if (response.data.data.assignedSections?.length > 0) {
-          setSelectedSection(response.data.data.assignedSections[0]);
-        }
+        setSections(['All', ...(response.data.data.assignedSections || [])]);
+        setSelectedSection('All');
       }
     } catch (error) {
       console.error('Error fetching teacher profile:', error);

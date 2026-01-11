@@ -40,9 +40,9 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
   const [allMoodLogs, setAllMoodLogs] = useState([]);
   const [moodType, setMoodType] = useState('after');
   const [moodPeriod, setMoodPeriod] = useState('monthly');
-  const [selectedSection, setSelectedSection] = useState(null);
+  const [selectedSection, setSelectedSection] = useState('All');
   const [loading, setLoading] = useState(true);
-  const [sections, setSections] = useState(propTeacher?.assignedSections || []);
+  const [sections, setSections] = useState(['All', ...(propTeacher?.assignedSections || [])]);
 
   useEffect(() => {
     if (!teacher) {
@@ -53,9 +53,9 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
   useEffect(() => {
     if (propTeacher) {
       setTeacher(propTeacher);
-      setSections(propTeacher.assignedSections || []);
-      if (propTeacher.assignedSections?.length > 0 && !selectedSection) {
-        setSelectedSection(propTeacher.assignedSections[0]);
+      setSections(['All', ...(propTeacher.assignedSections || [])]);
+      if (!selectedSection) {
+        setSelectedSection('All');
       }
     }
   }, [propTeacher]);
@@ -75,10 +75,8 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
       
       if (response.data.success) {
         setTeacher(response.data.data);
-        setSections(response.data.data.assignedSections || []);
-        if (response.data.data.assignedSections?.length > 0) {
-          setSelectedSection(response.data.data.assignedSections[0]);
-        }
+        setSections(['All', ...(response.data.data.assignedSections || [])]);
+        setSelectedSection('All');
       }
     } catch (error) {
       console.error('Error fetching teacher profile:', error);

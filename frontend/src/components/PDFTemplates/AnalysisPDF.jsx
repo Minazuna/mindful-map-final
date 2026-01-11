@@ -33,9 +33,47 @@ function getSummary(moodCounts, moodType, sortedMoods) {
     return `${capitalizeText(topMood)} was the dominant emotion, appearing in ${topPercent}% of all ${moodType === 'before' ? 'before' : 'after'} activity mood entries (${topCount} out of ${total} total entries).`;
   }
   if (topPercent >= 30) {
-    return `Students were most frequently ${capitalizeText(topMood)} ${moodType === 'before' ? 'before' : 'after'} activities (${topCount} entries, ${topPercent}%). This mood shows moderate prevalence across the section.`;
+    return `Students were most frequently ${capitalizeText(topMood)} ${moodType === 'before' ? 'before' : 'after'} activities (${topCount} entries, ${topPercent}%). This mood shows moderate prevalence across the section(s).`;
   }
-  return `${capitalizeText(topMood)} was the most common emotion (${topCount} entries, ${topPercent}%), with emotions relatively distributed across the section.`;
+  return `${capitalizeText(topMood)} was the most common emotion (${topCount} entries, ${topPercent}%), with emotions relatively distributed across the section(s).`;
+}
+
+function getMoodDistributionSummary(moodDistribution, valence) {
+  if (!moodDistribution || moodDistribution.length === 0) {
+    return 'No mood data available.';
+  }
+
+  const total = moodDistribution.reduce((acc, curr) => acc + curr.count, 0);
+  const topMood = moodDistribution[0]._id;
+  const topCount = moodDistribution[0].count;
+  const topPercent = Math.round((topCount / total) * 100);
+  
+  let valenceText = '';
+  if (valence === 'Both') {
+    // Count positive and negative moods
+    const positiveEmotions = ['happy', 'pleased', 'relaxed', 'calm', 'excited'];
+    let positiveCount = 0;
+    let negativeCount = 0;
+    
+    moodDistribution.forEach(mood => {
+      if (positiveEmotions.includes(mood._id.toLowerCase())) {
+        positiveCount += mood.count;
+      } else {
+        negativeCount += mood.count;
+      }
+    });
+    
+    const positivePercent = Math.round((positiveCount / total) * 100);
+    const negativePercent = Math.round((negativeCount / total) * 100);
+    valenceText = ` with ${positivePercent}% positive moods (${positiveCount} logs) and ${negativePercent}% negative moods (${negativeCount} logs)`;
+  } else {
+    valenceText = ` (${valence} moods only)`;
+  }
+
+  if (topPercent >= 50) {
+    return `${capitalizeText(topMood)} was the most prominent mood among students${valenceText}, representing ${topPercent}% of all logs (${topCount} out of ${total} total entries).`;
+  }
+  return `The most common mood observed was ${capitalizeText(topMood)}${valenceText}, appearing in ${topPercent}% of student logs (${topCount} entries). Statistics show ${moodDistribution.length} different emotions recorded during this period.`;
 }
 
 async function loadImageAsDataURL(url) {
@@ -143,13 +181,14 @@ export async function generateMoodAnalysisPDF(selectedSection, moodType, moodPer
     doc.setFontSize(11);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(80, 80, 80);
-    const periodText = `${selectedSection} · ${moodType === 'before' ? 'Before' : 'After'} Activity · ${capitalizeText(moodPeriod)} Period`;
+    const displaySection = selectedSection === 'All' ? 'All Sections' : selectedSection;
+    const periodText = `${displaySection} · ${moodType === 'before' ? 'Before' : 'After'} Activity · ${capitalizeText(moodPeriod)} Period`;
     doc.text(periodText, pageWidth / 2, yPos, { align: 'center' });
     
     // Summary Box
     yPos += 12;
     doc.setFillColor(240, 248, 255);
-    doc.roundedRect(15, yPos, pageWidth - 30, 20, 3, 3, 'F');
+    doc.roundedRect(15, yPos, pageWidth - 30, 25, 3, 3, 'F');
     
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
@@ -161,9 +200,9 @@ export async function generateMoodAnalysisPDF(selectedSection, moodType, moodPer
     doc.setFontSize(10);
     const summary = getSummary(moodCounts, moodType, sortedMoods);
     const summaryLines = doc.splitTextToSize(summary, pageWidth - 40);
-    doc.text(summaryLines, 20, yPos + 15);
+    doc.text(summaryLines, 20, yPos + 15, { maxWidth: pageWidth - 40, align: 'justify' });
     
-    yPos += 30;
+    yPos += 35;
     
     if (Object.keys(moodCounts).length === 0) {
       doc.setFontSize(11);
@@ -403,7 +442,8 @@ export const generateCategoricalLogsPDF = async (selectedSection, logsData, date
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(85, 173, 155);
-    doc.text(selectedSection, pageWidth / 2, yPos, { align: 'center' });
+    const displayCatSection = selectedSection === 'All' ? 'All Sections' : selectedSection;
+    doc.text(displayCatSection, pageWidth / 2, yPos, { align: 'center' });
     
     yPos += 6;
     doc.setFontSize(10);
@@ -417,7 +457,7 @@ export const generateCategoricalLogsPDF = async (selectedSection, logsData, date
     // Summary Box
     const summary = getCategoricalSummary(logsData, dateRange, viewType);
     const summaryLines = doc.splitTextToSize(summary, pageWidth - 40);
-    const summaryHeight = (summaryLines.length * 5) + 15;
+    const summaryHeight = (summaryLines.length * 5) + 18;
     
     doc.setFillColor(240, 248, 255);
     doc.roundedRect(15, yPos, pageWidth - 30, summaryHeight, 3, 3, 'F');
@@ -493,6 +533,114 @@ export const generateCategoricalLogsPDF = async (selectedSection, logsData, date
     doc.save(filename);
   } catch (error) {
     console.error('Error generating categorical logs PDF:', error);
+    throw error;
+  }
+}
+export async function generateMoodDistributionPDF(selectedSection, valence, moodDistribution) {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  try {
+    const tupLogo = await loadImageAsDataURL('/images/tup.png');
+    const mindfulLogo = await loadImageAsDataURL('/images/logo.png');
+    
+    const logoSize = 20;
+    const headerY = 15;
+    
+    doc.addImage(tupLogo, 'PNG', 10, headerY, logoSize, logoSize);
+    doc.addImage(mindfulLogo, 'PNG', pageWidth - 15 - logoSize, headerY, logoSize, logoSize);
+    
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(85, 173, 155);
+    const title = 'Mindful Map: Mood and Habits Analyzer';
+    const titleWidth = doc.getTextWidth(title);
+    doc.text(title, (pageWidth - titleWidth) / 2, headerY + 8);
+    
+    doc.setFontSize(14);
+    const subtitle = 'for Emotional Regulation';
+    const subtitleWidth = doc.getTextWidth(subtitle);
+    doc.text(subtitle, (pageWidth - subtitleWidth) / 2, headerY + 14);
+    
+    const now = new Date();
+    const timestamp = now.toLocaleString('en-US', { 
+      month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true 
+    });
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    const timestampWidth = doc.getTextWidth(`Generated: ${timestamp}`);
+    doc.text(`Generated: ${timestamp}`, (pageWidth - timestampWidth) / 2, headerY + 20);
+    
+    doc.setDrawColor(85, 173, 155);
+    doc.setLineWidth(0.5);
+    doc.line(15, headerY + 27, pageWidth - 15, headerY + 27);
+    
+    let yPos = headerY + 37;
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Mood Distribution Report', pageWidth / 2, yPos, { align: 'center' });
+    
+    yPos += 8;
+    doc.setFontSize(11);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    const displaySection = selectedSection === 'All' ? 'All Sections' : selectedSection;
+    doc.text(`${displaySection} · ${valence}`, pageWidth / 2, yPos, { align: 'center' });
+    
+    yPos += 12;
+    doc.setFillColor(240, 248, 255);
+    doc.roundedRect(15, yPos, pageWidth - 30, 30, 3, 3, 'F');
+    
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(85, 173, 155);
+    doc.text('Summary', 20, yPos + 7);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(60, 60, 60);
+    doc.setFontSize(10);
+    const summary = getMoodDistributionSummary(moodDistribution, valence);
+    const summaryLines = doc.splitTextToSize(summary, pageWidth - 40);
+    doc.text(summaryLines, 20, yPos + 15, { maxWidth: pageWidth - 40, align: 'justify' });
+    
+    yPos += 40;
+    
+    if (!moodDistribution || moodDistribution.length === 0) {
+      doc.setFontSize(11);
+      doc.setFont('helvetica', 'italic');
+      doc.setTextColor(150, 150, 150);
+      doc.text('No mood data available for this section and valence.', pageWidth / 2, yPos + 20, { align: 'center' });
+    } else {
+      const total = moodDistribution.reduce((acc, curr) => acc + curr.count, 0);
+      const tableData = moodDistribution.map(item => [
+        capitalizeText(item._id),
+        item.count,
+        `${Math.round((item.count / total) * 100)}%`
+      ]);
+
+      autoTable(doc, {
+        startY: yPos,
+        head: [['Mood', 'Count', 'Percentage']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: { fillColor: [85, 173, 155], textColor: 255 },
+        alternateRowStyles: { fillColor: [240, 248, 255] },
+        margin: { left: 40, right: 40 },
+        styles: { fontSize: 10, cellPadding: 5 }
+      });
+    }
+    
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(150, 150, 150);
+    doc.text('This report was automatically generated by Mindful Map system.', pageWidth / 2, pageHeight - 10, { align: 'center' });
+    
+    doc.save(`MoodDistribution_${selectedSection}_${valence}.pdf`);
+  } catch (error) {
+    console.error('PDF Generation Error:', error);
     throw error;
   }
 }
