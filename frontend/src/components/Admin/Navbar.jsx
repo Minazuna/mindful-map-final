@@ -8,6 +8,7 @@ const Navbar = () => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const currentPath = location.pathname;
 
+  // Use ONLY these menu items
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/admin/dashboard' },
     { icon: Users, label: 'Users', path: '/admin/users' },
@@ -29,19 +30,22 @@ const Navbar = () => {
         isCollapsed ? 'w-20' : 'w-72'
       }`}
     >
-      {/* Header */}
+      {/* Gradient Header with Centered Logo and Toggle */}
       <div className="border-b border-gray-100" style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
-        {/* Logo and Toggle */}
-        <div className="h-16 flex items-center justify-between px-6">
-          {!isCollapsed && (
-            <div>
-              <h1 className="text-white font-bold text-lg leading-tight">MindfulMap</h1>
-              <p className="text-white/80 text-xs font-medium">Admin Portal</p>
-            </div>
-          )}
+        <div className="h-40 flex items-center justify-between px-6">
+          <div className="flex-1 flex justify-center">
+            {!isCollapsed && (
+              <img
+                src="/images/logo.png"
+                alt="Mindful Map Logo"
+                className="w-32 h-32 object-contain"
+                style={{ margin: '0 auto' }}
+              />
+            )}
+          </div>
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+            className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors ml-2"
           >
             {isCollapsed ? (
               <Menu className="w-5 h-5 text-white" />
@@ -50,26 +54,6 @@ const Navbar = () => {
             )}
           </button>
         </div>
-
-        {/* Admin Profile */}
-        {!isCollapsed && (
-          <div className="px-6 pb-6 pt-2">
-            <div className="flex items-center space-x-3">
-              <div className="w-14 h-14 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center ring-2 ring-white/30">
-                <span className="text-white font-bold text-xl">👨‍💼</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-base font-bold text-white truncate">
-                  Super Admin
-                </p>
-                <p className="text-xs text-white/80 truncate">System Administrator</p>
-                <div className="mt-1.5 inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-white/20 backdrop-blur-sm text-white ring-1 ring-white/30">
-                  🛡️ Full Access
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Navigation Menu */}
@@ -77,7 +61,7 @@ const Navbar = () => {
         {menuItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.path);
-          
+
           return (
             <a
               key={item.path}
@@ -109,12 +93,6 @@ const Navbar = () => {
         })}
       </nav>
 
-      {/* Version Info */}
-      {!isCollapsed && (
-        <div className="px-6 py-3 text-center border-t border-gray-100">
-          <p className="text-xs text-gray-400">Admin Panel v1.0.0</p>
-        </div>
-      )}
 
       {/* Logout Button */}
       <div className="px-4 py-4 border-t border-gray-100">
