@@ -24,36 +24,41 @@ const Navbar = () => {
 
   const isActive = (path) => currentPath === path;
 
+  const handleNavigation = (path) => {
+    navigate(path);
+  };
+
   return (
     <div
       className={`fixed left-0 top-0 h-screen bg-white shadow-xl transition-all duration-300 ease-in-out z-50 ${
         isCollapsed ? 'w-20' : 'w-72'
       }`}
     >
-      {/* Gradient Header with Centered Logo and Toggle */}
-      <div className="border-b border-gray-100" style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
-        <div className="h-40 flex items-center justify-between px-6">
-          <div className="flex-1 flex justify-center">
-            {!isCollapsed && (
-              <img
-                src="/images/logo.png"
-                alt="Mindful Map Logo"
-                className="w-32 h-32 object-contain"
-                style={{ margin: '0 auto' }}
-              />
-            )}
+      {/* Header with Logo and Toggle */}
+      <div className={`relative flex flex-col items-center justify-center border-b border-gray-100 transition-all duration-300 ${isCollapsed ? 'h-20' : 'py-8'}`} style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="absolute top-4 left-4 p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors z-10"
+        >
+          {isCollapsed ? (
+            <Menu className="w-5 h-5 text-white" />
+          ) : (
+            <X className="w-5 h-5 text-white" />
+          )}
+        </button>
+        
+        {!isCollapsed && (
+          <div className="flex flex-col items-center">
+            <img
+              src="/images/logo.png"
+              alt="Mindful Map Logo"
+              className="w-24 h-24 object-contain"
+            />
+            <h2 className="text-white font-bold text-lg mt-2 tracking-wide">
+              Administrator
+            </h2>
           </div>
-          <button
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors ml-2"
-          >
-            {isCollapsed ? (
-              <Menu className="w-5 h-5 text-white" />
-            ) : (
-              <X className="w-5 h-5 text-white" />
-            )}
-          </button>
-        </div>
+        )}
       </div>
 
       {/* Navigation Menu */}
@@ -63,10 +68,10 @@ const Navbar = () => {
           const active = isActive(item.path);
 
           return (
-            <a
+            <button
               key={item.path}
-              href={item.path}
-              className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
+              onClick={() => handleNavigation(item.path)}
+              className={`w-full flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 group ${
                 active
                   ? 'text-white shadow-lg'
                   : 'text-gray-600 hover:bg-gray-50'
@@ -88,7 +93,7 @@ const Navbar = () => {
               {active && !isCollapsed && (
                 <div className="ml-auto w-1.5 h-1.5 rounded-full bg-white"></div>
               )}
-            </a>
+            </button>
           );
         })}
       </nav>
@@ -103,7 +108,7 @@ const Navbar = () => {
         >
           <LogOut className="w-5 h-5 group-hover:scale-110 transition-transform duration-200" />
           {!isCollapsed && (
-            <span className="font-medium text-sm">Sign Out</span>
+            <span className="font-medium text-sm">Logout</span>
           )}
         </button>
       </div>

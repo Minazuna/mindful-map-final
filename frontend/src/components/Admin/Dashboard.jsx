@@ -225,8 +225,9 @@ const Dashboard = () => {
         label: 'Mood Logs',
         data: dailyMoodLogsData.slice(moodLogsPage * 10, (moodLogsPage + 1) * 10).map(data => data.count),
         borderColor: '#64aa86',
-        backgroundColor: 'rgba(100, 170, 134, 0.2)',
-        fill: true,
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        fill: false,
         tension: 0.4,
       },
     ],
@@ -239,8 +240,9 @@ const Dashboard = () => {
         label: 'Journal Logs',
         data: dailyJournalLogsData.map(data => data.count),
         borderColor: '#64aa86',
-        backgroundColor: 'rgba(100, 170, 134, 0.2)',
-        fill: true,
+        backgroundColor: 'transparent',
+        borderWidth: 2.5,
+        fill: false,
         tension: 0.4,
       },
     ],
@@ -312,167 +314,233 @@ const Dashboard = () => {
   };
   
   return (
-    <div className="flex min-h-screen bg-[#F8FAF9]">
-      <div className="w-1/5">
-        <Navbar />
-      </div>
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50">
+      <Navbar />
 
-      <div className="flex-grow p-6">
-        <div className="grid grid-cols-4 gap-4">
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
-            <ShowChartIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
-            <div>
-              <h2 className="text-[#292f33] font-bold text-xl">Total Users</h2>
-              <p className="text-[#64aa86] font-bold text-2xl">{monthlyUsers}</p>
-            </div>
-          </div>
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
-            <SchoolIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
-            <div>
-              <h2 className="text-[#292f33] font-bold text-xl">Teachers</h2>
-              <p className="text-[#64aa86] font-bold text-2xl">{teachersCount}</p>
-            </div>
-          </div>
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
-            <PersonIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
-            <div>
-              <h2 className="text-[#292f33] font-bold text-xl">Students</h2>
-              <p className="text-[#64aa86] font-bold text-2xl">{studentsCount}</p>
-            </div>
-          </div>
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
-            <TaskAltIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
-            <div>
-              <h2 className="text-[#292f33] font-bold text-xl">Active Students</h2>
-              <p className="text-[#64aa86] font-bold text-2xl">{activeStudentsCount}</p>
-            </div>
-          </div>
-        </div>
-        <div className="grid grid-cols-4 gap-4 mt-4">
-          <div className="bg-[#F8FAF9] border border-[#6fba94] rounded-lg p-4 flex items-center h-36">
-            <BlockIcon className="text-[#64aa86] mr-4" style={{ fontSize: '48px' }} />
-            <div>
-              <h2 className="text-[#292f33] font-bold text-xl">Inactive Students</h2>
-              <p className="text-[#64aa86] font-bold text-2xl">{inactiveStudentsCount}</p>
-            </div>
-          </div>
+      <div className="flex-1 ml-72 p-10">
+        {/* Header */}
+        <div className="mb-10">
+          <h1 className="text-4xl font-extrabold text-gray-800 mb-3 tracking-tight drop-shadow-lg">Admin Dashboard</h1>
+          <p className="text-xl text-gray-700 font-medium">
+            System Overview & Analytics
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 mt-6">
-          <div id="monthly-users-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 max-w-4xl">
-            <h2 className="text-[#292f33] font-bold text-xl mb-4">Monthly User Registrations</h2>
-            <div className="absolute top-2 right-2">
-              <DownloadIcon
-                className="text-[#64aa86] cursor-pointer"
-                style={{ fontSize: '20px' }}
-                onClick={() => handleGeneratePDF('monthly-users-chart', 'Monthly User Registrations Report')}
-              />
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-12">
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:scale-105 transition-transform duration-200">
+            <div className="p-4 rounded-full bg-blue-100 text-blue-600 mb-3 shadow-sm border border-blue-50">
+              <ShowChartIcon sx={{ fontSize: 32 }} />
             </div>
-            <div className="h-64">
-              <Bar data={barChartData} options={barChartOptions} />
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Total Users</p>
+            <p className="text-3xl font-extrabold text-gray-900 mt-1">{monthlyUsers}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:scale-105 transition-transform duration-200">
+            <div className="p-4 rounded-full bg-purple-100 text-purple-600 mb-3 shadow-sm border border-purple-50">
+              <SchoolIcon sx={{ fontSize: 32 }} />
             </div>
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Teachers</p>
+            <p className="text-3xl font-extrabold text-gray-900 mt-1">{teachersCount}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:scale-105 transition-transform duration-200">
+            <div className="p-4 rounded-full bg-green-100 text-green-600 mb-3 shadow-sm border border-green-50">
+              <PersonIcon sx={{ fontSize: 32 }} />
+            </div>
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Students</p>
+            <p className="text-3xl font-extrabold text-gray-900 mt-1">{studentsCount}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:scale-105 transition-transform duration-200">
+            <div className="p-4 rounded-full bg-cyan-100 text-cyan-600 mb-3 shadow-sm border border-cyan-50">
+              <TaskAltIcon sx={{ fontSize: 32 }} />
+            </div>
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Active</p>
+            <p className="text-3xl font-extrabold text-gray-900 mt-1">{activeStudentsCount}</p>
+          </div>
+
+          <div className="bg-white rounded-2xl shadow-lg p-6 flex flex-col items-center hover:scale-105 transition-transform duration-200">
+            <div className="p-4 rounded-full bg-rose-100 text-rose-600 mb-3 shadow-sm border border-rose-50">
+              <BlockIcon sx={{ fontSize: 32 }} />
+            </div>
+            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Inactive</p>
+            <p className="text-3xl font-extrabold text-gray-900 mt-1">{inactiveStudentsCount}</p>
           </div>
         </div>
 
-        <div className="flex flex-col items-center mt-6">
-          <div className="grid grid-cols-1 gap-4 w-full max-w-6xl">
-            <div id="active-vs-inactive-students-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6">
-              <h2 className="text-[#292f33] font-bold text-xl mb-4">Active and Inactive Students</h2>
-              <div className="absolute top-2 right-2">
-                <DownloadIcon
-                  className="text-[#64aa86] cursor-pointer"
-                  style={{ fontSize: '20px' }}
-                  onClick={() => handleGeneratePDF('active-vs-inactive-students-chart', 'Active vs Inactive Students Report')}
-                />
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          {/* Monthly Registrations */}
+          <div className="bg-white rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="p-8 border-b border-gray-100 bg-white">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Monthly Registrations</h2>
+                  <p className="text-base text-gray-500 mt-1 font-medium italic">New user growth overview</p>
+                </div>
+                <button
+                  onClick={() => handleGeneratePDF('monthly-users-chart', 'Monthly User Registrations Report')}
+                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                  title="Download Report"
+                >
+                  <DownloadIcon />
+                </button>
               </div>
-              <div className="h-64">
+            </div>
+            <div className="p-8" id="monthly-users-chart">
+              <div className="h-72">
+                <Bar data={barChartData} options={barChartOptions} />
+              </div>
+            </div>
+          </div>
+
+          {/* Active vs Inactive Students */}
+          <div className="bg-white rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="p-8 border-b border-gray-100 bg-white">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Student Status Distribution</h2>
+                  <p className="text-base text-gray-500 mt-1 font-medium italic">Activity participation analysis</p>
+                </div>
+                <button
+                  onClick={() => handleGeneratePDF('active-vs-inactive-students-chart', 'Active vs Inactive Students Report')}
+                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                  title="Download Report"
+                >
+                  <DownloadIcon />
+                </button>
+              </div>
+            </div>
+            <div className="p-8 flex justify-center items-center" id="active-vs-inactive-students-chart">
+              <div className="h-72 w-full">
                 <Pie data={activeVsInactiveStudentsChartData} options={pieChartOptions} />
               </div>
             </div>
           </div>
-          <div id="daily-mood-logs-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 w-full max-w-6xl mt-6">
-            <h2 className="text-[#292f33] font-bold text-xl mb-4">Daily Mood Logs</h2>
-            <div className="absolute top-2 right-2">
-              <DownloadIcon
-                className="text-[#64aa86] cursor-pointer"
-                style={{ fontSize: '20px' }}
-                onClick={() => handleGeneratePDF('daily-mood-logs-chart', 'Daily Mood Logs')}
-              />
-            </div>
-            <div className="h-64">
-              <Line data={dailyMoodLogsChartData} options={lineChartOptions} />
-            </div>
-            <div className="flex justify-center mt-2">
-              <button className="text-[#64aa86] mx-2" onClick={() => setMoodLogsPage(moodLogsPage > 0 ? moodLogsPage - 1 : 0)}>&lt;</button>
-              <button className="text-[#64aa86] mx-2" onClick={() => setMoodLogsPage(moodLogsPage < Math.ceil(dailyMoodLogsData.length / 10) - 1 ? moodLogsPage + 1 : moodLogsPage)}>&gt;</button>
-            </div>
-          </div>
-          <div id="daily-journal-logs-chart" className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 w-full max-w-6xl mt-6">
-            <h2 className="text-[#292f33] font-bold text-xl mb-4">Daily Journal Logs</h2>
-            <div className="absolute top-2 right-2">
-              <DownloadIcon
-                className="text-[#64aa86] cursor-pointer"
-                style={{ fontSize: '20px' }}
-                onClick={() => handleGeneratePDF('daily-journal-logs-chart', 'Daily Journal Logs')}
-              />
-            </div>
-            <div className="h-64">
-              <Line data={dailyJournalLogsChartData} options={lineChartOptions} />
-            </div>
-          </div>
 
-          {/* Logs by Category Chart */}
-          <div className="relative bg-transparent border border-[#6fba94] rounded-lg p-6 w-full max-w-6xl mt-6">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-[#292f33] font-bold text-xl">Categorical Logs</h2>
-              <div className="flex gap-2">
-                <button 
-                  onClick={() => setViewType('daily')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${viewType === 'daily' ? 'bg-[#64aa86] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+          {/* Daily Mood Logs */}
+          <div className="bg-white rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="p-8 border-b border-gray-100 bg-white">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Daily Mood Logs</h2>
+                  <p className="text-base text-gray-500 mt-1 font-medium italic">Student emotional engagement</p>
+                </div>
+                <button
+                  onClick={() => handleGeneratePDF('daily-mood-logs-chart', 'Daily Mood Logs')}
+                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                  title="Download Report"
                 >
-                  Daily
-                </button>
-                <button 
-                  onClick={() => setViewType('weekly')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${viewType === 'weekly' ? 'bg-[#64aa86] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  Weekly
-                </button>
-                <button 
-                  onClick={() => setViewType('monthly')}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${viewType === 'monthly' ? 'bg-[#64aa86] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  Monthly
+                  <DownloadIcon />
                 </button>
               </div>
             </div>
-            <div className="absolute top-2 right-2">
-              <DownloadIcon
-                className="text-[#64aa86] cursor-pointer"
-                style={{ fontSize: '20px' }}
-                onClick={() => handleGeneratePDF('weekly-logs-by-category-chart', 'Categorical Logs Report')}
-              />
+            <div className="p-8" id="daily-mood-logs-chart">
+              <div className="h-72">
+                <Line data={dailyMoodLogsChartData} options={lineChartOptions} />
+              </div>
+              <div className="flex justify-center items-center mt-6 space-x-4">
+                <button 
+                  className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-30 border border-gray-100 shadow-sm"
+                  onClick={() => setMoodLogsPage(moodLogsPage > 0 ? moodLogsPage - 1 : 0)}
+                  disabled={moodLogsPage === 0}
+                >
+                  <NavigateBeforeIcon />
+                </button>
+                <span className="text-sm font-bold text-gray-500 bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                  Page {moodLogsPage + 1}
+                </span>
+                <button 
+                  className="p-2 rounded-lg bg-gray-50 hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-30 border border-gray-100 shadow-sm"
+                  onClick={() => setMoodLogsPage(moodLogsPage < Math.ceil(dailyMoodLogsData.length / 10) - 1 ? moodLogsPage + 1 : moodLogsPage)}
+                  disabled={moodLogsPage >= Math.ceil(dailyMoodLogsData.length / 10) - 1}
+                >
+                  <NavigateNextIcon />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Daily Journal Logs */}
+          <div className="bg-white rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="p-8 border-b border-gray-100 bg-white">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Daily Journal Logs</h2>
+                  <p className="text-base text-gray-500 mt-1 font-medium italic">Reflection trends frequency</p>
+                </div>
+                <button
+                  onClick={() => handleGeneratePDF('daily-journal-logs-chart', 'Daily Journal Logs')}
+                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                  title="Download Report"
+                >
+                  <DownloadIcon />
+                </button>
+              </div>
+            </div>
+            <div className="p-8" id="daily-journal-logs-chart">
+              <div className="h-72">
+                <Line data={dailyJournalLogsChartData} options={lineChartOptions} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Categorical Logs - Full Width */}
+        <div className="mt-10">
+          <div className="bg-white rounded-2xl shadow-lg relative overflow-hidden group">
+            <div className="p-8 border-b border-gray-100 bg-white">
+              <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Categorical Analytics</h2>
+                </div>
+                <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shadow-inner">
+                  {['daily', 'weekly', 'monthly'].map((type) => (
+                    <button 
+                      key={type}
+                      onClick={() => setViewType(type)}
+                      className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 capitalize ${
+                        viewType === type 
+                          ? 'bg-white text-blue-600 shadow-md' 
+                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                      }`}
+                    >
+                      {type}
+                    </button>
+                  ))}
+                  <div className="mx-2 w-px bg-gray-200 my-1"></div>
+                  <button
+                    onClick={() => handleGeneratePDF('weekly-logs-by-category-chart', 'Categorical Logs Report')}
+                    className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+                    title="Download Report"
+                  >
+                    <DownloadIcon sx={{ fontSize: 20 }} />
+                  </button>
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-center">
+                <span className="text-xs font-bold text-gray-400 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-100 shadow-sm uppercase tracking-widest">
+                  {viewType === 'weekly' ? (
+                    `Last 8 Weeks (${weeklyLogsData?.labels?.[0]} — ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
+                  ) : viewType === 'daily' ? (
+                    `Past 30 Days (${weeklyLogsData?.labels?.[0]} — ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
+                  ) : (
+                    `Last 12 Months (${weeklyLogsData?.labels?.[0]} — ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
+                  )}
+                </span>
+              </div>
             </div>
             
-            {/* Date Range Display */}
-            <div className="text-center text-xs text-gray-400 mb-6">
-              {viewType === 'weekly' ? (
-                `Last 8 Weeks (${weeklyLogsData?.labels?.[0]} - ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
-              ) : viewType === 'daily' ? (
-                `Past 30 Days (${weeklyLogsData?.labels?.[0]} - ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
-              ) : (
-                `Last 12 Months (${weeklyLogsData?.labels?.[0]} - ${weeklyLogsData?.labels?.[weeklyLogsData.labels.length - 1]})`
-              )}
-            </div>
-
-            {/* Chart */}
-            {weeklyLogsLoading ? (
-              <div className="flex justify-center items-center h-64">
-                <div className="text-gray-500">Loading data...</div>
-              </div>
-            ) : weeklyLogsData ? (
-              <>
-                <div id="weekly-logs-by-category-chart" className="h-64">
+            <div className="p-8">
+              {weeklyLogsLoading ? (
+                <div className="flex flex-col justify-center items-center h-80 space-y-4">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+                  <p className="text-gray-400 font-medium">Analyzing data...</p>
+                </div>
+              ) : weeklyLogsData ? (
+                <div id="weekly-logs-by-category-chart" className="h-96">
                   <Line
                     data={{
                       labels: weeklyLogsData.labels,
@@ -481,53 +549,45 @@ const Dashboard = () => {
                           label: 'Activity',
                           data: weeklyLogsData.activity,
                           borderColor: '#4A90E2',
+                          backgroundColor: 'transparent',
                           borderWidth: 2.5,
                           fill: false,
                           tension: 0.4,
-                          pointRadius: 5,
-                          pointHoverRadius: 7,
-                          pointBackgroundColor: '#4A90E2',
-                          pointBorderColor: '#fff',
-                          pointBorderWidth: 2
+                          pointRadius: 4,
+                          pointHoverRadius: 8
                         },
                         {
                           label: 'Social',
                           data: weeklyLogsData.social,
                           borderColor: '#E85D75',
+                          backgroundColor: 'transparent',
                           borderWidth: 2.5,
                           fill: false,
                           tension: 0.4,
-                          pointRadius: 5,
-                          pointHoverRadius: 7,
-                          pointBackgroundColor: '#E85D75',
-                          pointBorderColor: '#fff',
-                          pointBorderWidth: 2
+                          pointRadius: 4,
+                          pointHoverRadius: 8
                         },
                         {
                           label: 'Health',
                           data: weeklyLogsData.health,
                           borderColor: '#2FCC71',
+                          backgroundColor: 'transparent',
                           borderWidth: 2.5,
                           fill: false,
                           tension: 0.4,
-                          pointRadius: 5,
-                          pointHoverRadius: 7,
-                          pointBackgroundColor: '#2FCC71',
-                          pointBorderColor: '#fff',
-                          pointBorderWidth: 2
+                          pointRadius: 4,
+                          pointHoverRadius: 8
                         },
                         {
                           label: 'Sleep',
                           data: weeklyLogsData.sleep,
                           borderColor: '#F39C12',
+                          backgroundColor: 'transparent',
                           borderWidth: 2.5,
                           fill: false,
                           tension: 0.4,
-                          pointRadius: 5,
-                          pointHoverRadius: 7,
-                          pointBackgroundColor: '#F39C12',
-                          pointBorderColor: '#fff',
-                          pointBorderWidth: 2
+                          pointRadius: 4,
+                          pointHoverRadius: 8
                         }
                       ]
                     }}
@@ -540,48 +600,45 @@ const Dashboard = () => {
                           position: 'top',
                           labels: {
                             usePointStyle: true,
-                            padding: 15,
-                            font: {
-                              size: 12,
-                              weight: 'bold'
-                            }
+                            padding: 25,
+                            font: { size: 12, weight: '700' }
                           }
                         },
                         tooltip: {
-                          backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                          titleColor: '#333',
-                          bodyColor: '#333',
-                          borderColor: '#55AD9B',
+                          backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                          titleColor: '#1A202C',
+                          bodyColor: '#4A5568',
+                          borderColor: '#E2E8F0',
                           borderWidth: 1,
-                          cornerRadius: 8,
-                          padding: 10
+                          padding: 12,
+                          boxPadding: 6,
+                          usePointStyle: true,
+                          callbacks: {
+                            label: (context) => ` ${context.dataset.label}: ${context.parsed.y} entries`
+                          }
                         }
                       },
                       scales: {
                         y: {
                           beginAtZero: true,
-                          ticks: {
-                            stepSize: Math.max(1, Math.ceil(Math.max(...weeklyLogsData.activity, ...weeklyLogsData.health, ...weeklyLogsData.social, ...weeklyLogsData.sleep) / 5))
-                          },
-                          grid: {
-                            color: 'rgba(200, 200, 200, 0.2)'
-                          }
+                          grid: { color: 'rgba(0, 0, 0, 0.03)' },
+                          ticks: { font: { weight: '600' } }
                         },
                         x: {
-                          grid: {
-                            color: 'rgba(200, 200, 200, 0.2)'
-                          }
+                          grid: { display: false },
+                          ticks: { font: { weight: '600' } }
                         }
                       }
                     }}
                   />
                 </div>
-              </>
-            ) : (
-              <div className="flex justify-center items-center h-64">
-                <div className="text-gray-500">No data available for this period</div>
-              </div>
-            )}
+              ) : (
+                <div className="flex flex-col justify-center items-center h-80 space-y-4">
+                  <div className="text-gray-300 text-6xl">📭</div>
+                  <p className="text-gray-400 font-medium font-medium italic italic">No matching logs found for this timeframe</p>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>

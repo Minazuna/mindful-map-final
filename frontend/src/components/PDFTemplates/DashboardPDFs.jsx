@@ -223,16 +223,27 @@ export const generatePDF = async (chartId, title, data) => {
       align: 'justify' 
     });
     
-    yPos += summaryHeight + 10;
+    yPos += summaryHeight + 5;
     
-    // Chart image
-    pdf.setFillColor(255, 255, 255);
-    pdf.setDrawColor(85, 173, 155);
-    pdf.setLineWidth(0.5);
-    pdf.roundedRect(25, yPos, 160, 90, 3, 3, 'FD');
-    pdf.addImage(imgData, 'PNG', 35, yPos + 5, 140, 80);
+    // Chart image - maximized and maintained aspect ratio
+    const imgProps = pdf.getImageProperties(imgData);
+    const pdfMaxWidth = pageWidth - 30; // 15mm margins on each side
+    let finalImageWidth = pdfMaxWidth;
+    let finalImageHeight = (imgProps.height * finalImageWidth) / imgProps.width;
+
+    // Check if the image would exceed the available page height
+    const maxAllowedHeight = pageHeight - yPos - 25; // Leaving space for footer/margins
+    if (finalImageHeight > maxAllowedHeight) {
+      finalImageHeight = maxAllowedHeight;
+      finalImageWidth = (imgProps.width * finalImageHeight) / imgProps.height;
+    }
+
+    // Center horizontally
+    const xOffset = (pageWidth - finalImageWidth) / 2;
     
-    yPos += 100;
+    pdf.addImage(imgData, 'PNG', xOffset, yPos, finalImageWidth, finalImageHeight);
+    
+    yPos += finalImageHeight + 10;
 
     // Table
     if (chartId === 'weekly-logs-by-category-chart' && data.weeklyLogsData) {
