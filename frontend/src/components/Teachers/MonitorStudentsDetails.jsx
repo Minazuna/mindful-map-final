@@ -295,6 +295,7 @@ const MonitorStudentsDetails = () => {
   const weekEnd = query.get('weekEnd');
   const navigate = useNavigate();
 
+  const [teacher, setTeacher] = useState(null);
   const [student, setStudent] = useState(null);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -311,6 +312,22 @@ const MonitorStudentsDetails = () => {
   const [showComputationInfo, setShowComputationInfo] = useState(false);
 
   useEffect(() => {
+    const fetchTeacherProfile = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/teacher/profile`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (res.data.success) {
+          setTeacher(res.data.data);
+        }
+      } catch (err) {
+        console.error('Error fetching teacher profile:', err);
+      }
+    };
+    fetchTeacherProfile();
+
     const fetchStudentDetails = async () => {
       setLoading(true);
       try {
@@ -358,11 +375,11 @@ const MonitorStudentsDetails = () => {
   const groupedReasons = student?.concerningKeywords ? groupReasons(student.concerningKeywords) : [];
 
   return (
-    <div className="w-screen min-h-screen bg-[#F7F7F7]">
+    <div className="w-full min-h-screen bg-[#F7F7F7] overflow-x-hidden">
       <div className="flex min-h-screen">
-        <Sidebar active="monitor" />
-        <div className="flex-1 ml-72 p-6">
-          <div className="max-w-5xl mx-auto">
+        <Sidebar teacher={teacher} active="monitor" />
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-6 min-w-0">
+          <div className="max-w-full mx-auto">
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 32 }}>
               <IconButton
@@ -385,7 +402,7 @@ const MonitorStudentsDetails = () => {
                 sx={{
                   fontWeight: 700,
                   color: '#222',
-                  fontSize: 32,
+                  fontSize: 24,
                   letterSpacing: '-1px'
                 }}
               >

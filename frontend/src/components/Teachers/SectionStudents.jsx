@@ -141,7 +141,7 @@ const SectionStudents = () => {
     return (
       <div className="flex">
         <TeacherSidebar teacher={teacher} />
-        <div className="flex-1 ml-72 flex justify-center items-center h-screen">
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </div>
@@ -149,16 +149,16 @@ const SectionStudents = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F7F7F7]">
+    <div className="flex min-h-screen bg-[#F7F7F7] overflow-x-hidden">
       <TeacherSidebar teacher={teacher} />
-      <div className="flex-1 ml-72 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-6 min-w-0">
+        <div className="max-w-full mx-auto">
           {/* Header */}
           <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
+            <h1 className="text-2xl font-bold text-gray-800 mb-2">
               Students in Section: <span className="text-[#55AD9B]">{decodeURIComponent(section)}</span>
             </h1>
-            <p className="text-lg text-gray-600 mt-1">
+            <p className="text-base text-gray-600 mt-1">
               Total students: <span className="font-semibold">{filteredStudents.length}</span> of <span className="font-semibold">{students.length}</span>
             </p>
           </div>

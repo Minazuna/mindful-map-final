@@ -214,7 +214,7 @@ const ViewRecommendations = () => {
     return (
       <div className="flex min-h-screen bg-white">
         <Sidebar teacher={teacher} />
-        <div className="flex-1 ml-72 flex items-center justify-center">
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 flex items-center justify-center">
           <div className="text-center">
             <p className="text-lg text-[#1F8E8E] font-bold mb-4">No recommendation data found.</p>
             <button
@@ -230,10 +230,10 @@ const ViewRecommendations = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F6FBF7]">
+    <div className="flex min-h-screen bg-[#F6FBF7] overflow-x-hidden">
       <Sidebar teacher={teacher} />
-      <div className="flex-1 ml-72 flex flex-col">
-        <div className="max-w-6xl mx-auto w-full px-4 sm:px-8 py-10 flex-1 flex flex-col">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 flex flex-col min-w-0">
+        <div className="max-w-full mx-auto w-full px-4 sm:px-8 py-10 flex-1 flex flex-col">
           <div className="mb-6">
             <button
               onClick={() => navigate(-1)}
@@ -246,7 +246,7 @@ const ViewRecommendations = () => {
           </div>
           <div className="bg-white rounded-3xl border-2 border-[#D8EFD3] shadow-2xl p-8 w-full">
             <div className="flex flex-col sm:flex-row sm:items-center gap-4 mb-6">
-              <h2 className="text-3xl font-extrabold text-[#1F8E8E]">Recommendation Details</h2>
+              <h2 className="text-2xl font-extrabold text-[#1F8E8E]">Recommendation Details</h2>
               {category && (
                 <span className="text-xs px-4 py-2 rounded-full bg-[#E3F2EC] uppercase tracking-wide font-bold text-[#1F8E8E]">
                   {category}
@@ -259,9 +259,9 @@ const ViewRecommendations = () => {
                   {rec.recommendations.map((r, i) => (
                     <li key={i} className="p-6 rounded-xl border border-[#95D2B3] bg-[#F6FBF7]">
                       <div className="flex items-start gap-4 mb-4">
-                        <FaRegCommentDots className="text-[#1F8E8E] font-bold text-2xl flex-shrink-0 mt-1" />
+                        <FaRegCommentDots className="text-[#1F8E8E] font-bold text-xl flex-shrink-0 mt-1" />
                         <div className="flex-1">
-                          <span className="text-lg text-[#1F8E8E] leading-relaxed block font-medium">{typeof r === 'string' ? r : r.text}</span>
+                          <span className="text-base text-[#1F8E8E] leading-relaxed block font-medium">{typeof r === 'string' ? r : r.text}</span>
                           {r.source && (
                             <span className="block text-xs text-[#55AD9B] mt-2 italic">
                               Source: {r.source}

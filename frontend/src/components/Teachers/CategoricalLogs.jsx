@@ -301,7 +301,7 @@ const CategoricalLogs = ({ isDashboard = false, teacher: propTeacher }) => {
   return (
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar teacher={teacher} />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300">
         {content}
       </div>
     </div>

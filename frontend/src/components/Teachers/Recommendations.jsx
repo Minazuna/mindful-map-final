@@ -210,7 +210,7 @@ const handleViewRecommendation = async (categoryKey, rec, idx) => {
           {recs.length === 0 ? (
             <div className="text-center py-16">
               <FaRegCommentDots className="mx-auto mb-4 text-6xl text-[#95D2B3]" />
-              <p className="font-bold text-[#1F8E8E] text-lg mb-2">No patterns yet</p>
+              <p className="font-bold text-[#1F8E8E] text-base mb-2">No patterns yet</p>
               <p className="text-base text-[#55AD9B]">
                 Check back when students log more moods
               </p>
@@ -228,7 +228,7 @@ const handleViewRecommendation = async (categoryKey, rec, idx) => {
                     <div className={`rounded-2xl border border-[#95D2B3] shadow-md hover:shadow-xl transition-all p-6 ${palette.white}`}>
                       <div className="flex items-start justify-between gap-6">
                         <div className="flex-1 min-w-0">
-                          <p className="text-lg font-semibold text-[#1F8E8E] leading-relaxed break-words">
+                          <p className="text-base font-semibold text-[#1F8E8E] leading-relaxed break-words">
                             {labelText}
                           </p>
                           {rec?.count && (
@@ -268,27 +268,27 @@ const handleViewRecommendation = async (categoryKey, rec, idx) => {
   };
 
   return (
-    <div className={`flex min-h-screen ${palette.white}`}>
+    <div className={`flex min-h-screen ${palette.white} overflow-x-hidden`}>
       <Sidebar teacher={teacher} />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 min-w-0">
         <div className={`bg-[#F6FBF7] border-b-2 ${palette.border} sticky top-0 z-40`}>
-          <div className="max-w-7xl mx-auto px-12 py-8">
+          <div className="max-w-full mx-auto px-12 py-8">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-4xl font-extrabold text-[#1F8E8E]">Student Insights</h1>
-                <p className="text-lg text-[#55AD9B] mt-2 font-medium">
+                <h1 className="text-3xl font-extrabold text-[#1F8E8E]">Student Insights</h1>
+                <p className="text-base text-[#55AD9B] mt-1 font-medium">
                   Understand mood patterns and respond with targeted support
                 </p>
               </div>
             </div>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto px-12 py-10">
+        <div className="max-w-full mx-auto px-12 py-10">
           <div className={`rounded-2xl border border-[#95D2B3] shadow-md p-7 mb-10 flex flex-wrap gap-8 items-center justify-between ${palette.card}`}>
             <div className="flex items-center gap-4">
-              <label className="text-base font-bold text-[#1F8E8E] uppercase tracking-wider">Section</label>
+              <label className="text-sm font-bold text-[#1F8E8E] uppercase tracking-wider">Section</label>
               <select
-                className="text-lg rounded-xl border border-[#95D2B3] px-5 py-3 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#55AD9B]"
+                className="text-base rounded-xl border border-[#95D2B3] px-5 py-2 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#55AD9B]"
                 value={selectedSection}
                 onChange={e => setSelectedSection(e.target.value)}
               >
@@ -301,9 +301,9 @@ const handleViewRecommendation = async (categoryKey, rec, idx) => {
               </select>
             </div>
             <div className="flex items-center gap-4">
-              <label className="text-base font-bold text-[#1F8E8E] uppercase tracking-wider">Period</label>
+              <label className="text-sm font-bold text-[#1F8E8E] uppercase tracking-wider">Period</label>
               <select
-                className="text-lg rounded-xl border border-[#95D2B3] px-5 py-3 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#55AD9B]"
+                className="text-base rounded-xl border border-[#95D2B3] px-5 py-2 bg-white font-medium focus:outline-none focus:ring-2 focus:ring-[#55AD9B]"
                 value={timeFilter}
                 onChange={e => setTimeFilter(e.target.value)}
               >
@@ -314,7 +314,7 @@ const handleViewRecommendation = async (categoryKey, rec, idx) => {
             </div>
             <button
               onClick={fetchRecommendations}
-              className="inline-flex items-center gap-3 rounded-xl bg-[#55AD9B] text-white text-lg font-bold px-6 py-3 hover:bg-[#1F8E8E] transition-all"
+              className="inline-flex items-center gap-3 rounded-xl bg-[#55AD9B] text-white text-base font-bold px-6 py-2 hover:bg-[#1F8E8E] transition-all"
             >
               <FaSyncAlt /> Refresh
             </button>

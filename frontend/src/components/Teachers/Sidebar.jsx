@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, FileText, BarChart3, Settings, LogOut, Menu, X, BookOpen, ChevronDown, Sparkles, Eye } from 'lucide-react';
 
 const Sidebar = ({ teacher }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('teacherSidebarCollapsed') === 'true';
+  });
+  
   const [isStudentLogsExpanded, setIsStudentLogsExpanded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+
+  useEffect(() => {
+    localStorage.setItem('teacherSidebarCollapsed', isCollapsed);
+    document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '5rem' : '18rem');
+  }, [isCollapsed]);
 
   // All available sections
   const allSections = [

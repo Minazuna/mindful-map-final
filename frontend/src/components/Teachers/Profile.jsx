@@ -120,7 +120,7 @@ const EditProfile = () => {
     return (
       <div className="flex h-screen bg-gray-50">
         <Sidebar teacher={teacher} />
-        <div className="flex-1 ml-72 flex justify-center items-center">
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 flex justify-center items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2" style={{ borderColor: '#7BC5A5' }}></div>
         </div>
       </div>
@@ -131,7 +131,7 @@ const EditProfile = () => {
     <div className="flex h-screen bg-gray-50">
       <Sidebar teacher={teacher} />
       
-      <div className="flex-1 ml-72 overflow-auto">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 overflow-auto">
         <div className="max-w-4xl mx-auto py-8 px-6">
           {/* Header */}
           <div className="mb-8">

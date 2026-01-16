@@ -127,7 +127,7 @@ const Dashboard = () => {
     return (
       <div className="flex">
         <Sidebar teacher={teacher} />
-        <div className="flex-1 ml-72 flex justify-center items-center h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50">
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 flex justify-center items-center h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-blue-500"></div>
         </div>
       </div>
@@ -135,15 +135,15 @@ const Dashboard = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50">
+    <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50 overflow-x-hidden">
       <Sidebar teacher={teacher} />
 
-      <div className="flex-1 ml-72 p-10">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-10 min-w-0">
         {/* Header */}
         <div className="mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-800 mb-3 tracking-tight drop-shadow-lg">Teacher Dashboard</h1>
+          <h1 className="text-3xl font-extrabold text-gray-800 mb-2 tracking-tight drop-shadow-lg">Teacher Dashboard</h1>
           {teacher && (
-            <p className="text-xl text-gray-700 font-medium">
+            <p className="text-lg text-gray-700 font-medium">
               Welcome back, <span className="font-bold text-blue-700">{teacher.firstName} {teacher.lastName}</span>
             </p>
           )}
