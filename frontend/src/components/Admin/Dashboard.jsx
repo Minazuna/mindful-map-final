@@ -317,11 +317,11 @@ const Dashboard = () => {
     <div className="flex min-h-screen bg-gradient-to-br from-blue-50 via-green-50 to-purple-50">
       <Navbar />
 
-      <div className="flex-1 ml-72 p-10">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-10 overflow-x-auto">
         {/* Header */}
         <div className="mb-10">
-          <h1 className="text-4xl font-extrabold text-gray-800 mb-3 tracking-tight drop-shadow-lg">Admin Dashboard</h1>
-          <p className="text-xl text-gray-700 font-medium">
+          <h1 className="text-3xl font-extrabold text-gray-800 mb-3 tracking-tight drop-shadow-lg">Admin Dashboard</h1>
+          <p className="text-lg text-gray-700 font-medium">
             System Overview & Analytics
           </p>
         </div>

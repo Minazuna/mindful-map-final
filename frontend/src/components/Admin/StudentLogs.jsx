@@ -157,11 +157,12 @@ const StudentLogs = () => {
   if (loading) {
     return (
       <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F8FAF9" }}>
-        <Box sx={{ width: 240, flexShrink: 0 }}>
-          <Navbar />
-        </Box>
-        <Box sx={{ flexGrow: 1, display: "flex", justifyContent: "center", alignItems: "center" }}>
-          <Typography>Loading student data...</Typography>
+        <Navbar />
+        <Box sx={{ flexGrow: 1, ml: 'var(--sidebar-width)', display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mb-4"></div>
+            <Typography sx={{ color: '#6b7280', fontWeight: 500 }}>Loading student data...</Typography>
+          </div>
         </Box>
       </Box>
     );
@@ -170,28 +171,27 @@ const StudentLogs = () => {
   return (
     <LocalizationProvider dateAdapter={AdapterDateFns}>
       <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F8FAF9" }}>
-        {/* Sidebar */}
-        <Box sx={{ width: 240, flexShrink: 0 }}>
-          <Navbar />
-        </Box>
+        <Navbar />
 
         {/* Main Content */}
-        <Box sx={{ flexGrow: 1, p: 3 }}>
+        <Box sx={{ flexGrow: 1, p: 4, ml: 'var(--sidebar-width)', transition: "all 0.3s ease", overflowX: 'auto' }}>
           {/* Header */}
-          <Box sx={{ mb: 3 }}>
+          <Box sx={{ mb: 4 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
               <button
                 onClick={() => navigate('/admin/users')}
-                className="mr-4 p-2 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow border border-gray-200"
+                className="mr-4 p-2.5 rounded-xl bg-white shadow-sm hover:shadow-md transition-all duration-200 border border-gray-100 text-gray-600 hover:text-green-600"
               >
-                <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                </svg>
+                <ArrowBackIcon />
               </button>
-              <Typography variant="h4" sx={{ fontWeight: "bold", color: "#333" }}>
+              <Typography variant="h4" sx={{ fontWeight: 800, color: '#1f2937', trackingTight: true }}>
                 Student Mood Logs
               </Typography>
             </Box>
+            <Typography variant="subtitle1" sx={{ color: '#4b5563', fontWeight: 500, ml: 12 }}>
+              Detailed activity and emotion logs for {student?.name || 'Student'}
+            </Typography>
+          </Box>
 
             {/* Student Info Card */}
             <Card sx={{ mb: 3 }}>
@@ -222,7 +222,6 @@ const StudentLogs = () => {
                 </Grid>
               </CardContent>
             </Card>
-          </Box>
 
           {/* Controls */}
           <Box sx={{ mb: 3 }}>
@@ -349,26 +348,26 @@ const StudentLogs = () => {
           </Box>
 
           {/* Logs Table */}
-          <TableContainer component={Paper}>
+          <TableContainer component={Paper} sx={{ boxShadow: 'none', overflowX: 'auto', borderRadius: '12px', border: '1px solid #E5E7EB' }}>
             <Table>
               <TableHead>
-                <TableRow>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Date</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Category</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Activity/Hours</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Before Valence</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Before Emotion</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>Before Intensity</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>After Valence</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>After Emotion</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50' }}>After Intensity</TableCell>
+                <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>Date</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>Category</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>Activity/Hours</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>Before Valence</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>Before Emotion</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>Before Intensity</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>After Valence</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>After Emotion</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2.5 }}>After Intensity</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {filteredLogs.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={9} align="center">
-                      <Typography color="text.secondary">
+                    <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                      <Typography sx={{ fontSize: '1rem', color: '#6b7280' }}>
                         {moodLogs.length === 0 ? 'No mood logs found for this student.' : 'No logs match the current filters.'}
                       </Typography>
                     </TableCell>
@@ -377,51 +376,65 @@ const StudentLogs = () => {
                   filteredLogs.map((log, index) => {
                     const getCategoryColor = (category) => {
                       const colors = {
-                        activity: '#2196F3',  // Blue
-                        social: '#9C27B0',    // Violet
-                        health: '#4CAF50',    // Green
-                        sleep: '#FF9800'      // Orange
+                        activity: '#3b82f6',  // Blue-500
+                        social: '#8b5cf6',    // Violet-500
+                        health: '#10b981',    // Emerald-500
+                        sleep: '#f59e0b'      // Amber-500
                       };
                       return colors[category] || '#95A5A6';
                     };
                     
                     return (
-                    <TableRow key={index} hover>
-                      <TableCell>
-                        {new Date(log.date).toLocaleDateString()} {new Date(log.date).toLocaleTimeString()}
+                    <TableRow key={index} hover sx={{ '&:hover': { bgcolor: '#F9FAFB' } }}>
+                      <TableCell sx={{ fontSize: '1rem', fontWeight: 500, color: '#4b5563', whiteSpace: 'nowrap' }}>
+                        <div>{new Date(log.date).toLocaleDateString()}</div>
+                        <div className="text-xs text-gray-400 font-normal">{new Date(log.date).toLocaleTimeString()}</div>
                       </TableCell>
                       <TableCell>
                         <Chip 
                           label={log.category} 
                           size="small" 
-                          variant="outlined"
                           sx={{
-                            borderColor: getCategoryColor(log.category),
+                            bgcolor: getCategoryColor(log.category) + '15',
                             color: getCategoryColor(log.category),
+                            fontWeight: 700,
+                            textTransform: 'uppercase',
+                            fontSize: '0.75rem',
+                            border: `1px solid ${getCategoryColor(log.category)}30`
                           }}
                         />
                       </TableCell>
-                      <TableCell>
+                      <TableCell sx={{ fontSize: '1rem', color: '#374151', fontWeight: 600, whiteSpace: 'nowrap' }}>
                         {log.category === 'sleep' ? `${log.hrs} hours` : log.activity}
                       </TableCell>
                       <TableCell>
                         <Chip 
                           label={log.beforeValence} 
                           size="small"
-                          color={log.beforeValence === 'positive' ? 'success' : log.beforeValence === 'negative' ? 'error' : 'default'}
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            bgcolor: log.beforeValence === 'positive' ? '#DCFCE7' : log.beforeValence === 'negative' ? '#FEE2E2' : '#FEF3C7',
+                            color: log.beforeValence === 'positive' ? '#166534' : log.beforeValence === 'negative' ? '#991B1B' : '#92400E',
+                          }}
                         />
                       </TableCell>
-                      <TableCell>{log.beforeEmotion || 'N/A'}</TableCell>
-                      <TableCell>{log.beforeIntensity || 'N/A'}</TableCell>
+                      <TableCell sx={{ fontSize: '1rem', color: '#4b5563' }}>{log.beforeEmotion || 'N/A'}</TableCell>
+                      <TableCell sx={{ fontSize: '1rem', fontWeight: 700, color: '#374151' }}>{log.beforeIntensity || 'N/A'}</TableCell>
                       <TableCell>
                         <Chip 
                           label={log.afterValence} 
                           size="small"
-                          color={log.afterValence === 'positive' ? 'success' : 'error'}
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: '0.85rem',
+                            bgcolor: log.afterValence === 'positive' ? '#DCFCE7' : '#FEE2E2',
+                            color: log.afterValence === 'positive' ? '#166534' : '#991B1B',
+                          }}
                         />
                       </TableCell>
-                      <TableCell>{log.afterEmotion}</TableCell>
-                      <TableCell>{log.afterIntensity}</TableCell>
+                      <TableCell sx={{ fontSize: '1rem', color: '#4b5563' }}>{log.afterEmotion || '-'}</TableCell>
+                      <TableCell sx={{ fontSize: '1rem', fontWeight: 700, color: '#374151' }}>{log.afterIntensity || '-'}</TableCell>
                     </TableRow>
                     );
                   })

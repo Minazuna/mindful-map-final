@@ -369,13 +369,10 @@ const Teachers = () => {
   if (loading) {
     return (
       <div className="flex min-h-screen bg-gray-50">
-        {/* Sidebar */}
-        <div className="w-[280px] fixed h-full">
-          <Navbar />
-        </div>
+        <Navbar />
 
         {/* Main Content */}
-        <div className="flex-1 ml-[280px] flex justify-center items-center">
+        <div className="flex-1 ml-[var(--sidebar-width)] flex justify-center items-center transition-all duration-300">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </div>
@@ -384,18 +381,14 @@ const Teachers = () => {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
-      {/* Sidebar */}
-      <div className="w-[280px] fixed h-full">
-        <Navbar />
-      </div>
+      <Navbar />
 
       {/* Main Content */}
-      <div className="flex-1 ml-[280px]">
-        <div className="max-w-7xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-10 overflow-x-auto">
         {/* Header */}
         <div className="mb-6 mt-4">
-          <h1 className="text-3xl font-bold text-gray-900">Teacher Management</h1>
-          <p className="mt-2 text-sm text-gray-700">
+          <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Teacher Management</h1>
+          <p className="mt-2 text-base text-gray-700 font-medium">
             Manage teacher accounts and section assignments
           </p>
         </div>
@@ -509,39 +502,39 @@ const Teachers = () => {
                       </div>
                       <div className="ml-4">
                         <div className="flex items-center">
-                          <p className="text-lg font-medium text-gray-900">
+                          <p className="text-xl font-bold text-gray-900 leading-tight">
                             {teacher.firstName} {teacher.middleInitial && teacher.middleInitial + '. '}{teacher.lastName}
                           </p>
-                          <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          <span className="ml-3 inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-green-100 text-green-800 uppercase tracking-wider">
                             Teacher
                           </span>
                         </div>
-                        <p className="text-sm text-gray-500">{teacher.email}</p>
-                        <div className="mt-1 flex items-center space-x-2 flex-wrap">
-                          <span className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                        <p className="text-base text-gray-600 font-medium mt-0.5">{teacher.email}</p>
+                        <div className="mt-2 flex items-center space-x-2 flex-wrap gap-y-2">
+                          <span className="inline-flex items-center px-3 py-1 rounded text-sm font-semibold bg-blue-100 text-blue-800 border border-blue-200">
                             📚 {teacher.subject}
                           </span>
                           {teacher.assignedSections && teacher.assignedSections.map((section, index) => (
-                            <span key={index} className="inline-flex items-center px-2 py-1 rounded text-xs font-medium bg-purple-100 text-purple-800">
+                            <span key={index} className="inline-flex items-center px-3 py-1 rounded text-sm font-semibold bg-purple-100 text-purple-800 border border-purple-200">
                               🏫 {section}
                             </span>
                           ))}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs text-gray-500">
+                    <div className="flex items-center space-x-4">
+                      <span className="text-sm text-gray-500 font-medium italic">
                         Created: {formatDate(teacher.createdAt)}
                       </span>
                       <button
                         onClick={() => openEditModal(teacher)}
-                        className="bg-yellow-100 text-yellow-800 hover:bg-yellow-200 px-3 py-1 rounded text-sm font-medium"
+                        className="bg-yellow-50 text-yellow-700 hover:bg-yellow-100 border border-yellow-200 px-4 py-2 rounded-xl text-sm font-bold transition-all"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteTeacher(teacher._id, `${teacher.firstName} ${teacher.lastName}`)}
-                        className="bg-red-100 text-red-800 hover:bg-red-200 px-3 py-1 rounded text-sm font-medium"
+                        className="bg-red-50 text-red-700 hover:bg-red-100 border border-red-200 px-4 py-2 rounded-xl text-sm font-bold transition-all"
                       >
                         Delete
                       </button>
@@ -580,7 +573,6 @@ const Teachers = () => {
             </div>
           </div>
         )}
-        </div>
       </div>
 
       {/* Create Teacher Modal */}

@@ -14,8 +14,6 @@ router.get('/inactive-users', authMiddleware, adminMiddleware, adminController.g
 // Dashboard Analytics Routes
 router.get('/daily-mood-logs', authMiddleware, adminMiddleware, adminController.getDailyMoodLogs);
 router.get('/daily-journal-logs', authMiddleware, adminMiddleware, adminController.getDailyJournalLogs);
-router.get('/correlation-values', authMiddleware, adminMiddleware, adminController.getCorrelationValues);
-router.get('/weekly-correlation-values', authMiddleware, adminMiddleware, adminController.getWeeklyCorrelationValues);
 router.get('/logs-by-category', authMiddleware, adminMiddleware, adminController.getAdminLogsByCategory);
 
 // Teacher Management Routes

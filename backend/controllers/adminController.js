@@ -326,53 +326,6 @@ exports.getDailyJournalLogs = async (req, res) => {
   }
 };
 
-exports.getCorrelationValues = async (req, res) => {
-  try {
-    const correlationValues = await CorrelationValue.find().populate('user', 'name email');
-    res.status(200).json(correlationValues);
-  } catch (error) {
-    console.error('Error fetching correlation values:', error);
-    res.status(500).json({ success: false, message: 'Server Error', error: error.message });
-  }
-};
-
-exports.getWeeklyCorrelationValues = async (req, res) => {
-  try {
-    const token = req.headers.authorization.split(' ')[1];
-    if (!token) {
-      return res.status(401).json({ message: 'No token found' });
-    }
-
-    const weeklyCorrelationValues = await CorrelationValue.aggregate([
-      {
-        $group: {
-          _id: {
-            week: { $week: "$createdAt" },
-            year: { $year: "$createdAt" }
-          },
-          count: { $sum: 1 }
-        }
-      },
-      {
-        $sort: { "_id.year": 1, "_id.week": 1 }
-      }
-    ]);
-
-    const formattedData = weeklyCorrelationValues.map(item => {
-      const startOfWeek = moment().year(item._id.year).week(item._id.week).startOf('week').format('MM-DD-YY');
-      const endOfWeek = moment().year(item._id.year).week(item._id.week).endOf('week').format('MM-DD-YY');
-      return {
-        week: `${startOfWeek} to ${endOfWeek}`,
-        count: item.count
-      };
-    });
-    res.status(200).json(formattedData);
-  } catch (error) {
-    console.error('Error fetching weekly correlation values:', error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
 
 
 // Teacher Management Functions

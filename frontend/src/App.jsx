@@ -35,7 +35,6 @@ import SleepAnalysis from './components/User/Statistics/StatisticsComponents/Sle
 
 import Dashboard from './components/Admin/Dashboard';
 import Users from './components/Admin/Users';
-import StatisticsTable from './components/Admin/StatisticsTable';
 import Teachers from './components/Admin/Teachers';
 import AdminStudentLogs from './components/Admin/StudentLogs';
 import PredictionComparison from './components/Admin/PredictionComparison';
@@ -664,14 +663,6 @@ const App = () => {
           element={
             <AdminPrivateRoute>
               <Users />
-            </AdminPrivateRoute>
-          }
-        />
-        <Route
-          path="/admin/statistics"
-          element={
-            <AdminPrivateRoute>
-              <StatisticsTable />
             </AdminPrivateRoute>
           }
         />

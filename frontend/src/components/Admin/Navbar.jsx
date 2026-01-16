@@ -1,19 +1,28 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Home, Users, School, BarChart3, LogOut, Menu, X, TrendingUp } from 'lucide-react';
 
 const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem("adminSidebarCollapsed") === "true";
+  });
   const currentPath = location.pathname;
+
+  useEffect(() => {
+    localStorage.setItem("adminSidebarCollapsed", isCollapsed);
+    document.documentElement.style.setProperty(
+      "--sidebar-width",
+      isCollapsed ? "5rem" : "18rem"
+    );
+  }, [isCollapsed]);
 
   // Use ONLY these menu items
   const menuItems = [
     { icon: Home, label: 'Dashboard', path: '/admin/dashboard' },
     { icon: Users, label: 'Users', path: '/admin/users' },
     { icon: School, label: 'Teachers', path: '/admin/teachers' },
-    { icon: BarChart3, label: 'Statistics', path: '/admin/statistics' },
     { icon: TrendingUp, label: 'Mood Predictions', path: '/admin/mood-predictions' },
   ];
 
@@ -30,9 +39,8 @@ const Navbar = () => {
 
   return (
     <div
-      className={`fixed left-0 top-0 h-screen bg-white shadow-xl transition-all duration-300 ease-in-out z-50 ${
-        isCollapsed ? 'w-20' : 'w-72'
-      }`}
+      style={{ width: 'var(--sidebar-width)' }}
+      className="fixed left-0 top-0 h-screen bg-white shadow-xl transition-all duration-300 ease-in-out z-50"
     >
       {/* Header with Logo and Toggle */}
       <div className={`relative flex flex-col items-center justify-center border-b border-gray-100 transition-all duration-300 ${isCollapsed ? 'h-20' : 'py-8'}`} style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
