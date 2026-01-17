@@ -236,28 +236,53 @@ exports.getSectionStudents = async (req, res) => {
       role: 'user' 
     }).select('firstName lastName email avatar section');
 
-    // Get mood log counts for each student by category
-    const studentsWithLogs = await Promise.all(students.map(async (student) => {
-      const moodLogCounts = await MoodLog.aggregate([
-        { $match: { user: student._id } },
-        { $group: { 
-          _id: '$category', 
-          count: { $sum: 1 } 
-        }}
-      ]);
+    // Get all mood logs for these students to calculate counts and dominant emotions
+    const studentIds = students.map(student => student._id);
+    const allLogs = await MoodLog.find({ user: { $in: studentIds } });
 
-      // Convert array to object for easier access
-      const counts = {};
-      moodLogCounts.forEach(item => {
-        counts[item._id] = item.count;
+    // Map logs to students
+    const studentsWithLogs = students.map(student => {
+      const studentLogs = allLogs.filter(log => log.user.toString() === student._id.toString());
+      
+      // Calculate category counts
+      const counts = {
+        activity: 0,
+        social: 0,
+        health: 0,
+        sleep: 0
+      };
+      
+      // Track emotion frequencies
+      const beforeEmotions = {};
+      const afterEmotions = {};
+
+      studentLogs.forEach(log => {
+        if (counts.hasOwnProperty(log.category)) {
+          counts[log.category]++;
+        }
+        if (log.beforeEmotion) {
+          beforeEmotions[log.beforeEmotion] = (beforeEmotions[log.beforeEmotion] || 0) + 1;
+        }
+        if (log.afterEmotion) {
+          afterEmotions[log.afterEmotion] = (afterEmotions[log.afterEmotion] || 0) + 1;
+        }
       });
+
+      // Helper to find dominant emotion
+      const getDominant = (emotions) => {
+        const entries = Object.entries(emotions);
+        if (entries.length === 0) return 'N/A';
+        return entries.sort((a, b) => b[1] - a[1])[0][0];
+      };
 
       return {
         ...student.toObject(),
         name: `${student.firstName} ${student.lastName}`,
-        moodLogCounts: counts
+        moodLogCounts: counts,
+        dominantBeforeEmotion: getDominant(beforeEmotions),
+        dominantAfterEmotion: getDominant(afterEmotions)
       };
-    }));
+    });
 
     res.status(200).json({
       success: true,
