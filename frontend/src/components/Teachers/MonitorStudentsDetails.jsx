@@ -296,12 +296,7 @@ const MonitorStudentsDetails = () => {
   const sectionId = query.get('sectionId');
   const navigate = useNavigate();
 
-<<<<<<< HEAD
   const [severities, setSeverities] = useState([]);
-=======
-  const [teacher, setTeacher] = useState(null);
-  const [student, setStudent] = useState(null);
->>>>>>> 8dc4e5c69edd8c42ddd55a270a95b3967b49ae05
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [status, setStatus] = useState('');
@@ -313,9 +308,6 @@ const MonitorStudentsDetails = () => {
   const [showComputationInfo, setShowComputationInfo] = useState(false);
 
   useEffect(() => {
-<<<<<<< HEAD
-    const fetchSeverities = async () => {
-=======
     const fetchTeacherProfile = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -333,7 +325,6 @@ const MonitorStudentsDetails = () => {
     fetchTeacherProfile();
 
     const fetchStudentDetails = async () => {
->>>>>>> 8dc4e5c69edd8c42ddd55a270a95b3967b49ae05
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
