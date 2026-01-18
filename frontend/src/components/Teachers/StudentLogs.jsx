@@ -321,7 +321,7 @@ const StudentLogs = () => {
     return (
       <div className="flex">
         <TeacherSidebar teacher={teacher} />
-        <div className="flex-1 ml-72 flex justify-center items-center h-screen">
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </div>
@@ -329,10 +329,10 @@ const StudentLogs = () => {
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-[#F7F7F7]">
+    <div className="flex min-h-screen w-full bg-[#F7F7F7] overflow-x-hidden">
       <TeacherSidebar teacher={teacher} />
-      <div className="flex-1 ml-72 p-6 bg-[#F7F7F7]">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-6 bg-[#F7F7F7] min-w-0">
+        <div className="max-w-full mx-auto">
           {/* Header */}
           <div className="mb-8">
             <div className="flex items-center mb-2">
@@ -345,28 +345,28 @@ const StudentLogs = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                 </svg>
               </button>
-                <div className="flex items-center justify-center text-3xl font-bold text-gray-800">Student Mood Logs</div>
+                <div className="flex items-center justify-center text-2xl font-bold text-gray-800">Student Mood Logs</div>
             </div>
 
             {/* Student Info Card - only show when viewing individual student */}
             {moodLogs.length > 0 && !currentSection && (
-              <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+              <div className="bg-white rounded-lg shadow-sm p-5 mb-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div>
-                    <p className="text-lg  text-gray-900">Name</p>
-                    <p className="text-lg font-medium text-gray-500">{moodLogs[0]?.studentName || 'N/A'}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Name</p>
+                    <p className="text-base font-medium text-gray-900">{moodLogs[0]?.studentName || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-lg font-medium text-gray-900">Email</p>
-                    <p className="text-lg text-gray-500">{moodLogs[0]?.studentEmail || 'N/A'}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</p>
+                    <p className="text-base font-medium text-gray-900">{moodLogs[0]?.studentEmail || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-lg font-medium text-gray-900">Section</p>
-                    <p className="text-lg text-gray-500">{moodLogs[0]?.studentSection || 'N/A'}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Section</p>
+                    <p className="text-base font-medium text-gray-900">{moodLogs[0]?.studentSection || 'N/A'}</p>
                   </div>
                   <div>
-                    <p className="text-lg font-medium text-gray-900">Total Logs</p>
-                    <p className="text-lg text-[#55AD9B] font-bold">{moodLogs.length}</p>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Total Logs</p>
+                    <p className="text-base text-[#55AD9B] font-bold">{moodLogs.length}</p>
                   </div>
                 </div>
               </div>

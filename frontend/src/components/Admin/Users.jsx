@@ -1,17 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { Box, Avatar, Typography, TextField, IconButton, Button, Checkbox, Select, MenuItem, FormControl, InputLabel } from "@mui/material";
+import { Box, Avatar, Typography, TextField, IconButton, Button, Checkbox, Select, MenuItem, FormControl, InputLabel, TablePagination, Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import FileDownloadIcon from '@mui/icons-material/FileDownload';
 import { jsPDF } from "jspdf";
 import "jspdf-autotable";
 import axios from "axios";
-import Table from '@mui/material/Table';
-import TableBody from '@mui/material/TableBody';
-import TableCell from '@mui/material/TableCell';
-import TableContainer from '@mui/material/TableContainer';
-import TableHead from '@mui/material/TableHead';
-import TableRow from '@mui/material/TableRow';
-import Paper from '@mui/material/Paper';
 import Navbar from './Navbar';
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -25,6 +18,8 @@ const Users = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [sectionFilter, setSectionFilter] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
    const fetchUsers = async () => {
     try {
@@ -63,7 +58,19 @@ const Users = () => {
     });
     
     setFilteredUsers(filtered);
+    setPage(0); // Reset to first page on filter change
   }, [searchTerm, sectionFilter, users]);
+
+  const handleChangePage = (event, newPage) => {
+    setPage(newPage);
+  };
+
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
+  const paginatedUsers = filteredUsers.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage);
 
   const getUniqueSections = () => {
     const sections = users.map(user => user.section || "Not Assigned");
@@ -72,12 +79,11 @@ const Users = () => {
 
   const exportPDF = () => {
     const doc = new jsPDF();
-    
     const pageWidth = doc.internal.pageSize.getWidth();
     const logoWidth = 25; 
     const logoHeight = 25;
     const margin = 15;
-    const lineY = 42;  // Adjusted line position
+    const lineY = 42; 
     
     const tupLogo = new Image();
     const rightLogo = new Image();
@@ -95,7 +101,6 @@ const Users = () => {
       })
     ]).then(() => {
       doc.addImage(tupLogo, 'PNG', margin, 10, logoWidth, logoHeight);
-      
       const rightLogoX = pageWidth - margin - logoWidth;
       doc.addImage(rightLogo, 'PNG', rightLogoX, 10, logoWidth, logoHeight);
       
@@ -119,23 +124,19 @@ const Users = () => {
       const addressX = textStart + (textWidth - doc.getTextWidth(address)) / 2 - 5;
       doc.text(address, addressX, 34);
       
-      // Horizontal line
       doc.setLineWidth(0.6);
       doc.setDrawColor(100, 179, 138);  
       doc.line(35, lineY, pageWidth - 35, lineY);
       
-      // Date and Time
       const now = new Date();
       const dateTime = `Generated: ${now.toLocaleDateString()} at ${now.toLocaleTimeString()}`;
       doc.setFontSize(10);
-      doc.setFont('helvetica', 'normal');
       doc.text(dateTime, pageWidth - margin, lineY - 5, { align: 'right' });
       
       doc.setFontSize(14);
       doc.setFont('helvetica', 'bold');
       doc.text("Users Report", margin, lineY + 20);
       
-      // Create users table data
       const usersData = filteredUsers.map(user => [
         user.name || "N/A",
         user.email,
@@ -150,72 +151,58 @@ const Users = () => {
         body: usersData,
         startY: lineY + 30,
         margin: { left: margin, right: margin },
-        styles: {
-          fontSize: 9,
-          cellPadding: 3,
-        },
-        headStyles: {
-          fillColor: [100, 179, 138],
-          textColor: 255,
-          fontSize: 10,
-          fontStyle: 'bold',
-        },
+        styles: { fontSize: 9, cellPadding: 3 },
+        headStyles: { fillColor: [100, 179, 138], textColor: 255, fontSize: 10, fontStyle: 'bold' },
       });
-      
       doc.save("users_report.pdf");
-    }).catch(error => {
-      console.error('Error loading images:', error);
-    });
+    }).catch(error => console.error('Error loading images:', error));
   };
-  
-   return (
+
+  return (
     <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#F8FAF9" }}>
-      {/* Sidebar */}
-      <Box sx={{ width: 240, flexShrink: 0 }}>
-        <Navbar />
-      </Box>
+      <Navbar />
 
       {/* Main Content */}
       <Box
         sx={{
           flexGrow: 1,
+          ml: 'var(--sidebar-width)',
           display: "flex",
-          justifyContent: "center", 
-          alignItems: "center",       
+          flexDirection: "column",
           minHeight: "100vh", 
           py: 3,
+          px: 4,
           bgcolor: "#F8FAF9",
+          transition: 'all 0.3s ease-in-out',
+          overflowX: 'auto',
         }}
       >
-        {/* Table Container */}
-        <Box
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h4" sx={{ fontWeight: 800, color: '#1f2937', mb: 1, textShadow: '0 1px 2px rgba(0,0,0,0.1)' }}>
+            User Management
+          </Typography>
+          <Typography variant="subtitle1" sx={{ color: '#4b5563', fontWeight: 500 }}>
+            Manage and monitor student accounts
+          </Typography>
+        </Box>
+        <Paper
           sx={{
             width: "100%", 
-            maxWidth: "1100px", 
             bgcolor: "white",
             p: 4,
             borderRadius: 2,
             boxShadow: 3,
-            margin: "0 auto", 
+            overflowX: 'auto'
           }}
         >
           <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-            <Typography variant="h5" sx={{ fontWeight: "bold", color: "#333" }}>
-              Users
-            </Typography>
-
-            {/* Controls */}
             <Box display="flex" gap={2} alignItems="center">
               <TextField
                 placeholder="Search..."
                 size="small"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                sx={{
-                  width: 200,
-                  bgcolor: "#F5F5F5",
-                  borderRadius: 1,
-                }}
+                sx={{ width: 200, bgcolor: "#F5F5F5", borderRadius: 1 }}
               />
 
               <FormControl size="small" sx={{ minWidth: 150 }}>
@@ -224,16 +211,11 @@ const Users = () => {
                   value={sectionFilter}
                   onChange={(e) => setSectionFilter(e.target.value)}
                   label="Section"
-                  sx={{
-                    bgcolor: "#F5F5F5",
-                    borderRadius: 1,
-                  }}
+                  sx={{ bgcolor: "#F5F5F5", borderRadius: 1 }}
                 >
                   <MenuItem value="">All Sections</MenuItem>
                   {getUniqueSections().slice(1).map((section) => (
-                    <MenuItem key={section} value={section}>
-                      {section}
-                    </MenuItem>
+                    <MenuItem key={section} value={section}>{section}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -245,79 +227,67 @@ const Users = () => {
           </Box>
 
           {/* Custom Table Implementation */}
-          <TableContainer component={Paper} sx={{ boxShadow: 'none' }}>
-            <Table aria-label="collapsible table">
+          <TableContainer>
+            <Table aria-label="users table">
               <TableHead>
-                <TableRow>
-                  <TableCell width="80px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Avatar</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Email</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Section</TableCell>
-                  <TableCell sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Account Status</TableCell>
-                  <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Last Logged</TableCell>
-                  <TableCell width="120px" sx={{ fontWeight: 'bold', color: '#4CAF50', fontSize: '0.875rem' }}>Created At</TableCell>
+                <TableRow sx={{ bgcolor: '#F9FAFB' }}>
+                  <TableCell width="80px" sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 1.5 }}>Avatar</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 1.5 }}>Name</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 1.5 }}>Email</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 1.5 }}>Section</TableCell>
+                  <TableCell sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 1.5 }}>Status</TableCell>
+                  <TableCell width="140px" sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2 }}>Last Logged</TableCell>
+                  <TableCell width="140px" sx={{ fontWeight: '800', color: '#10b981', fontSize: '1rem', py: 2 }}>Created At</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ fontSize: '0.875rem' }}>
-                      <Typography sx={{ fontSize: '0.875rem' }}>Loading users...</Typography>
+                    <TableCell colSpan={8} align="center" sx={{ fontSize: '1rem', py: 4 }}>
+                      <Typography sx={{ fontSize: '1rem', color: '#6b7280' }}>Loading users...</Typography>
                     </TableCell>
                   </TableRow>
-                ) : filteredUsers.length === 0 ? (
+                ) : paginatedUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} align="center" sx={{ fontSize: '0.875rem' }}>
-                      <Typography sx={{ fontSize: '0.875rem' }}>No users found</Typography>
+                    <TableCell colSpan={8} align="center" sx={{ fontSize: '1rem', py: 4 }}>
+                      <Typography sx={{ fontSize: '1rem', color: '#6b7280' }}>No users found</Typography>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredUsers.map(user => (
-                    <TableRow 
-                      key={user.id}
-                      hover 
-                      sx={{ '&:hover': { bgcolor: '#FAFAFA' } }}
-                    >
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        <Avatar src={user.avatar} alt="User Avatar" />
+                  paginatedUsers.map(user => (
+                    <TableRow key={user.id} hover sx={{ '&:hover': { bgcolor: '#FDFDFD' } }}>
+                      <TableCell sx={{ py: 1.5 }}>
+                        <Avatar src={user.avatar} alt="User Avatar" sx={{ width: 44, height: 44, border: '2px solid #E5E7EB' }} />
                       </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>{user.name}</TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>{user.email}</TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
+                      <TableCell sx={{ fontSize: '1.05rem', fontWeight: 600, color: '#374151', py: 1.5 }}>{user.name}</TableCell>
+                      <TableCell sx={{ fontSize: '1rem', color: '#4b5563', py: 1.5 }}>{user.email}</TableCell>
+                      <TableCell sx={{ py: 1.5 }}>
                         <Typography
                           sx={{
-                            bgcolor: user.section === "Not Assigned" ? '#FFF3E0' : '#E3F2FD',
-                            color: user.section === "Not Assigned" ? '#FF9800' : '#1976D2',
-                            px: 2,
-                            py: 0.5,
-                            borderRadius: 1,
-                            display: 'inline-block',
-                            fontSize: '0.875rem'
+                            bgcolor: user.section === "Not Assigned" ? '#FEF3C7' : '#DBEAFE',
+                            color: user.section === "Not Assigned" ? '#92400E' : '#1E40AF',
+                            px: 2, py: 0.75, borderRadius: '8px', display: 'inline-block', fontSize: '0.9rem', fontWeight: 700
                           }}
                         >
                           {user.section || 'Not Assigned'}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
+                      <TableCell sx={{ py: 1.5 }}>
                         <Typography
                           sx={{
-                            bgcolor: user.status === "Active" ? '#E8F5E9' : '#FFEBEE',
-                            color: user.status === "Active" ? '#4CAF50' : '#F44336',
-                            px: 2,
-                            py: 0.5,
-                            borderRadius: 1,
-                            display: 'inline-block',
-                            fontSize: '0.875rem'
+                            bgcolor: user.status === "Active" ? '#DCFCE7' : '#FEE2E2',
+                            color: user.status === "Active" ? '#166534' : '#991B1B',
+                            px: 2, py: 0.75, borderRadius: '8px', display: 'inline-block', fontSize: '0.9rem', fontWeight: 700
                           }}
                         >
                           {user.status}
                         </Typography>
                       </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        {user.lastLogged ? new Date(user.lastLogged).toISOString().slice(0, 10) : "Never"}
+                      <TableCell sx={{ fontSize: '1rem', color: '#6b7280', py: 1.5 }}>
+                        {user.lastLogged ? new Date(user.lastLogged).toLocaleDateString() : "Never"}
                       </TableCell>
-                      <TableCell sx={{ fontSize: '0.875rem' }}>
-                        {user.createdAt ? new Date(user.createdAt).toISOString().slice(0, 10) : "No Date Available"}
+                      <TableCell sx={{ fontSize: '1rem', color: '#6b7280', py: 2 }}>
+                        {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "No Date Available"}
                       </TableCell>
                     </TableRow>
                   ))
@@ -325,7 +295,16 @@ const Users = () => {
               </TableBody>
             </Table>
           </TableContainer>
-        </Box>
+          <TablePagination
+            rowsPerPageOptions={[5, 10, 25]}
+            component="div"
+            count={filteredUsers.length}
+            rowsPerPage={rowsPerPage}
+            page={page}
+            onPageChange={handleChangePage}
+            onRowsPerPageChange={handleChangeRowsPerPage}
+          />
+        </Paper>
       </Box>
     </Box>
    );

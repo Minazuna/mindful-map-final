@@ -148,36 +148,33 @@ const CategoricalLogs = ({ isDashboard = false, teacher: propTeacher }) => {
               </select>
             )}
 
-            <div className="flex gap-2 bg-gray-50 p-1 rounded-2xl border border-gray-200">
-              <button 
-                onClick={() => setViewType('daily')}
-                className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-all ${viewType === 'daily' ? 'bg-[#55AD9B] text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Daily
-              </button>
-              <button 
-                onClick={() => setViewType('weekly')}
-                className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-all ${viewType === 'weekly' ? 'bg-[#55AD9B] text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Weekly
-              </button>
-              <button 
-                onClick={() => setViewType('monthly')}
-                className={`px-4 py-1.5 rounded-xl text-sm font-medium transition-all ${viewType === 'monthly' ? 'bg-[#55AD9B] text-white shadow-sm' : 'text-gray-600 hover:text-gray-800'}`}
-              >
-                Monthly
-              </button>
+            <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shadow-inner">
+              {['daily', 'weekly', 'monthly'].map((type) => (
+                <button 
+                  key={type}
+                  onClick={() => setViewType(type)}
+                  className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 capitalize ${
+                    viewType === type 
+                      ? 'bg-white text-[#55AD9B] shadow-md' 
+                      : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div className="text-center text-xs text-gray-400 mb-6">
-            {viewType === 'weekly' ? (
-              `Last 8 Weeks (${logsData?.labels?.[0]} - ${logsData?.labels?.[logsData.labels.length - 1]})`
-            ) : viewType === 'daily' ? (
-              `Past 30 Days (${logsData?.labels?.[0]} - ${logsData?.labels?.[logsData.labels.length - 1]})`
-            ) : (
-              `Last 12 Months (${logsData?.labels?.[0]} - ${logsData?.labels?.[logsData.labels.length - 1]})`
-            )}
+          <div className="mt-6 flex justify-center mb-6">
+            <span className="text-xs font-bold text-gray-400 bg-gray-50 px-4 py-1.5 rounded-full border border-gray-100 shadow-sm uppercase tracking-widest">
+              {viewType === 'weekly' ? (
+                `Last 8 Weeks (${logsData?.labels?.[0]} — ${logsData?.labels?.[logsData.labels.length - 1]})`
+              ) : viewType === 'daily' ? (
+                `Past 30 Days (${logsData?.labels?.[0]} — ${logsData?.labels?.[logsData.labels.length - 1]})`
+              ) : (
+                `Last 12 Months (${logsData?.labels?.[0]} — ${logsData?.labels?.[logsData.labels.length - 1]})`
+              )}
+            </span>
           </div>
 
           {loading ? (
@@ -304,7 +301,7 @@ const CategoricalLogs = ({ isDashboard = false, teacher: propTeacher }) => {
   return (
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar teacher={teacher} />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300">
         {content}
       </div>
     </div>

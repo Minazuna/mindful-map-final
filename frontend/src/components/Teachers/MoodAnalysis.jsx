@@ -266,60 +266,36 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
                 </select>
               )}
 
-              <div className="flex items-center bg-gray-50 px-4 py-2 rounded-2xl border border-gray-200">
-                <button
-                  onClick={() => setMoodType('before')}
-                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
-                    moodType === 'before'
-                      ? 'bg-[#55AD9B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  Before
-                </button>
-                <button
-                  onClick={() => setMoodType('after')}
-                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
-                    moodType === 'after'
-                      ? 'bg-[#55AD9B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  After
-                </button>
+              <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shadow-inner">
+                {['before', 'after'].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setMoodType(type)}
+                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 capitalize ${
+                      moodType === type
+                        ? 'bg-white text-[#55AD9B] shadow-md'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
               </div>
 
-              <div className="flex items-center bg-gray-50 px-4 py-2 rounded-2xl border border-gray-200">
-                <button
-                  onClick={() => setMoodPeriod('daily')}
-                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
-                    moodPeriod === 'daily'
-                      ? 'bg-[#55AD9B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  Daily
-                </button>
-                <button
-                  onClick={() => setMoodPeriod('weekly')}
-                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
-                    moodPeriod === 'weekly'
-                      ? 'bg-[#55AD9B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  Weekly
-                </button>
-                <button
-                  onClick={() => setMoodPeriod('monthly')}
-                  className={`px-3 py-1 rounded-xl text-sm font-medium transition-colors ${
-                    moodPeriod === 'monthly'
-                      ? 'bg-[#55AD9B] text-white shadow-sm'
-                      : 'text-gray-600 hover:text-gray-800'
-                  }`}
-                >
-                  Monthly
-                </button>
+              <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shadow-inner">
+                {['daily', 'weekly', 'monthly'].map((type) => (
+                  <button
+                    key={type}
+                    onClick={() => setMoodPeriod(type)}
+                    className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 capitalize ${
+                      moodPeriod === type
+                        ? 'bg-white text-[#55AD9B] shadow-md'
+                        : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                    }`}
+                  >
+                    {type}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -405,7 +381,7 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
   return (
     <div className="flex bg-gray-50 min-h-screen">
       <Sidebar teacher={teacher} />
-      <div className="flex-1 ml-72">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300">
         {content}
       </div>
     </div>

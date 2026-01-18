@@ -1,13 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Home, FileText, BarChart3, Settings, LogOut, Menu, X, BookOpen, ChevronDown, Sparkles, Eye } from 'lucide-react';
 
 const Sidebar = ({ teacher }) => {
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    return localStorage.getItem('teacherSidebarCollapsed') === 'true';
+  });
+  
   const [isStudentLogsExpanded, setIsStudentLogsExpanded] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
   const currentPath = location.pathname;
+
+  useEffect(() => {
+    localStorage.setItem('teacherSidebarCollapsed', isCollapsed);
+    document.documentElement.style.setProperty('--sidebar-width', isCollapsed ? '5rem' : '18rem');
+  }, [isCollapsed]);
 
   // All available sections
   const allSections = [
@@ -43,16 +51,11 @@ const Sidebar = ({ teacher }) => {
         isCollapsed ? 'w-20' : 'w-72'
       }`}
     >
-      {/* Logo Centered */}
-      <div className="flex flex-col items-center justify-center py-7 border-b border-gray-100" style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
-        <img
-          src="/images/logo.png"
-          alt="Mindful Map Logo"
-          className="w-32 h-32 object-contain"
-        />
+      {/* Profile Section */}
+      <div className={`relative flex flex-col items-center justify-center border-b border-gray-100 transition-all duration-300 ${isCollapsed ? 'h-20' : 'py-8'}`} style={{ background: 'linear-gradient(135deg, #7BC5A5 0%, #69b895 100%)' }}>
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute top-4 right-4 p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors"
+          className="absolute top-4 left-4 p-2 rounded-lg bg-white/20 hover:bg-white/30 transition-colors z-10"
         >
           {isCollapsed ? (
             <Menu className="w-5 h-5 text-white" />
@@ -60,6 +63,27 @@ const Sidebar = ({ teacher }) => {
             <X className="w-5 h-5 text-white" />
           )}
         </button>
+
+        {!isCollapsed && (
+          <div className="flex flex-col items-center mt-4">
+            <div className="w-20 h-20 rounded-full border-4 border-white/30 overflow-hidden mb-3 shadow-lg bg-white/20 flex items-center justify-center">
+              {teacher?.profilePicture ? (
+                <img src={teacher.profilePicture} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                <span className="text-2xl font-bold text-white">{teacher?.firstName?.charAt(0)}</span>
+              )}
+            </div>
+            <h3 className="text-white font-bold text-base px-4 text-center truncate w-full max-w-[240px]">
+              {teacher?.firstName} {teacher?.lastName}
+            </h3>
+            <p className="text-white/80 text-[10px] px-4 text-center truncate w-full max-w-[240px]">
+              {teacher?.email}
+            </p>
+            <p className="text-white/90 text-xs font-medium mt-1 px-4 text-center">
+              {teacher?.subject || 'Teacher'}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Navigation Menu */}

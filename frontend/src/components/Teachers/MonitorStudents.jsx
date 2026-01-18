@@ -64,6 +64,7 @@ const allSections = [
 ];
 
 const MonitorStudents = () => {
+  const [teacher, setTeacher] = useState(null);
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedSection, setSelectedSection] = useState('');
@@ -124,6 +125,7 @@ const MonitorStudents = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         );
         if (res.data.success) {
+          setTeacher(res.data.data);
           const secs = res.data.data.assignedSections || [];
           setSections(secs);
           if (secs.length) setSelectedSection(secs[0]);
@@ -197,14 +199,14 @@ const fetchSeverity = async () => {
   }, [searchTerm, studentsPerPage]);
 
   return (
-    <div className="w-screen min-h-screen bg-[#F7F7F7]">
+    <div className="w-full min-h-screen bg-[#F7F7F7] overflow-x-hidden">
       <div className="flex min-h-screen">
-        <Sidebar active="monitor" />
-        <div className="flex-1 ml-72 p-6">
-          <div className="max-w-7xl mx-auto">
+        <Sidebar teacher={teacher} active="monitor" />
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-6 min-w-0">
+          <div className="max-w-full mx-auto">
             {/* Header */}
             <div className="mb-8 flex items-center gap-2">
-              <h1 className="text-4xl font-bold text-gray-800 mb-2">
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">
                 Monitor Students
               </h1>
             </div>
@@ -233,7 +235,7 @@ const fetchSeverity = async () => {
             </div>
             {/* Student Count, Search, Per Page, Clear */}
             <div className="mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-              <div className="text-lg text-gray-700 font-medium">
+              <div className="text-base text-gray-700 font-medium">
                 Total students: <span className="font-semibold">{filteredStudents.length}</span> of <span className="font-semibold">{students.length}</span>
               </div>
               <div className="flex flex-1 gap-2 items-center">

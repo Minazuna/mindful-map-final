@@ -96,7 +96,7 @@ export async function generateStudentLogsPDF(student, logs, section) {
     const headerY = 15;
     
     // TUP Logo (left)
-    doc.addImage(tupLogo, 'PNG', 10, headerY, logoSize, logoSize);
+    doc.addImage(tupLogo, 'PNG', 15, headerY, logoSize, logoSize);
     
     // Mindful Map Logo (right)
     doc.addImage(mindfulLogo, 'PNG', pageWidth - 15 - logoSize, headerY, logoSize, logoSize
@@ -351,6 +351,184 @@ export async function generateStudentLogsPDF(student, logs, section) {
     return true;
   } catch (error) {
     console.error('Error generating PDF:', error);
+    throw error;
+  }
+}
+
+export async function generateSectionSummaryPDF(sectionName, students) {
+  const doc = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait (A4)
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  try {
+    // Load logos
+    const tupLogo = await loadImageAsDataURL('/images/tup.png');
+    const mindfulLogo = await loadImageAsDataURL('/images/logo.png');
+    
+    // Header Section
+    const logoSize = 20;
+    const headerY = 15;
+    
+    // TUP Logo (left)
+    doc.addImage(tupLogo, 'PNG', 15, headerY, logoSize, logoSize);
+    
+    // Mindful Map Logo (right)
+    doc.addImage(mindfulLogo, 'PNG', pageWidth - 15 - logoSize, headerY, logoSize, logoSize);
+    
+    // Title (center)
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(85, 173, 155);
+    const title = 'Mindful Map: Mood and Habits Analyzer';
+    const titleWidth = doc.getTextWidth(title);
+    doc.text(title, (pageWidth - titleWidth) / 2, headerY + 8);
+    
+    doc.setFontSize(14);
+    const subtitle = 'for Emotional Regulation';
+    const subtitleWidth = doc.getTextWidth(subtitle);
+    doc.text(subtitle, (pageWidth - subtitleWidth) / 2, headerY + 14);
+    
+    // Timestamp
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(100, 100, 100);
+    const now = new Date();
+    const timestamp = now.toLocaleString('en-US', { 
+      month: 'long', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true
+    });
+    const timestampWidth = doc.getTextWidth(`Generated: ${timestamp}`);
+    doc.text(`Generated: ${timestamp}`, (pageWidth - timestampWidth) / 2, headerY + 20);
+    
+    // Horizontal line
+    doc.setDrawColor(85, 173, 155);
+    doc.setLineWidth(0.5);
+    doc.line(15, headerY + 27, pageWidth - 15, headerY + 27);
+    
+    // Section Info
+    let yPos = headerY + 37;
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(0, 0, 0);
+    doc.text('Section Summary Report', pageWidth / 2, yPos, { align: 'center' });
+    
+    yPos += 8;
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`SECTION: ${decodeURIComponent(sectionName)}`, 15, yPos);
+    doc.text(`TOTAL STUDENTS: ${students.length}`, pageWidth - 15, yPos, { align: 'right' });
+    
+    yPos += 8;
+    
+    // Calculate Section Aggregates
+    const totals = {
+      activity: 0,
+      social: 0,
+      health: 0,
+      sleep: 0,
+      overall: 0
+    };
+    
+    students.forEach(s => {
+      const counts = s.moodLogCounts || {};
+      totals.activity += counts.activity || 0;
+      totals.social += counts.social || 0;
+      totals.health += counts.health || 0;
+      totals.sleep += counts.sleep || 0;
+      totals.overall += Object.values(counts).reduce((a, b) => a + b, 0);
+    });
+    
+    // Statistics cards - smaller and more compact
+    const margin = 15;
+    const cardContainerWidth = pageWidth - (margin * 2);
+    const cardGap = 3;
+    const cardWidth = (cardContainerWidth - cardGap * 4) / 5;
+    const cardHeight = 20;
+    const cardX = margin;
+    
+    const drawStatCard = (x, y, label, value) => {
+      doc.setFillColor(255, 255, 255);
+      doc.setDrawColor(230, 230, 230);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, cardWidth, cardHeight, 3, 3, 'FD');
+      doc.setFontSize(7);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(120, 120, 120);
+      doc.text(label, x + cardWidth / 2, y + 5, { align: 'center' });
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(85, 173, 155);
+      doc.text(value.toString(), x + cardWidth / 2, y + 14, { align: 'center' });
+    };
+    
+    drawStatCard(cardX, yPos, 'ACTIVITY', totals.activity);
+    drawStatCard(cardX + (cardWidth + cardGap), yPos, 'SOCIAL', totals.social);
+    drawStatCard(cardX + (cardWidth + cardGap) * 2, yPos, 'HEALTH', totals.health);
+    drawStatCard(cardX + (cardWidth + cardGap) * 3, yPos, 'SLEEP', totals.sleep);
+    drawStatCard(cardX + (cardWidth + cardGap) * 4, yPos, 'TOTAL', totals.overall);
+    
+    yPos += cardHeight + 8;
+    
+    // Students Table with better column sizing
+    const tableData = students.map(s => {
+      const counts = s.moodLogCounts || {};
+      const total = Object.values(counts).reduce((a, b) => a + b, 0);
+      return [
+        s.name,
+        s.email,
+        counts.activity || 0,
+        counts.social || 0,
+        counts.health || 0,
+        counts.sleep || 0,
+        total,
+        toTitleCase(s.dominantBeforeEmotion),
+        toTitleCase(s.dominantAfterEmotion)
+      ];
+    });
+    
+    // Calculate available table width (A4 = 210mm)
+    const tableMargin = 15;
+    const availableWidth = pageWidth - (tableMargin * 2);
+    
+    doc.autoTable({
+      head: [[
+        'NAME', 'EMAIL', 'ACTIVITY', 'SOCIAL', 'HEALTH', 'SLEEP', 'TOTAL', 'TOP EMOTION BEFORE', 'TOP EMOTION AFTER'
+      ]],
+      body: tableData,
+      startY: yPos,
+      margin: { left: tableMargin, right: tableMargin, top: 10, bottom: 20 },
+      styles: { fontSize: 7, cellPadding: 1.5, overflow: 'linebreak' },
+      headStyles: { fillColor: [85, 173, 155], textColor: 255, fontStyle: 'bold', fontSize: 7 },
+      alternateRowStyles: { fillColor: [245, 245, 245] },
+      columnStyles: {
+        0: { cellWidth: availableWidth * 0.20 },
+        1: { cellWidth: availableWidth * 0.22 },
+        2: { cellWidth: availableWidth * 0.08, halign: 'center' },
+        3: { cellWidth: availableWidth * 0.07, halign: 'center' },
+        4: { cellWidth: availableWidth * 0.07, halign: 'center' },
+        5: { cellWidth: availableWidth * 0.07, halign: 'center' },
+        6: { cellWidth: availableWidth * 0.07, halign: 'center' },
+        7: { cellWidth: availableWidth * 0.12 },
+        8: { cellWidth: availableWidth * 0.12 }
+      },
+      didDrawPage: (data) => {
+        // Footer
+        const pageCount = doc.getNumberOfPages();
+        const footerY = pageHeight - 10;
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(
+          `Page ${data.pageNumber} of ${pageCount}`,
+          pageWidth / 2,
+          footerY,
+          { align: 'center' }
+        );
+      }
+    });
+    
+    doc.save(`${decodeURIComponent(sectionName).replace(/\s+/g, '_')}_Summary.pdf`);
+    return true;
+  } catch (error) {
+    console.error('Error generating section PDF:', error);
     throw error;
   }
 }

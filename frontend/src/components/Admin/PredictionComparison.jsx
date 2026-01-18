@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Navbar from './Navbar';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -378,43 +379,55 @@ const PredictionComparison = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading comparison data...</p>
+      <div className="flex min-h-screen bg-gray-50">
+        <Navbar />
+        <div className="flex-1 ml-[var(--sidebar-width)] flex items-center justify-center transition-all duration-300">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+            <p className="mt-4 text-gray-600 font-medium">Loading comparison data...</p>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Mood Prediction Comparison
-              </h1>
-            </div>
-            <div className="flex space-x-4">
-              <button
-                onClick={calculatePredictions}
-                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-                disabled={loading}
-              >
-                Calculate Prediction
-              </button>
-              <button
-                onClick={updateActualMoods}
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-                disabled={loading}
-              >
-                Update Actual
-              </button>
-            </div>
+    <div className="flex min-h-screen bg-gray-50">
+      <Navbar />
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 overflow-hidden transition-all duration-300">
+            <h1 className="text-3xl font-extrabold text-gray-800 tracking-tight">Mood Prediction Comparison</h1>
+            <p className="text-lg text-gray-600 font-medium mt-1">
+              Historical vs Predicted Mood Analysis
+            </p>
           </div>
+
+          <div className="bg-white rounded-xl shadow-lg p-6 mb-6 border border-gray-100">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-xl font-bold text-gray-800">
+                  Prediction Control Panel
+                </h2>
+              </div>
+              <div className="flex space-x-4">
+                <button
+                  onClick={calculatePredictions}
+                  className="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-sm"
+                  disabled={loading}
+                >
+                  Calculate Prediction
+                </button>
+                <button
+                  onClick={updateActualMoods}
+                  className="bg-green-600 text-white px-6 py-2.5 rounded-xl hover:bg-green-700 transition-all duration-200 shadow-md hover:shadow-lg font-semibold text-sm"
+                  disabled={loading}
+                >
+                  Update Actual
+                </button>
+              </div>
+            </div>
 
           {/* Week Navigation */}
           <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
@@ -572,6 +585,7 @@ const PredictionComparison = () => {
             {/* Charts removed */}
           </div>
         )}
+        </div>
       </div>
     </div>
   );

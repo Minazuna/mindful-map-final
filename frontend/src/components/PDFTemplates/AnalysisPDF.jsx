@@ -474,14 +474,25 @@ export const generateCategoricalLogsPDF = async (selectedSection, logsData, date
     
     yPos += summaryHeight + 10;
 
-    // Chart image
-    doc.setFillColor(255, 255, 255);
-    doc.setDrawColor(85, 173, 155);
-    doc.setLineWidth(0.5);
-    doc.roundedRect(25, yPos, 160, 90, 3, 3, 'FD');
-    doc.addImage(imgData, 'PNG', 35, yPos + 5, 140, 80);
+    // Chart image - maximized and maintained aspect ratio
+    const imgProps = doc.getImageProperties(imgData);
+    const pdfMaxWidth = pageWidth - 30; // 15mm margins on each side
+    let finalImageWidth = pdfMaxWidth;
+    let finalImageHeight = (imgProps.height * finalImageWidth) / imgProps.width;
+
+    // Check if the image would exceed the available page height
+    const maxAllowedHeight = pageHeight - yPos - 30; // Leaving space for footer/margins
+    if (finalImageHeight > maxAllowedHeight) {
+      finalImageHeight = maxAllowedHeight;
+      finalImageWidth = (imgProps.width * finalImageHeight) / imgProps.height;
+    }
+
+    // Center horizontally
+    const xOffset = (pageWidth - finalImageWidth) / 2;
     
-    yPos += 100;
+    doc.addImage(imgData, 'PNG', xOffset, yPos, finalImageWidth, finalImageHeight);
+    
+    yPos += finalImageHeight + 10;
 
     // Data Table
     doc.addPage();

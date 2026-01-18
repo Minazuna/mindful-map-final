@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
-import { generateStudentLogsPDF } from '../PDFTemplates/StudentLogsPDF';
+import { generateStudentLogsPDF, generateSectionSummaryPDF } from '../PDFTemplates/StudentLogsPDF';
 import TeacherSidebar from './Sidebar';
 
 const SectionStudents = () => {
@@ -95,6 +95,20 @@ const SectionStudents = () => {
     }
   };
 
+  const handleDownloadSectionSummary = async () => {
+    try {
+      if (students.length === 0) {
+        toast.error('No students to download');
+        return;
+      }
+      await generateSectionSummaryPDF(section, students);
+      toast.success('Section summary downloaded successfully!');
+    } catch (error) {
+      console.error('Error downloading section summary:', error);
+      toast.error('Failed to download section summary');
+    }
+  };
+
   const getCategoryTotal = (student, category) => {
     return student.moodLogCounts?.[category] || 0;
   };
@@ -141,7 +155,7 @@ const SectionStudents = () => {
     return (
       <div className="flex">
         <TeacherSidebar teacher={teacher} />
-        <div className="flex-1 ml-72 flex justify-center items-center h-screen">
+        <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 flex justify-center items-center h-screen">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
         </div>
       </div>
@@ -149,18 +163,29 @@ const SectionStudents = () => {
   }
 
   return (
-    <div className="flex min-h-screen bg-[#F7F7F7]">
+    <div className="flex min-h-screen bg-[#F7F7F7] overflow-x-hidden">
       <TeacherSidebar teacher={teacher} />
-      <div className="flex-1 ml-72 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="flex-1 ml-[var(--sidebar-width)] transition-all duration-300 p-6 min-w-0">
+        <div className="max-w-full mx-auto">
           {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-gray-800 mb-2">
-              Students in Section: <span className="text-[#55AD9B]">{decodeURIComponent(section)}</span>
-            </h1>
-            <p className="text-lg text-gray-600 mt-1">
-              Total students: <span className="font-semibold">{filteredStudents.length}</span> of <span className="font-semibold">{students.length}</span>
-            </p>
+          <div className="mb-8 flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-800 mb-2">
+                Students in Section: <span className="text-[#55AD9B]">{decodeURIComponent(section)}</span>
+              </h1>
+              <p className="text-base text-gray-600 mt-1">
+                Total students: <span className="font-semibold">{filteredStudents.length}</span> of <span className="font-semibold">{students.length}</span>
+              </p>
+            </div>
+            <button
+              onClick={handleDownloadSectionSummary}
+              className="inline-flex items-center px-4 py-2 bg-[#55AD9B] text-white rounded-md hover:bg-[#3e8e7e] transition-colors shadow-sm font-medium"
+            >
+              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3M3 17V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v10a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+              </svg>
+              Download Section Summary
+            </button>
           </div>
 
           {/* Search and Per Page Controls */}
