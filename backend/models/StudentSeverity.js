@@ -39,6 +39,18 @@ const StudentSeveritySchema = new mongoose.Schema({
     index: true,
   },
 
+  // --- Add weekStart and weekEnd for weekly records ---
+  weekStart: {
+    type: Date,
+    required: true,
+    index: true,
+  },
+  weekEnd: {
+    type: Date,
+    required: true,
+    index: true,
+  },
+
   severityLevel: {
     type: String,
     enum: ['low', 'moderate', 'high'],
@@ -112,5 +124,11 @@ const StudentSeveritySchema = new mongoose.Schema({
 }, {
   timestamps: true
 });
+
+// Compound index to ensure one record per student/section/week
+StudentSeveritySchema.index(
+  { studentId: 1, sectionId: 1, weekStart: 1, weekEnd: 1 },
+  { unique: true }
+);
 
 module.exports = mongoose.model('StudentSeverity', StudentSeveritySchema);

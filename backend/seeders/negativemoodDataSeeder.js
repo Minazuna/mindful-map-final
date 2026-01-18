@@ -52,10 +52,16 @@ function getRandom(arr) {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function getRandomDateThisMonth() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const end = now;
+// Get Jan 19, 2026 (Monday) and Jan 25, 2026 (Sunday)
+function getCustomWeekRange() {
+  const start = new Date('2026-01-05T00:00:00.000Z'); // Monday
+  const end = new Date('2026-01-11T23:59:59.999Z');   // Sunday
+  return { start, end };
+}
+
+// Get a random date within Jan 5-11, 2026
+function getRandomDateInCustomWeek() {
+  const { start, end } = getCustomWeekRange();
   return new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
 }
 
@@ -69,10 +75,10 @@ function extractKeywords(reason) {
 async function seedNegativeMoodLogs(count = 100) {
   await mongoose.connect(MONGO_URI);
 
-  // Find users in "St. John Paul II (STEM 1)"
-  const users = await User.find({ section: 'St. John Paul II (STEM 1)' }, '_id');
+  // Find users in "St. Paul VI (STEM 2)"
+  const users = await User.find({ section: 'St. Paul VI (STEM 2)' }, '_id');
   if (!users.length) {
-    console.log('No users found in St. John Paul II (STEM 1).');
+    console.log('No users found in St. Paul VI (STEM 2).');
     return;
   }
 
@@ -98,7 +104,7 @@ async function seedNegativeMoodLogs(count = 100) {
 
     const moodLog = new MoodLog({
       user,
-      date: getRandomDateThisMonth(),
+      date: getRandomDateInCustomWeek(), // Only within Jan 19-25, 2026
       category,
       activity: category !== 'sleep' ? activity : undefined,
       hrs: category === 'sleep' ? hrs : undefined,

@@ -176,7 +176,7 @@ const LandingPage = () => {
               onClick={() => navigate('/signup')}
             >
               <PlayArrowIcon className="mr-2" />
-              Start Free
+              Try Today
             </motion.button>
             <motion.button
               whileHover={{ scale: 1.02 }}
@@ -244,7 +244,7 @@ const LandingPage = () => {
         </motion.div>
       </div>
 
-      {/* Stats Section */}
+      {/* Stats Section
       <motion.div 
         ref={statsRef}
         initial={{ opacity: 0, y: 50 }}
@@ -300,7 +300,7 @@ const LandingPage = () => {
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.div> */}
 
       {/* What We Do Section */}
       <div 

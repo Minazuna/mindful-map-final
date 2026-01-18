@@ -112,21 +112,15 @@ exports.getStudentsBySection = async (req, res) => {
 // Get mood logs for students in teacher's sections
 exports.getStudentMoodLogs = async (req, res) => {
   try {
-    const { section } = req.query;
     const teacher = await User.findById(req.user._id);
     
     if (!teacher || teacher.role !== 'teacher') {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    // Determine segments to filter by
-    const segmentsToFilter = section && section !== 'All' 
-      ? [section] 
-      : teacher.assignedSections;
-
     // Get all students in teacher's assigned sections
     const students = await User.find({ 
-      section: { $in: segmentsToFilter },
+      section: { $in: teacher.assignedSections },
       role: 'user' 
     }).select('_id firstName lastName email section');
 
@@ -169,22 +163,16 @@ exports.getMoodLogsBySection = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    let segmentsToFilter;
-    if (section === 'All') {
-      segmentsToFilter = teacher.assignedSections;
-    } else {
-      // Verify teacher has access to this section
-      if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
-        return res.status(403).json({ success: false, message: 'Access denied to this section.' });
-      }
-      segmentsToFilter = [section];
+    // Verify teacher has access to this section
+    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
     }
 
-    // Get all students in the specified sections
+    // Get all students in the specified section
     const students = await User.find({ 
-      section: { $in: segmentsToFilter },
+      section: section,
       role: 'user' 
-    }).select('_id firstName lastName email section');
+    }).select('_id firstName lastName email');
 
     const studentIds = students.map(student => student._id);
 
@@ -325,27 +313,21 @@ exports.getStudentMoodLogsById = async (req, res) => {
 // Get dashboard statistics for teacher
 exports.getTeacherDashboardStats = async (req, res) => {
   try {
-    const { section = 'All', valence = 'Both' } = req.query;
     const teacher = await User.findById(req.user._id);
     
     if (!teacher || teacher.role !== 'teacher') {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    // Determine segments to filter by
-    const segmentsToFilter = section && section !== 'All' 
-      ? [section] 
-      : teacher.assignedSections;
-
     // Get students count in teacher's sections
     const studentsCount = await User.countDocuments({ 
-      section: { $in: segmentsToFilter },
+      section: { $in: teacher.assignedSections },
       role: 'user' 
     });
 
     // Get students in sections
     const students = await User.find({ 
-      section: { $in: segmentsToFilter },
+      section: { $in: teacher.assignedSections },
       role: 'user' 
     }).select('_id');
 
@@ -365,17 +347,9 @@ exports.getTeacherDashboardStats = async (req, res) => {
       date: { $gte: sevenDaysAgo }
     });
 
-    // Mood distribution aggregation with valence filter
-    const matchQuery = { user: { $in: studentIds } };
-    if (valence === 'Positive') {
-      matchQuery.afterValence = 'positive';
-    } else if (valence === 'Negative') {
-      matchQuery.afterValence = 'negative';
-    }
-
     // Get mood distribution for the section
     const moodDistribution = await MoodLog.aggregate([
-      { $match: matchQuery },
+      { $match: { user: { $in: studentIds } } },
       { $group: { 
         _id: '$afterEmotion', 
         count: { $sum: 1 } 
@@ -495,20 +469,14 @@ exports.getLogsByCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    let segmentsToFilter;
-    if (section === 'All') {
-      segmentsToFilter = teacher.assignedSections;
-    } else {
-      // Verify teacher has access to this section
-      if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
-        return res.status(403).json({ success: false, message: 'Access denied to this section.' });
-      }
-      segmentsToFilter = [section];
+    // Verify teacher has access to this section
+    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
     }
 
-    // Get all students in the sections
+    // Get all students in the section
     const students = await User.find({ 
-      section: { $in: segmentsToFilter },
+      section: section,
       role: 'user'
     }).select('_id');
 
@@ -927,9 +895,23 @@ function getSeverityLevel(score) {
 exports.computeSectionSeverity = async (req, res) => {
   try {
     const { sectionId } = req.params;
-    const daysWindow = 7;
-    const sinceDate = new Date();
-    sinceDate.setDate(sinceDate.getDate() - daysWindow);
+    let { weekStart, weekEnd } = req.query;
+    let startDate, endDate;
+
+    if (weekStart && weekEnd) {
+      startDate = new Date(weekStart);
+      endDate = new Date(weekEnd);
+    } else {
+      // fallback: current week (Monday–Sunday)
+      const now = new Date();
+      const day = now.getDay();
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - ((day + 6) % 7));
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+    }
 
     const students = await User.find({ section: sectionId, role: 'user' }).select('_id');
     if (!students.length) {
@@ -937,7 +919,10 @@ exports.computeSectionSeverity = async (req, res) => {
     }
 
     const studentIds = students.map(s => s._id);
-    const moodLogs = await MoodLog.find({ user: { $in: studentIds }, date: { $gte: sinceDate } });
+    const moodLogs = await MoodLog.find({
+      user: { $in: studentIds },
+      date: { $gte: startDate, $lte: endDate }
+    });
 
     const allScores = moodLogs.map(l => l.afterIntensity);
     const avgScore = allScores.length ? allScores.reduce((a, b) => a + b, 0) / allScores.length : 0;
@@ -968,18 +953,25 @@ exports.computeSectionSeverity = async (req, res) => {
 
       const severityLevel = getSeverityLevel(riskScore);
 
-      // Preserve teacher monitoring fields
-      const existing = await StudentSeverity.findOne({ studentId: student._id, sectionId });
+      // Preserve teacher monitoring fields for this week
+      const existing = await StudentSeverity.findOne({
+        studentId: student._id,
+        sectionId,
+        weekStart: startDate,
+        weekEnd: endDate
+      });
       const monitoringStatus = existing?.monitoringStatus || 'pending_review';
       const teacherObservation = existing?.teacherObservation || '';
       const lastUpdatedBy = existing?.lastUpdatedBy;
       const lastStatusUpdate = existing?.lastStatusUpdate;
 
       await StudentSeverity.findOneAndUpdate(
-        { studentId: student._id, sectionId },
+        { studentId: student._id, sectionId, weekStart: startDate, weekEnd: endDate },
         {
           studentId: student._id,
           sectionId,
+          weekStart: startDate,
+          weekEnd: endDate,
           severityLevel,
           riskScore,
           negativeMoodCount: negativeLogs.length,
@@ -1132,6 +1124,23 @@ exports.getStudentSeverityDetails = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching student severity details:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Get all severity records for a student in a section (for all weeks)
+exports.getAllStudentSeverities = async (req, res) => {
+  try {
+    const { studentId, sectionId } = req.query;
+    if (!studentId || !sectionId) {
+      return res.status(400).json({ success: false, message: 'Missing studentId or sectionId' });
+    }
+    const severities = await StudentSeverity.find({ studentId, sectionId })
+      .populate('studentId', 'firstName lastName email avatar section')
+      .sort({ lastEvaluated: -1 });
+    res.status(200).json({ success: true, data: severities });
+  } catch (error) {
+    console.error('Error fetching all severities for student:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

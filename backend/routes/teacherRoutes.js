@@ -65,4 +65,5 @@ router.get('/student-severity/:studentId', teacherController.getStudentSeverity)
 router.post('/update-severity-status', teacherController.updateSeverityStatus);
 router.get('/severity-status-history', teacherController.getSeverityStatusHistory);
 router.get('/student-severity-details', teacherController.getStudentSeverityDetails);
+router.get('/student-severity-all', teacherController.getAllStudentSeverities);
 module.exports = router;

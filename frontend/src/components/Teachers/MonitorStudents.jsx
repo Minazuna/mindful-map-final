@@ -16,8 +16,12 @@ function getCurrentWeekRange() {
   const day = now.getDay();
   const monday = new Date(now);
   monday.setDate(now.getDate() - ((day + 6) % 7));
+  monday.setHours(0, 0, 0, 0); // Set to start of day
+
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999); // Set to end of day
+
   return {
     start: monday,
     end: sunday,
@@ -132,22 +136,28 @@ const MonitorStudents = () => {
   }, []);
 
   useEffect(() => {
-    const fetchSeverity = async () => {
-      if (!selectedSection) return;
-      setLoading(true);
-      try {
-        const token = localStorage.getItem('token');
-        // Fetch only current week's data
-        const res = await axios.get(
-          `${import.meta.env.VITE_NODE_API}/api/teacher/section-severity/${encodeURIComponent(selectedSection)}?weekStart=${weekRange.start.toISOString()}&weekEnd=${weekRange.end.toISOString()}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        setStudents(res.data.data || []);
-      } catch (err) {
-        setStudents([]);
-      }
-      setLoading(false);
-    };
+const fetchSeverity = async () => {
+  if (!selectedSection) return;
+  setLoading(true);
+  try {
+    const token = localStorage.getItem('token');
+    // 1. Compute severity for the section/week
+    await axios.post(
+      `${import.meta.env.VITE_NODE_API}/api/teacher/compute-section-severity/${encodeURIComponent(selectedSection)}?weekStart=${weekRange.start.toISOString()}&weekEnd=${weekRange.end.toISOString()}`,
+      {},
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    // 2. Fetch computed severity
+    const res = await axios.get(
+      `${import.meta.env.VITE_NODE_API}/api/teacher/section-severity/${encodeURIComponent(selectedSection)}?weekStart=${weekRange.start.toISOString()}&weekEnd=${weekRange.end.toISOString()}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    setStudents(res.data.data || []);
+  } catch (err) {
+    setStudents([]);
+  }
+  setLoading(false);
+};
     fetchSeverity();
   }, [selectedSection, refresh]);
 
@@ -371,7 +381,7 @@ const MonitorStudents = () => {
                                 ) : (
                                   <DownloadIcon sx={{ fontSize: 20, mr: 1 }} />
                                 )}
-                                Download
+                                Download 
                               </button>
                             </div>
                           </td>

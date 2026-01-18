@@ -21,13 +21,17 @@ function useQuery() {
   return new URLSearchParams(useLocation().search);
 }
 
-// Helper to format week range as "Jan. 05 - Jan. 11, 2026"
+// Helper to format week range as "January 12, 2025 - January 19, 2025"
 function formatWeekRange(start, end) {
-  const months = ["Jan.", "Feb.", "Mar.", "Apr.", "May.", "Jun.", "Jul.", "Aug.", "Sep.", "Oct.", "Nov.", "Dec."];
+  const months = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
   const startDate = new Date(start);
   const endDate = new Date(end);
-  const year = endDate.getFullYear();
-  return `${months[startDate.getMonth()]} ${String(startDate.getDate()).padStart(2, '0')} - ${months[endDate.getMonth()]} ${String(endDate.getDate()).padStart(2, '0')}, ${year}`;
+  const startStr = `${months[startDate.getMonth()]} ${String(startDate.getDate()).padStart(2, '0')}, ${startDate.getFullYear()}`;
+  const endStr = `${months[endDate.getMonth()]} ${String(endDate.getDate()).padStart(2, '0')}, ${endDate.getFullYear()}`;
+  return `${startStr} - ${endStr}`;
 }
 
 // Color coding for risk levels
@@ -181,7 +185,6 @@ function StatusHistoryModal({ open, onClose, studentId, sectionId }) {
 }
 
 // --- Computation Explanation Modal ---
-// Horizontal layout, color and typography as in your screenshot
 function ComputationInfoModal({ open, onClose }) {
   return (
     <Modal
@@ -291,11 +294,9 @@ const MonitorStudentsDetails = () => {
   const query = useQuery();
   const studentId = query.get('studentId');
   const sectionId = query.get('sectionId');
-  const weekStart = query.get('weekStart');
-  const weekEnd = query.get('weekEnd');
   const navigate = useNavigate();
 
-  const [student, setStudent] = useState(null);
+  const [severities, setSeverities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [status, setStatus] = useState('');
@@ -303,32 +304,38 @@ const MonitorStudentsDetails = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showHistory, setShowHistory] = useState(false);
-
-  // For expanded row
-  const [expanded, setExpanded] = useState(false);
-
-  // For computation info modal
+  const [expandedIdx, setExpandedIdx] = useState(0); // Show most recent by default
   const [showComputationInfo, setShowComputationInfo] = useState(false);
 
   useEffect(() => {
-    const fetchStudentDetails = async () => {
+    const fetchSeverities = async () => {
       setLoading(true);
       try {
         const token = localStorage.getItem('token');
+        // Fetch all severity records for this student in this section
         const res = await axios.get(
-          `${import.meta.env.VITE_NODE_API}/api/teacher/student-severity-details?studentId=${studentId}&sectionId=${encodeURIComponent(sectionId)}`,
+          `${import.meta.env.VITE_NODE_API}/api/teacher/student-severity-all?studentId=${studentId}&sectionId=${encodeURIComponent(sectionId)}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
-        setStudent(res.data.data || null);
-        setStatus(res.data.data?.monitoringStatus || 'pending_review');
-        setObservation(res.data.data?.teacherObservation || '');
+        // Sort by weekStart descending (most recent first)
+        const sorted = (res.data.data || []).sort((a, b) => {
+          // Prefer weekStart, fallback to lastEvaluated
+          const aDate = a.weekStart ? new Date(a.weekStart) : new Date(a.lastEvaluated);
+          const bDate = b.weekStart ? new Date(b.weekStart) : new Date(b.lastEvaluated);
+          return bDate - aDate;
+        });
+        setSeverities(sorted);
+        if (sorted.length) {
+          setStatus(sorted[0].monitoringStatus || 'pending_review');
+          setObservation(sorted[0].teacherObservation || '');
+        }
       } catch {
-        setStudent(null);
+        setSeverities([]);
       }
       setLoading(false);
     };
     if (studentId && sectionId) {
-      fetchStudentDetails();
+      fetchSeverities();
     }
   }, [studentId, sectionId, saving]);
 
@@ -355,7 +362,7 @@ const MonitorStudentsDetails = () => {
   };
 
   // Group concerning reasons for badge display
-  const groupedReasons = student?.concerningKeywords ? groupReasons(student.concerningKeywords) : [];
+  const groupedReasons = severities[expandedIdx]?.concerningKeywords ? groupReasons(severities[expandedIdx].concerningKeywords) : [];
 
   return (
     <div className="w-screen min-h-screen bg-[#F7F7F7]">
@@ -420,7 +427,7 @@ const MonitorStudentsDetails = () => {
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
                         {/* Expand Button */}
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: 180 }}>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider" style={{ minWidth: 260 }}>
                         Week Duration
                       </th>
                       <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
@@ -455,274 +462,280 @@ const MonitorStudentsDetails = () => {
                           </div>
                         </td>
                       </tr>
-                    ) : !student ? (
+                    ) : severities.length === 0 ? (
                       <tr>
                         <td colSpan={10}>
                           <div className="flex flex-col items-center justify-center py-32">
                             <InfoIcon sx={{ fontSize: 40, color: '#55AD9B' }} />
-                            <p className="text-gray-600 mt-2">No data found for this student.</p>
+                            <p className="text-gray-600 mt-2">No severity data found for this student.</p>
                           </div>
                         </td>
                       </tr>
                     ) : (
-                      <>
-                        <tr className="hover:bg-gray-50 border-b border-gray-200">
-                          {/* Expand Button */}
-                          <td className="px-2 py-3 text-center">
-                            <IconButton onClick={() => setExpanded(e => !e)}>
-                              {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                            </IconButton>
-                          </td>
-                          {/* Week Duration */}
-                          <td className="px-4 py-3 whitespace-nowrap font-semibold text-[#1F8E8E]">
-                            {weekStart && weekEnd ? formatWeekRange(weekStart, weekEnd) : 'All Time'}
-                          </td>
-                          {/* Student Info */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                {student.studentId.avatar ? (
-                                  <Avatar src={student.studentId.avatar} alt={student.studentId.firstName} sx={{ width: 40, height: 40, bgcolor: '#55AD9B', fontWeight: 700, fontSize: 20 }} />
-                                ) : (
-                                  <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[#6d8fd7]">
-                                    <span className="text-lg font-bold text-white">
-                                      {student.studentId.firstName ? student.studentId.firstName.charAt(0).toUpperCase() : '?'}
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="ml-3">
-                                <div className="text-base font-semibold text-gray-900">
-                                  {student.studentId.firstName} {student.studentId.lastName}
-                                </div>
-                                <div className="text-sm text-gray-500">
-                                  {student.studentId.email}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          {/* Risk Level */}
-                          <td className="px-4 py-3 whitespace-nowrap">
-                            <Chip
-                              icon={severityIcons[student.severityLevel]}
-                              label={severityLabels[student.severityLevel]}
-                              sx={{
-                                background: severityColors[student.severityLevel]?.bg,
-                                color: severityColors[student.severityLevel]?.color,
-                                fontWeight: 'bold',
-                                fontSize: 15,
-                                px: 2,
-                                boxShadow: 1,
-                                minWidth: 120
-                              }}
-                            />
-                          </td>
-                          {/* Risk Score */}
-                          <td className="px-4 py-3 whitespace-nowrap text-center font-semibold"
-                            style={{
-                              color: severityColors[student.severityLevel]?.chip,
-                              minWidth: 140,
-                              fontSize: 18
-                            }}>
-                            {student.riskScore}
-                          </td>
-                          {/* Negative Logs */}
-                          <td className="px-4 py-3 whitespace-nowrap text-center font-semibold"
-                            style={{
-                              color: '#ef4444',
-                              minWidth: 140,
-                              fontSize: 18
-                            }}>
-                            {student.negativeMoodCount}
-                          </td>
-                          {/* Mood Score Drop */}
-                          <td className="px-4 py-3 whitespace-nowrap text-center font-semibold text-[#1F8E8E]" style={{ minWidth: 240 }}>
-                            {student.moodScoreDrop ? student.moodScoreDrop.toFixed(2) : '0'}
-                          </td>
-                          {/* Outlier */}
-                          <td className="px-4 py-3 whitespace-nowrap text-center">
-                            {student.isOutlier && (
-                              <Tooltip title="Mood Score Outlier">
-                                <HelpOutlineIcon sx={{ color: '#55AD9B', fontSize: 20 }} />
-                              </Tooltip>
-                            )}
-                          </td>
-                          {/* Monitoring Status / Notes */}
-                          <td className="px-4 py-3 whitespace-nowrap" style={{ minWidth: 210 }}>
-                            {editMode ? (
-                              <Box display="flex" flexDirection="column" gap={1}>
-                                <TextField
-                                  select
-                                  label="Status"
-                                  value={status}
-                                  onChange={e => setStatus(e.target.value)}
-                                  size="small"
-                                  sx={{ minWidth: 140 }}
-                                  disabled={saving}
-                                >
-                                  {monitoringStatusOptions.map(opt => (
-                                    <MenuItem key={opt.value} value={opt.value}>
-                                      {opt.label}
-                                    </MenuItem>
-                                  ))}
-                                </TextField>
-                                <TextField
-                                  label="Observation/Notes"
-                                  value={observation}
-                                  onChange={e => setObservation(e.target.value)}
-                                  size="small"
-                                  multiline
-                                  minRows={2}
-                                  disabled={saving}
-                                />
-                                <Box display="flex" gap={1}>
-                                  <Button
-                                    variant="contained"
-                                    color="success"
-                                    size="small"
-                                    startIcon={<SaveIcon />}
-                                    onClick={handleSave}
-                                    disabled={saving}
-                                  >
-                                    Save
-                                  </Button>
-                                  <Button
-                                    variant="outlined"
-                                    color="inherit"
-                                    size="small"
-                                    startIcon={<CancelIcon />}
-                                    onClick={() => {
-                                      setEditMode(false);
-                                      setStatus(student.monitoringStatus || 'pending_review');
-                                      setObservation(student.teacherObservation || '');
-                                      setError('');
-                                    }}
-                                    disabled={saving}
-                                  >
-                                    Cancel
-                                  </Button>
-                                </Box>
-                                {error && <span style={{ color: 'red', fontSize: 13 }}>{error}</span>}
-                              </Box>
-                            ) : (
-                              <Box>
-                                <Chip
-                                  label={monitoringStatusLabels[student.monitoringStatus] || 'Pending Review'}
-                                  size="small"
-                                  sx={{
-                                    background: monitoringStatusChipColors[student.monitoringStatus]?.background || '#e0e7ff',
-                                    color: monitoringStatusChipColors[student.monitoringStatus]?.color || '#3730a3',
-                                    fontWeight: 700,
-                                    mr: 1,
-                                    px: 2,
-                                    fontSize: 15,
-                                    boxShadow: 1,
-                                  }}
-                                />
-                                <IconButton size="small" onClick={() => {
-                                  setEditMode(true);
-                                  setObservation(''); // Clear observation input when editing
-                                }}>
-                                  <EditIcon fontSize="small" />
-                                </IconButton>
-                                <Box sx={{ mt: 1, fontSize: 13, color: '#444' }}>
-                                  {student.teacherObservation
-                                    ? <span><strong>Note:</strong> {student.teacherObservation}</span>
-                                    : <span style={{ color: '#aaa' }}>No observation yet.</span>
-                                  }
-                                </Box>
-                                <Box sx={{ mt: 1 }}>
-                                  <Link
-                                    component="button"
-                                    variant="body2"
-                                    underline="hover"
-                                    sx={{ color: '#1F8E8E', fontWeight: 500, fontSize: 13 }}
-                                    onClick={() => setShowHistory(true)}
-                                  >
-                                    <HistoryIcon sx={{ fontSize: 16, mr: 0.5, mb: '-2px' }} />
-                                    View History
-                                  </Link>
-                                  <StatusHistoryModal
-                                    open={showHistory}
-                                    onClose={() => setShowHistory(false)}
-                                    studentId={student.studentId._id}
-                                    sectionId={student.sectionId}
-                                  />
-                                </Box>
-                              </Box>
-                            )}
-                          </td>
-                        </tr>
-                        {/* Expanded Row */}
-                        <tr>
-                          <td colSpan={10} style={{ padding: 0, background: '#f9fafb' }}>
-                            <Collapse in={expanded} timeout="auto" unmountOnExit>
-                              <Box sx={{ display: 'flex', gap: 6, px: 6, py: 3, flexWrap: 'wrap' }}>
-                                {/* Concerning Reasons */}
-                                <Box sx={{ minWidth: 260, flex: 1 }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                                    Concerning Reasons
-                                  </Typography>
-                                  {groupedReasons.length > 0 ? (
-                                    <Box display="flex" flexDirection="column" gap={1}>
-                                      {groupedReasons.map(({ reason, count }, i) => (
-                                        <Badge
-                                          key={i}
-                                          badgeContent={count}
-                                          color="error"
-                                          sx={{ width: 'fit-content', mb: 1 }}
-                                        >
-                                          <Chip
-                                            label={reason.length > 40 ? reason.slice(0, 40) + '...' : reason}
-                                            color="error"
-                                            variant="outlined"
-                                            sx={{
-                                              background: '#edeaea',
-                                              color: '#262826',
-                                              borderRadius: '8px',
-                                              fontWeight: 500,
-                                              fontSize: 14,
-                                              border: 'none',
-                                              minHeight: '32px',
-                                              maxWidth: 320
-                                            }}
-                                          />
-                                        </Badge>
-                                      ))}
-                                    </Box>
+                      severities.map((student, idx) => (
+                        <React.Fragment key={student._id || idx}>
+                          <tr className="hover:bg-gray-50 border-b border-gray-200">
+                            {/* Expand Button */}
+                            <td className="px-2 py-3 text-center">
+                              <IconButton onClick={() => setExpandedIdx(idx === expandedIdx ? -1 : idx)}>
+                                {expandedIdx === idx ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                              </IconButton>
+                            </td>
+                            {/* Week Duration */}
+                            <td className="px-4 py-3 whitespace-nowrap font-semibold text-[#1F8E8E]">
+                              {student.weekStart && student.weekEnd
+                                ? formatWeekRange(student.weekStart, student.weekEnd)
+                                : (student.lastEvaluated ? new Date(student.lastEvaluated).toLocaleDateString() : 'All Time')}
+                            </td>
+                            {/* Student Info */}
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10">
+                                  {student.studentId.avatar ? (
+                                    <Avatar src={student.studentId.avatar} alt={student.studentId.firstName} sx={{ width: 40, height: 40, bgcolor: '#55AD9B', fontWeight: 700, fontSize: 20 }} />
                                   ) : (
-                                    <span className="text-gray-400">None</span>
+                                    <div className="h-10 w-10 rounded-full flex items-center justify-center bg-[#6d8fd7]">
+                                      <span className="text-lg font-bold text-white">
+                                        {student.studentId.firstName ? student.studentId.firstName.charAt(0).toUpperCase() : '?'}
+                                      </span>
+                                    </div>
                                   )}
+                                </div>
+                                <div className="ml-3">
+                                  <div className="text-base font-semibold text-gray-900">
+                                    {student.studentId.firstName} {student.studentId.lastName}
+                                  </div>
+                                  <div className="text-sm text-gray-500">
+                                    {student.studentId.email}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            {/* Risk Level */}
+                            <td className="px-4 py-3 whitespace-nowrap">
+                              <Chip
+                                icon={severityIcons[student.severityLevel]}
+                                label={severityLabels[student.severityLevel]}
+                                sx={{
+                                  background: severityColors[student.severityLevel]?.bg,
+                                  color: severityColors[student.severityLevel]?.color,
+                                  fontWeight: 'bold',
+                                  fontSize: 15,
+                                  px: 2,
+                                  boxShadow: 1,
+                                  minWidth: 120
+                                }}
+                              />
+                            </td>
+                            {/* Risk Score */}
+                            <td className="px-4 py-3 whitespace-nowrap text-center font-semibold"
+                              style={{
+                                color: severityColors[student.severityLevel]?.chip,
+                                minWidth: 140,
+                                fontSize: 18
+                              }}>
+                              {student.riskScore}
+                            </td>
+                            {/* Negative Logs */}
+                            <td className="px-4 py-3 whitespace-nowrap text-center font-semibold"
+                              style={{
+                                color: '#ef4444',
+                                minWidth: 140,
+                                fontSize: 18
+                              }}>
+                              {student.negativeMoodCount}
+                            </td>
+                            {/* Mood Score Drop */}
+                            <td className="px-4 py-3 whitespace-nowrap text-center font-semibold text-[#1F8E8E]" style={{ minWidth: 240 }}>
+                              {student.moodScoreDrop ? student.moodScoreDrop.toFixed(2) : '0'}
+                            </td>
+                            {/* Outlier */}
+                            <td className="px-4 py-3 whitespace-nowrap text-center">
+                              {student.isOutlier && (
+                                <Tooltip title="Mood Score Outlier">
+                                  <HelpOutlineIcon sx={{ color: '#55AD9B', fontSize: 20 }} />
+                                </Tooltip>
+                              )}
+                            </td>
+                            {/* Monitoring Status / Notes */}
+                            <td className="px-4 py-3 whitespace-nowrap" style={{ minWidth: 210 }}>
+                              {editMode && expandedIdx === idx ? (
+                                <Box display="flex" flexDirection="column" gap={1}>
+                                  <TextField
+                                    select
+                                    label="Status"
+                                    value={status}
+                                    onChange={e => setStatus(e.target.value)}
+                                    size="small"
+                                    sx={{ minWidth: 140 }}
+                                    disabled={saving}
+                                  >
+                                    {monitoringStatusOptions.map(opt => (
+                                      <MenuItem key={opt.value} value={opt.value}>
+                                        {opt.label}
+                                      </MenuItem>
+                                    ))}
+                                  </TextField>
+                                  <TextField
+                                    label="Observation/Notes"
+                                    value={observation}
+                                    onChange={e => setObservation(e.target.value)}
+                                    size="small"
+                                    multiline
+                                    minRows={2}
+                                    disabled={saving}
+                                  />
+                                  <Box display="flex" gap={1}>
+                                    <Button
+                                      variant="contained"
+                                      color="success"
+                                      size="small"
+                                      startIcon={<SaveIcon />}
+                                      onClick={handleSave}
+                                      disabled={saving}
+                                    >
+                                      Save
+                                    </Button>
+                                    <Button
+                                      variant="outlined"
+                                      color="inherit"
+                                      size="small"
+                                      startIcon={<CancelIcon />}
+                                      onClick={() => {
+                                        setEditMode(false);
+                                        setStatus(student.monitoringStatus || 'pending_review');
+                                        setObservation(student.teacherObservation || '');
+                                        setError('');
+                                      }}
+                                      disabled={saving}
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </Box>
+                                  {error && <span style={{ color: 'red', fontSize: 13 }}>{error}</span>}
                                 </Box>
-                                {/* Recent Mood Logs */}
-                                <Box sx={{ minWidth: 320, flex: 2 }}>
-                                  <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
-                                    Recent Mood Logs
-                                  </Typography>
-                                  {student.recentMoodLogs && student.recentMoodLogs.length > 0 ? (
-                                    <Box display="flex" flexDirection="column" gap={1}>
-                                      {student.recentMoodLogs.map((log, i) => (
-                                        <Tooltip
-                                          key={log.moodLogId || i}
-                                          title={
-                                            `Mood score: ${log.moodScore} | ${log.reason || 'No reason provided'} (${new Date(log.date).toLocaleDateString()})`
-                                          }
-                                        >
-                                          <span className="text-gray-700 font-medium">
-                                            Mood score: <strong>{log.moodScore}</strong> | {log.reason?.length > 30
-                                              ? log.reason.slice(0, 30) + '...'
-                                              : log.reason || 'No reason provided'} ({new Date(log.date).toLocaleDateString()})
-                                          </span>
-                                        </Tooltip>
-                                      ))}
-                                    </Box>
-                                  ) : <span className="text-gray-400">None</span>}
+                              ) : (
+                                <Box>
+                                  <Chip
+                                    label={monitoringStatusLabels[student.monitoringStatus] || 'Pending Review'}
+                                    size="small"
+                                    sx={{
+                                      background: monitoringStatusChipColors[student.monitoringStatus]?.background || '#e0e7ff',
+                                      color: monitoringStatusChipColors[student.monitoringStatus]?.color || '#3730a3',
+                                      fontWeight: 700,
+                                      mr: 1,
+                                      px: 2,
+                                      fontSize: 15,
+                                      boxShadow: 1,
+                                    }}
+                                  />
+                                  <IconButton size="small" onClick={() => {
+                                    setEditMode(true);
+                                    setExpandedIdx(idx);
+                                    setStatus(student.monitoringStatus || 'pending_review');
+                                    setObservation(student.teacherObservation || '');
+                                  }}>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <Box sx={{ mt: 1, fontSize: 13, color: '#444' }}>
+                                    {student.teacherObservation
+                                      ? <span><strong>Note:</strong> {student.teacherObservation}</span>
+                                      : <span style={{ color: '#aaa' }}>No observation yet.</span>
+                                    }
+                                  </Box>
+                                  <Box sx={{ mt: 1 }}>
+                                    <Link
+                                      component="button"
+                                      variant="body2"
+                                      underline="hover"
+                                      sx={{ color: '#1F8E8E', fontWeight: 500, fontSize: 13 }}
+                                      onClick={() => setShowHistory(true)}
+                                    >
+                                      <HistoryIcon sx={{ fontSize: 16, mr: 0.5, mb: '-2px' }} />
+                                      View History
+                                    </Link>
+                                    <StatusHistoryModal
+                                      open={showHistory}
+                                      onClose={() => setShowHistory(false)}
+                                      studentId={student.studentId._id}
+                                      sectionId={student.sectionId}
+                                    />
+                                  </Box>
                                 </Box>
-                              </Box>
-                            </Collapse>
-                          </td>
-                        </tr>
-                      </>
+                              )}
+                            </td>
+                          </tr>
+                          {/* Expanded Row */}
+                          <tr>
+                            <td colSpan={10} style={{ padding: 0, background: '#f9fafb' }}>
+                              <Collapse in={expandedIdx === idx} timeout="auto" unmountOnExit>
+                                <Box sx={{ display: 'flex', gap: 6, px: 6, py: 3, flexWrap: 'wrap' }}>
+                                  {/* Concerning Reasons */}
+                                  <Box sx={{ minWidth: 260, flex: 1 }}>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                                      Concerning Reasons
+                                    </Typography>
+                                    {groupedReasons.length > 0 ? (
+                                      <Box display="flex" flexDirection="column" gap={1}>
+                                        {groupedReasons.map(({ reason, count }, i) => (
+                                          <Badge
+                                            key={i}
+                                            badgeContent={count}
+                                            color="error"
+                                            sx={{ width: 'fit-content', mb: 1 }}
+                                          >
+                                            <Chip
+                                              label={reason.length > 40 ? reason.slice(0, 40) + '...' : reason}
+                                              color="error"
+                                              variant="outlined"
+                                              sx={{
+                                                background: '#edeaea',
+                                                color: '#262826',
+                                                borderRadius: '8px',
+                                                fontWeight: 500,
+                                                fontSize: 14,
+                                                border: 'none',
+                                                minHeight: '32px',
+                                                maxWidth: 320
+                                              }}
+                                            />
+                                          </Badge>
+                                        ))}
+                                      </Box>
+                                    ) : (
+                                      <span className="text-gray-400">None</span>
+                                    )}
+                                  </Box>
+                                  {/* Recent Mood Logs */}
+                                  <Box sx={{ minWidth: 320, flex: 2 }}>
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600, mb: 1 }}>
+                                      Recent Mood Logs
+                                    </Typography>
+                                    {student.recentMoodLogs && student.recentMoodLogs.length > 0 ? (
+                                      <Box display="flex" flexDirection="column" gap={1}>
+                                        {student.recentMoodLogs.map((log, i) => (
+                                          <Tooltip
+                                            key={log.moodLogId || i}
+                                            title={
+                                              `Mood score: ${log.moodScore} | ${log.reason || 'No reason provided'} (${new Date(log.date).toLocaleDateString()})`
+                                            }
+                                          >
+                                            <span className="text-gray-700 font-medium">
+                                              Mood score: <strong>{log.moodScore}</strong> | {log.reason?.length > 30
+                                                ? log.reason.slice(0, 30) + '...'
+                                                : log.reason || 'No reason provided'} ({new Date(log.date).toLocaleDateString()})
+                                            </span>
+                                          </Tooltip>
+                                        ))}
+                                      </Box>
+                                    ) : <span className="text-gray-400">None</span>}
+                                  </Box>
+                                </Box>
+                              </Collapse>
+                            </td>
+                          </tr>
+                        </React.Fragment>
+                      ))
                     )}
                   </tbody>
                 </table>
