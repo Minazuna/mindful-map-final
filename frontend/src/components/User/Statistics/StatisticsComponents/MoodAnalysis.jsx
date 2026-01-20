@@ -11,6 +11,7 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { emotionImages } from '../../../../../utils/moods';
 import { useNavigate } from 'react-router-dom';
+import { generateMoodAnalysisPDF } from '../../../PDFTemplates/MoodAnalysisPDF';
 
 ChartJS.register(ArcElement, Tooltip, Legend, ChartDataLabels);
 
@@ -40,6 +41,7 @@ const MoodAnalysis = ({
   moodChartRef,
 }) => {
   const [showSummary, setShowSummary] = useState(false);
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const navigate = useNavigate();
 
   // Filter mood logs based on selected period
@@ -176,6 +178,21 @@ const MoodAnalysis = ({
     });
   };
 
+  // PDF Export Handler
+  const handleExportPDF = async () => {
+    setIsGeneratingPDF(true);
+    try {
+      await generateMoodAnalysisPDF({
+        moodType,
+        moodPeriod,
+        moodCounts: currentMoodCounts,
+      });
+    } catch (err) {
+      alert('Failed to generate PDF.');
+    }
+    setIsGeneratingPDF(false);
+  };
+
   return (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
@@ -194,6 +211,18 @@ const MoodAnalysis = ({
               <p className="text-gray-600">Track your emotions before and after activities</p>
             </div>
           </div>
+          <button
+            onClick={handleExportPDF}
+            disabled={isGeneratingPDF}
+            className={`px-5 py-2 rounded-full font-bold shadow-lg transition text-base border-2 flex items-center gap-2
+              ${isGeneratingPDF
+                ? 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
+                : 'bg-gradient-to-r from-[#55AD9B] to-[#8FABD4] text-white border-[#55AD9B] hover:from-[#3e8e7e] hover:to-[#8FABD4]'
+              }`}
+            style={{ minWidth: 120 }}
+          >
+            {isGeneratingPDF ? 'Exporting...' : 'Export PDF'}
+          </button>
         </div>
         {/* Controls */}
         <div className="flex flex-col sm:flex-row gap-4 mb-8">

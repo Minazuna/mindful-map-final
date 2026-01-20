@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import CalendarViewDayIcon from '@mui/icons-material/CalendarViewDay';
-import TimelineIcon from '@mui/icons-material/Timeline';
 
 const Anova = () => {
   const navigate = useNavigate();
@@ -42,12 +41,13 @@ const Anova = () => {
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
             onClick={handleDailyAnovaClick}
-            className="w-full sm:w-auto flex items-center justify-center bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white py-4 px-6 rounded-2xl shadow-lg transition-all duration-200 hover:shadow-xl"
+            className="flex items-center w-full sm:w-[500px] bg-white border border-[#d6e3df] rounded-2xl shadow-sm px-8 py-5 transition-all duration-200 hover:shadow-md"
+            style={{ minHeight: 90, maxWidth: 520 }}
           >
-            <CalendarViewDayIcon className="mr-3" style={{ fontSize: 24 }} />
-            <div className="text-left">
-              <div className="font-semibold">Daily Insights</div>
-              <div className="text-sm opacity-90">Today’s activity impact analysis</div>
+            <CalendarViewDayIcon className="mr-4" style={{ fontSize: 32, color: '#55AD9B' }} />
+            <div className="flex flex-col items-start">
+              <span className="text-lg font-semibold text-[#222] mb-1">Daily Statistics</span>
+              <span className="text-[#256353] text-base font-normal opacity-70">Today's activity impact analysis</span>
             </div>
           </motion.button>
         </div>

@@ -1047,7 +1047,8 @@ exports.computeSectionSeverity = async (req, res) => {
 
 exports.updateSeverityStatus = async (req, res) => {
   try {
-    const { studentId, sectionId, monitoringStatus, teacherObservation } = req.body;
+    // Accept weekStart and weekEnd from frontend
+    const { studentId, sectionId, monitoringStatus, teacherObservation, weekStart, weekEnd } = req.body;
     const teacherId = req.user._id;
 
     const teacher = await User.findById(teacherId);
@@ -1055,7 +1056,14 @@ exports.updateSeverityStatus = async (req, res) => {
       return res.status(403).json({ success: false, message: 'Only teachers can update monitoring status.' });
     }
 
-    const severity = await StudentSeverity.findOne({ studentId, sectionId });
+    // Build query to match the correct severity record for the week
+    const query = { studentId, sectionId };
+    if (weekStart && weekEnd) {
+      query.weekStart = new Date(weekStart);
+      query.weekEnd = new Date(weekEnd);
+    }
+
+    const severity = await StudentSeverity.findOne(query);
     if (!severity) return res.status(404).json({ success: false, message: 'Student severity record not found.' });
 
     // Prevent reverting status backward
@@ -1124,16 +1132,24 @@ exports.getSeverityStatusHistory = async (req, res) => {
 exports.getSectionSeverity = async (req, res) => {
   try {
     const { sectionId } = req.params;
-    const severities = await StudentSeverity.find({ sectionId })
+    const { weekStart, weekEnd } = req.query;
+
+    const filter = { sectionId };
+    if (weekStart && weekEnd) {
+      filter.weekStart = new Date(weekStart);
+      filter.weekEnd = new Date(weekEnd);
+    }
+
+    const severities = await StudentSeverity.find(filter)
       .populate('studentId', 'firstName lastName email avatar section')
       .sort({ severityLevel: -1, riskScore: -1 });
+
     res.status(200).json({ success: true, data: severities });
   } catch (error) {
     console.error('Error fetching section severity:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };
-
 // Get severity details for a student
 exports.getStudentSeverity = async (req, res) => {
   try {

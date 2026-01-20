@@ -11,6 +11,8 @@ import {
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 import { generateActivitiesStatisticsPDF } from '../../../PDFTemplates/ActivitiesStatisticsPDF';
 import { Download } from 'lucide-react';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+
 ChartJS.register(ChartDataLabels);
 ChartJS.register(ArcElement, Tooltip, Legend);
 
@@ -100,28 +102,28 @@ function PieSection({ title, data, category, isSleepHours }) {
       }
     ]
   };
-        const chartOptions = {
-        plugins: {
-            legend: { display: false },
-            datalabels: {
-            color: '#fff',
-            font: {
-                weight: 'bold',
-                size: 16,
-            },
-            formatter: (value) => value,
-            },
-            tooltip: {
-            callbacks: {
-                label: function (context) {
-                const percent = total ? Math.round((context.raw / total) * 100) : 0;
-                return `${context.label}: ${context.raw} (${percent}%)`;
-                }
-            }
-            }
+  const chartOptions = {
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        color: '#fff',
+        font: {
+          weight: 'bold',
+          size: 16,
         },
-        cutout: '68%'
-        };
+        formatter: (value) => value,
+      },
+      tooltip: {
+        callbacks: {
+          label: function (context) {
+            const percent = total ? Math.round((context.raw / total) * 100) : 0;
+            return `${context.label}: ${context.raw} (${percent}%)`;
+          }
+        }
+      }
+    },
+    cutout: '68%'
+  };
   return (
     <motion.div
       initial={{ opacity: 0, y: 30 }}
@@ -284,67 +286,83 @@ const ActivitiesStatistics = () => {
       className="bg-gradient-to-br from-[#f7fafc] via-[#e0f7fa] to-[#e6f4ea] min-h-screen pb-16"
     >
       <div className="max-w-[1600px] mx-auto px-12 pt-10">
-        <div className="flex items-center mb-10 gap-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="px-6 py-2 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#0ea5e9] text-white font-bold shadow-lg hover:from-[#3e8e7e] hover:to-[#0ea5e9] transition text-lg border-2 border-[#55AD9B] hover:border-[#3e8e7e]"
-            style={{ minWidth: 100 }}
-          >
-            ← Back
-          </button>
-          <div className="flex-1 text-center md:text-left">
-            <h2 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-[#0ea5e9] via-[#55AD9B] to-[#f59e42] mb-1 tracking-wide drop-shadow-lg">
-              {emotion ? beautifyName(emotion) : ''}
-            </h2>
-            <p className="text-gray-600 text-lg font-semibold">
-              {moodType === 'before' ? 'Before' : 'After'} Emotion · {moodPeriod.charAt(0).toUpperCase() + moodPeriod.slice(1)}
-            </p>
-          </div>
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isGeneratingPDF || loading}
-            className={`px-6 py-2 rounded-full font-bold shadow-lg transition text-lg border-2 flex items-center gap-2
-              ${isGeneratingPDF || loading
-                ? 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
-                : 'bg-gradient-to-r from-[#f59e42] to-[#ff714b] text-white border-[#f59e42] hover:from-[#e68a2e] hover:to-[#e65a3a]'
-              }`}
-            style={{ minWidth: 150 }}
-          >
-            <Download size={20} />
-            {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
-          </button>
-        </div>
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="w-20 h-20 border-4 border-[#D8EFD3] border-t-[#55AD9B] rounded-full animate-spin mx-auto mb-4"></div>
-          </div>
-        ) : (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-              {showSections.map(section => (
-                <PieSection
-                  key={section.title}
-                  title={section.title}
-                  data={section.data}
-                  category={section.category}
-                  isSleepHours={section.isSleepHours}
-                />
-              ))}
+        {/* Custom Header */}
+        <div className="w-full flex flex-col gap-0 mb-12">
+          <div className="flex items-center justify-between w-full">
+            {/* Back button */}
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-md hover:shadow-lg transition-all duration-300"
+              aria-label="Back"
+              style={{ marginLeft: '-0.5rem' }}
+            >
+              <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 32 }} />
+            </button>
+            <div className="flex-1 flex flex-col items-center">
+              <h2 className="text-3xl md:text-4xl font-extrabold text-[#256353] tracking-tight text-center mb-2" style={{ letterSpacing: '.01em' }}>
+                Daily Moods & Habits Analysis
+              </h2>
             </div>
-            {moodType === 'before' && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-                className="bg-white/90 rounded-2xl shadow p-8 border border-gray-100 max-w-2xl mx-auto mt-8 text-center"
-              >
-                <span className="text-gray-400 text-lg italic">
-                  Sleep hours breakdown is only available for 'After' moods.
-                </span>
-              </motion.div>
-            )}
-          </>
-        )}
+            {/* Empty div for spacing */}
+            <div className="w-16 h-16"></div>
+          </div>
+          {/* Download PDF button under header, right-aligned */}
+          <div className="flex justify-end mt-2">
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isGeneratingPDF || loading}
+              className={`px-6 py-2 rounded-full font-bold shadow-lg transition text-lg border-2 flex items-center gap-2
+                ${isGeneratingPDF || loading
+                  ? 'bg-gray-300 text-gray-500 border-gray-300 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-[#f59e42] to-[#ff714b] text-white border-[#f59e42] hover:from-[#e68a2e] hover:to-[#e65a3a]'
+                }`}
+              style={{ minWidth: 150 }}
+            >
+              <Download size={20} />
+              {isGeneratingPDF ? 'Generating...' : 'Download PDF'}
+            </button>
+          </div>
+        </div>
+        {/* End Header */}
+        <div className="flex-1">
+          <div className="flex-1">
+            <div className="flex-1">
+              <div className="flex-1">
+                {loading ? (
+                  <div className="flex justify-center items-center h-64">
+                    <div className="w-20 h-20 border-4 border-[#D8EFD3] border-t-[#55AD9B] rounded-full animate-spin mx-auto mb-4"></div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                      {showSections.map(section => (
+                        <PieSection
+                          key={section.title}
+                          title={section.title}
+                          data={section.data}
+                          category={section.category}
+                          isSleepHours={section.isSleepHours}
+                        />
+                      ))}
+                    </div>
+                    {moodType === 'before' && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-white/90 rounded-2xl shadow p-8 border border-gray-100 max-w-2xl mx-auto mt-8 text-center"
+                      >
+                        <span className="text-gray-400 text-lg italic">
+                          Sleep hours breakdown is only available for 'After' moods.
+                        </span>
+                      </motion.div>
+                    )}
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </motion.div>
   );

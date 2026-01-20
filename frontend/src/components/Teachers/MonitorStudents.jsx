@@ -9,6 +9,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import Sidebar from './Sidebar';
 import { useNavigate } from 'react-router-dom';
 import { generateStudentsSeverityPDF } from '../PDFTemplates/StudentsServerityPDF';
+import { generateSectionSeverityPDF } from '../PDFTemplates/SectionSeverityPDF';
 
 // Helper to get current week's Monday-Sunday range
 function getCurrentWeekRange() {
@@ -72,6 +73,7 @@ const MonitorStudents = () => {
   const [refresh, setRefresh] = useState(0);
   const [helpOpen, setHelpOpen] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
+  const [downloadingSection, setDownloadingSection] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [studentsPerPage, setStudentsPerPage] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
@@ -138,32 +140,32 @@ const MonitorStudents = () => {
   }, []);
 
   useEffect(() => {
-const fetchSeverity = async () => {
-  if (!selectedSection) return;
-  setLoading(true);
-  try {
-    const token = localStorage.getItem('token');
-    // 1. Compute severity for the section/week
-    await axios.post(
-      `${import.meta.env.VITE_NODE_API}/api/teacher/compute-section-severity/${encodeURIComponent(selectedSection)}?weekStart=${weekRange.start.toISOString()}&weekEnd=${weekRange.end.toISOString()}`,
-      {},
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    // 2. Fetch computed severity
-    const res = await axios.get(
-      `${import.meta.env.VITE_NODE_API}/api/teacher/section-severity/${encodeURIComponent(selectedSection)}?weekStart=${weekRange.start.toISOString()}&weekEnd=${weekRange.end.toISOString()}`,
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setStudents(res.data.data || []);
-  } catch (err) {
-    setStudents([]);
-  }
-  setLoading(false);
-};
+    const fetchSeverity = async () => {
+      if (!selectedSection) return;
+      setLoading(true);
+      try {
+        const token = localStorage.getItem('token');
+        // 1. Compute severity for the section/week
+        await axios.post(
+          `${import.meta.env.VITE_NODE_API}/api/teacher/compute-section-severity/${encodeURIComponent(selectedSection)}?weekStart=${weekRange.start.toISOString()}&weekEnd=${weekRange.end.toISOString()}`,
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        // 2. Fetch computed severity
+        const res = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/teacher/section-severity/${encodeURIComponent(selectedSection)}?weekStart=${weekRange.start.toISOString()}&weekEnd=${weekRange.end.toISOString()}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        setStudents(res.data.data || []);
+      } catch (err) {
+        setStudents([]);
+      }
+      setLoading(false);
+    };
     fetchSeverity();
   }, [selectedSection, refresh]);
 
-  // Download PDF handler
+  // Download PDF handler for individual student
   const handleDownloadReport = async (student) => {
     setDownloadingId(student.studentId._id);
     try {
@@ -191,6 +193,25 @@ const fetchSeverity = async () => {
       alert('Failed to generate PDF report.');
     }
     setDownloadingId(null);
+  };
+
+  // Download PDF handler for section
+  const handleDownloadSectionReport = async () => {
+    setDownloadingSection(true);
+    try {
+      // Use the current students array for the section
+      await generateSectionSeverityPDF(
+        students,
+        {
+          section: selectedSection,
+          weekStart: weekRange.start.toISOString(),
+          weekEnd: weekRange.end.toISOString()
+        }
+      );
+    } catch (err) {
+      alert('Failed to generate section PDF report.');
+    }
+    setDownloadingSection(false);
   };
 
   // Reset page when search term changes
@@ -231,6 +252,28 @@ const fetchSeverity = async () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Current Week</label>
                 <div className="font-semibold text-[#1F8E8E]">{weekRange.label}</div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">&nbsp;</label>
+                <button
+                  onClick={handleDownloadSectionReport}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-md leading-5 font-medium rounded-md text-white bg-[#55AD9B] hover:bg-[#3e8e7e] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#55AD9B] transition-colors"
+                  style={{
+                    fontSize: '16px',
+                    fontWeight: 500,
+                    minWidth: 0,
+                    boxShadow: 'none'
+                  }}
+                  disabled={downloadingSection || loading || !students.length}
+                  title="Download section severity report as PDF"
+                >
+                  {downloadingSection ? (
+                    <CircularProgress size={18} color="inherit" className="mr-1" />
+                  ) : (
+                    <DownloadIcon sx={{ fontSize: 20, mr: 1 }} />
+                  )}
+                  Download Section Report
+                </button>
               </div>
             </div>
             {/* Student Count, Search, Per Page, Clear */}

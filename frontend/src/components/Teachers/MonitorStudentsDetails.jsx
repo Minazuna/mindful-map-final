@@ -13,6 +13,9 @@ import CloseIcon from '@mui/icons-material/Close';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
+import TrendingDownIcon from '@mui/icons-material/TrendingDown';
+import TrendingFlatIcon from '@mui/icons-material/TrendingFlat';
 import Sidebar from './Sidebar';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -290,12 +293,33 @@ function groupReasons(reasons) {
   return Object.entries(map).map(([reason, count]) => ({ reason, count }));
 }
 
+// Helper to compare risk levels
+function compareRiskLevels(current, previous) {
+  const order = ['low', 'moderate', 'high'];
+  const idxCurrent = order.indexOf(current);
+  const idxPrev = order.indexOf(previous);
+  if (idxCurrent < 0 || idxPrev < 0) return null;
+  if (idxCurrent < idxPrev) return 'improved';
+  if (idxCurrent > idxPrev) return 'worsened';
+  return 'same';
+}
+
+// Helper to check if student is at high risk for 2+ consecutive weeks
+function isHighRiskConsecutive(severities, count = 2) {
+  if (severities.length < count) return false;
+  for (let i = 0; i < count; i++) {
+    if (severities[i]?.severityLevel !== 'high') return false;
+  }
+  return true;
+}
+
 const MonitorStudentsDetails = () => {
   const query = useQuery();
   const studentId = query.get('studentId');
   const sectionId = query.get('sectionId');
   const navigate = useNavigate();
 
+  const [teacher, setTeacher] = useState(null);
   const [severities, setSeverities] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -351,22 +375,26 @@ const MonitorStudentsDetails = () => {
       setLoading(false);
     };
     if (studentId && sectionId) {
-      fetchSeverities();
+      fetchStudentDetails();
     }
   }, [studentId, sectionId, saving]);
 
+  // Updated handleSave to send weekStart and weekEnd for the selected row
   const handleSave = async () => {
     setSaving(true);
     setError('');
     try {
       const token = localStorage.getItem('token');
+      const severity = severities[expandedIdx];
       await axios.post(
         `${import.meta.env.VITE_NODE_API}/api/teacher/update-severity-status`,
         {
           studentId,
           sectionId,
           monitoringStatus: status,
-          teacherObservation: observation
+          teacherObservation: observation,
+          weekStart: severity.weekStart,
+          weekEnd: severity.weekEnd
         },
         { headers: { Authorization: `Bearer ${token}` } }
       );
@@ -379,6 +407,69 @@ const MonitorStudentsDetails = () => {
 
   // Group concerning reasons for badge display
   const groupedReasons = severities[expandedIdx]?.concerningKeywords ? groupReasons(severities[expandedIdx].concerningKeywords) : [];
+
+  // --- Risk Level Summary ---
+  let summaryContent = null;
+  const highRiskConsecutive = isHighRiskConsecutive(severities, 2);
+
+  if (highRiskConsecutive) {
+    summaryContent = (
+      <div className="flex items-center gap-4 rounded-xl border border-red-300 bg-red-50 px-6 py-4 mb-6 shadow-sm">
+        <TrendingFlatIcon className="text-red-500" fontSize="large" />
+        <div>
+          <div className="font-bold text-lg mb-1 flex items-center gap-2">
+            Student is Still at High Risk
+            <span className="ml-2 px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-semibold uppercase tracking-wide">Attention Needed</span>
+          </div>
+          <div className="text-gray-700 text-base">
+            The student has been at <span className="font-semibold text-red-600">High Risk</span> for at least 2 consecutive weeks. Please check on the student as this is a concerning trend.
+          </div>
+        </div>
+      </div>
+    );
+  } else if (severities.length >= 2) {
+    const current = severities[0];
+    const previous = severities[1];
+    const trend = compareRiskLevels(current.severityLevel, previous.severityLevel);
+    let icon, color, headline, explanation;
+    if (trend === 'improved') {
+      icon = <TrendingDownIcon className="text-green-500" fontSize="large" />;
+      color = 'bg-green-50 border-green-200';
+      headline = 'Risk Level Improved';
+      explanation = `The student's risk level improved from ${severityLabels[previous.severityLevel]} last week to ${severityLabels[current.severityLevel]} this week.`;
+    } else if (trend === 'worsened') {
+      icon = <TrendingUpIcon className="text-red-500" fontSize="large" />;
+      color = 'bg-red-50 border-red-200';
+      headline = 'Risk Level Worsened';
+      explanation = `The student's risk level increased from ${severityLabels[previous.severityLevel]} last week to ${severityLabels[current.severityLevel]} this week.`;
+    } else if (trend === 'same') {
+      icon = <TrendingFlatIcon className="text-yellow-500" fontSize="large" />;
+      color = 'bg-yellow-50 border-yellow-200';
+      headline = 'Risk Level Unchanged';
+      explanation = `The student's risk level remained at ${severityLabels[current.severityLevel]} compared to last week.`;
+    }
+    summaryContent = (
+      <div className={`flex items-center gap-4 rounded-xl border px-6 py-4 mb-6 shadow-sm ${color}`}>
+        <div className="flex-shrink-0">{icon}</div>
+        <div>
+          <div className="font-bold text-lg mb-1">{headline}</div>
+          <div className="text-gray-700 text-base">{explanation}</div>
+        </div>
+      </div>
+    );
+  } else if (severities.length === 1) {
+    summaryContent = (
+      <div className="flex items-center gap-4 rounded-xl border border-blue-200 bg-blue-50 px-6 py-4 mb-6 shadow-sm">
+        <InfoIcon className="text-blue-400" fontSize="large" />
+        <div>
+          <div className="font-bold text-lg mb-1">First Week of Monitoring</div>
+          <div className="text-gray-700 text-base">
+            This is the first week of severity monitoring for this student. More trend information will appear as more data is collected.
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full min-h-screen bg-[#F7F7F7] overflow-x-hidden">
@@ -434,6 +525,8 @@ const MonitorStudentsDetails = () => {
               </Button>
               <ComputationInfoModal open={showComputationInfo} onClose={() => setShowComputationInfo(false)} />
             </Box>
+            {/* Risk Level Summary */}
+            {summaryContent}
             {/* Table */}
             <div className="bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
@@ -489,7 +582,7 @@ const MonitorStudentsDetails = () => {
                       </tr>
                     ) : (
                       severities.map((student, idx) => (
-                        <React.Fragment key={student._id || idx}>
+                        <React.Fragment key={`${student._id}-${student.weekStart || idx}`}>
                           <tr className="hover:bg-gray-50 border-b border-gray-200">
                             {/* Expand Button */}
                             <td className="px-2 py-3 text-center">
