@@ -163,14 +163,21 @@ exports.getMoodLogsBySection = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    // Verify teacher has access to this section
-    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
-      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    // Handle 'All' section - get from all teacher's assigned sections
+    let sectionFilter;
+    if (section === 'All') {
+      sectionFilter = { $in: teacher.assignedSections || [] };
+    } else {
+      // Verify teacher has access to this specific section
+      if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+        return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+      }
+      sectionFilter = section;
     }
 
-    // Get all students in the specified section
+    // Get all students in the specified section(s)
     const students = await User.find({ 
-      section: section,
+      section: sectionFilter,
       role: 'user' 
     }).select('_id firstName lastName email');
 
@@ -494,14 +501,21 @@ exports.getLogsByCategory = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
-    // Verify teacher has access to this section
-    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
-      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    // Handle 'All' section - get from all teacher's assigned sections
+    let sectionFilter;
+    if (section === 'All') {
+      sectionFilter = { $in: teacher.assignedSections || [] };
+    } else {
+      // Verify teacher has access to this specific section
+      if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+        return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+      }
+      sectionFilter = section;
     }
 
-    // Get all students in the section
+    // Get all students in the section(s)
     const students = await User.find({ 
-      section: section,
+      section: sectionFilter,
       role: 'user'
     }).select('_id');
 
