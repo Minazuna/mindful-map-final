@@ -145,46 +145,47 @@ const Recommendations = () => {
   const fmtKey = (str) =>
     (str ? String(str).replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-_]/g, '').toLowerCase() : '');
 
-const handleViewRecommendation = async (categoryKey, rec, idx) => {
-  const token = localStorage.getItem('token');
-  let recommendations = [];
-  let recId = rec._id;
+  const handleViewRecommendation = async (categoryKey, rec, idx) => {
+    const token = localStorage.getItem('token');
+    let recommendations = [];
+    let recId = rec._id;
 
-  try {
-    const res = await axios.get(
-      `${import.meta.env.VITE_NODE_API}/api/teacher/recommendations/${encodeURIComponent(selectedSection)}`,
-      {
-        params: {
-          category: categoryKey,
-          activity: rec.activity,
-          afterEmotion: rec.afterEmotion,
-          period: timeFilter,
-          save: true
-        },
-        headers: { Authorization: `Bearer ${token}` }
+    try {
+      const res = await axios.get(
+        `${import.meta.env.VITE_NODE_API}/api/teacher/recommendations/${encodeURIComponent(selectedSection)}`,
+        {
+          params: {
+            category: categoryKey,
+            activity: rec.activity,
+            afterEmotion: rec.afterEmotion,
+            period: timeFilter,
+            save: true
+          },
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      );
+      if (res.data && res.data.record) {
+        recommendations = res.data.record.recommendations || [];
+        recId = res.data.record._id;
       }
-    );
-    if (res.data && res.data.record) {
-      recommendations = res.data.record.recommendations || [];
-      recId = res.data.record._id;
+    } catch (err) {
+      recommendations = [];
     }
-  } catch (err) {
-    recommendations = [];
-  }
 
-  navigate('/teacher/view/recommendations', {
-    state: {
-      rec: {
-        ...rec,
-        recommendations,
-        _id: recId
-      },
-      category: categoryKey,
-      section: selectedSection,
-      teacher
-    }
-  });
-};
+    navigate('/teacher/view/recommendations', {
+      state: {
+        rec: {
+          ...rec,
+          recommendations,
+          _id: recId
+        },
+        category: categoryKey,
+        section: selectedSection,
+        teacher,
+        period: timeFilter // Pass the selected period!
+      }
+    });
+  };
 
   const renderCategoryCard = (categoryKey, label, icon) => {
     const recs = recommendationData[categoryKey] || [];

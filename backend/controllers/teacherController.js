@@ -796,7 +796,26 @@ exports.getAggregatedRecommendations = async (req, res) => {
 exports.getPastSectionRecommendations = async (req, res) => {
   try {
     const { section } = req.params;
-    const recs = await TeacherRecommendation.find({ section }).sort({ createdAt: -1 });
+    const { period, startDate, endDate, category } = req.query;
+    const filter = { section };
+
+    if (period) filter.period = period;
+    if (category) filter.category = category;
+
+    // If only startDate is provided, calculate endDate based on period
+    let start = startDate ? new Date(startDate) : null;
+    let end = endDate ? new Date(endDate) : null;
+    if (start && !end) {
+      end = new Date(start);
+      if (period === 'daily') end.setDate(start.getDate() + 1);
+      else if (period === 'weekly') end.setDate(start.getDate() + 7);
+      else if (period === 'monthly') end.setMonth(start.getMonth() + 1);
+    }
+    if (start && end) {
+      filter.createdAt = { $gte: start, $lt: end };
+    }
+
+    const recs = await TeacherRecommendation.find(filter).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: recs });
   } catch (error) {
     console.error('Error fetching past recommendations:', error);
