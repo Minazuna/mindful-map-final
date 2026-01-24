@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 import { motion } from 'framer-motion';
@@ -36,6 +37,7 @@ const capitalizeText = (text) => {
 };
 
 const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
+  const navigate = useNavigate();
   const [teacher, setTeacher] = useState(propTeacher || null);
   const [allMoodLogs, setAllMoodLogs] = useState([]);
   const [moodType, setMoodType] = useState('after');
@@ -43,6 +45,21 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
   const [selectedSection, setSelectedSection] = useState('All');
   const [loading, setLoading] = useState(true);
   const [sections, setSections] = useState(['All', ...(propTeacher?.assignedSections || [])]);
+
+  const handleMoodClick = (emotion) => {
+    if (selectedSection === 'All' || selectedSection === 'All Sections') {
+      toast.info('Please select a specific section to view details');
+      return;
+    }
+    navigate('/teacher/section-statistics', {
+      state: {
+        emotion,
+        moodType,
+        moodPeriod,
+        section: selectedSection
+      }
+    });
+  };
 
   useEffect(() => {
     if (!teacher) {
@@ -344,13 +361,20 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       transition={{ delay: 0.3 + index * 0.1 }}
-                      className="flex flex-col items-center p-3 rounded-2xl border-2 transition-all duration-200 transform"
+                      onClick={() => handleMoodClick(emotion)}
+                      className={`flex flex-col items-center p-3 rounded-2xl border-2 transition-all duration-200 transform ${
+                        selectedSection === 'All' || selectedSection === 'All Sections'
+                          ? 'cursor-not-allowed opacity-70'
+                          : 'hover:scale-110 cursor-pointer hover:shadow-lg'
+                      }`}
                       style={{
                         backgroundColor: emotionColors[emotion] || '#95A5A6',
                         borderColor: emotionColors[emotion] || '#95A5A6',
                         minWidth: isDashboard ? '100px' : '140px',
                         width: isDashboard ? '100px' : '140px'
                       }}
+                      whileHover={selectedSection !== 'All' && selectedSection !== 'All Sections' ? { scale: 1.1 } : {}}
+                      whileTap={selectedSection !== 'All' && selectedSection !== 'All Sections' ? { scale: 0.95 } : {}}
                     >
                       <div className="mb-2">
                         <img
@@ -365,6 +389,9 @@ const AllMoodAnalysis = ({ isDashboard = false, teacher: propTeacher }) => {
                       <p className="font-bold text-sm mt-1" style={{ color: '#e9eaeaff' }}>
                         {currentMoodCounts[emotion]}
                       </p>
+                      {!isDashboard && selectedSection !== 'All' && selectedSection !== 'All Sections' && (
+                        <p className="text-xs text-gray-100 mt-1 text-center">Click for details</p>
+                      )}
                     </motion.div>
                   ))}
                 </div>

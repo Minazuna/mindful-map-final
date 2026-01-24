@@ -101,10 +101,20 @@ const StudentLogs = () => {
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    if (field === 'endDate' && value) {
+      // Set end date to end of day (23:59:59) to include all logs on that date
+      const endDate = new Date(value);
+      endDate.setHours(23, 59, 59, 999);
+      setFilters(prev => ({
+        ...prev,
+        [field]: endDate
+      }));
+    } else {
+      setFilters(prev => ({
+        ...prev,
+        [field]: value
+      }));
+    }
   };
 
   const clearFilters = () => {

@@ -16,6 +16,7 @@ const Dashboard = () => {
   // New Filter States
   const [statsSection, setStatsSection] = useState('All');
   const [statsValence, setStatsValence] = useState('Both');
+  const [statsPeriod, setStatsPeriod] = useState('overall');
   const [logsSection, setLogsSection] = useState('All');
 
   useEffect(() => {
@@ -24,7 +25,7 @@ const Dashboard = () => {
 
   useEffect(() => {
     fetchDashboardStats();
-  }, [statsSection, statsValence]);
+  }, [statsSection, statsValence, statsPeriod]);
 
   useEffect(() => {
     fetchRecentLogs();
@@ -50,7 +51,7 @@ const Dashboard = () => {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/teacher/dashboard-stats`, {
         headers: { Authorization: `Bearer ${token}` },
-        params: { section: statsSection, valence: statsValence }
+        params: { section: statsSection, valence: statsValence, period: statsPeriod }
       });
       if (response.data.success) {
         setDashboardStats(response.data.data);
@@ -332,6 +333,16 @@ const Dashboard = () => {
                   <option value="Both">Both Valences</option>
                   <option value="Positive">Positive</option>
                   <option value="Negative">Negative</option>
+                </select>
+                <select
+                  value={statsPeriod}
+                  onChange={(e) => setStatsPeriod(e.target.value)}
+                  className="flex-1 px-3 py-1.5 border border-gray-200 rounded-xl bg-gray-50 text-gray-700 focus:outline-none focus:border-blue-500 font-medium text-sm"
+                >
+                  <option value="overall">Overall</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
                 </select>
               </div>
             </div>

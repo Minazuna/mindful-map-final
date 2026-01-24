@@ -233,7 +233,30 @@ exports.getSectionStudents = async (req, res) => {
 
     // Get all mood logs for these students to calculate counts and dominant emotions
     const studentIds = students.map(student => student._id);
-    const allLogs = await MoodLog.find({ user: { $in: studentIds } });
+    
+    // Time range filter
+    const { timeRange } = req.query;
+    let dateFilter = {};
+    const now = new Date();
+    
+    if (timeRange === 'daily') {
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      dateFilter = { date: { $gte: startOfDay } };
+    } else if (timeRange === 'weekly') {
+      const oneWeekAgo = new Date(now);
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      dateFilter = { date: { $gte: oneWeekAgo } };
+    } else if (timeRange === 'monthly') {
+      const oneMonthAgo = new Date(now);
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      dateFilter = { date: { $gte: oneMonthAgo } };
+    }
+
+    const allLogs = await MoodLog.find({ 
+      user: { $in: studentIds },
+      ...dateFilter
+    });
 
     // Map logs to students
     const studentsWithLogs = students.map(student => {
@@ -313,8 +336,27 @@ exports.getStudentMoodLogsById = async (req, res) => {
     }
 
     // Get mood logs for this student
+    const { timeRange } = req.query;
+    let dateFilter = {};
+    const now = new Date();
+
+    if (timeRange === 'daily') {
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      dateFilter = { date: { $gte: startOfDay } };
+    } else if (timeRange === 'weekly') {
+      const oneWeekAgo = new Date(now);
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      dateFilter = { date: { $gte: oneWeekAgo } };
+    } else if (timeRange === 'monthly') {
+      const oneMonthAgo = new Date(now);
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      dateFilter = { date: { $gte: oneMonthAgo } };
+    }
+
     const moodLogs = await MoodLog.find({ 
-      user: studentId 
+      user: studentId,
+      ...dateFilter
     })
     .sort({ date: -1 });
 
@@ -351,18 +393,23 @@ exports.getTeacherDashboardStats = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
 
+    const { section, valence, period } = req.query;
+    const selectedSection = section && section !== 'All' ? section : null;
+
     // Get students count in teacher's sections
-    const studentsCount = await User.countDocuments({ 
-      section: { $in: teacher.assignedSections },
+    const studentsQuery = { 
       role: 'user' 
-    });
+    };
+    if (selectedSection) {
+      studentsQuery.section = selectedSection;
+    } else {
+      studentsQuery.section = { $in: teacher.assignedSections };
+    }
+
+    const studentsCount = await User.countDocuments(studentsQuery);
 
     // Get students in sections
-    const students = await User.find({ 
-      section: { $in: teacher.assignedSections },
-      role: 'user' 
-    }).select('_id');
-
+    const students = await User.find(studentsQuery).select('_id');
     const studentIds = students.map(student => student._id);
 
     // Get total mood logs count
@@ -379,9 +426,60 @@ exports.getTeacherDashboardStats = async (req, res) => {
       date: { $gte: sevenDaysAgo }
     });
 
+    // Build date filter based on period
+    let dateFilter = {};
+    if (period && period !== 'overall') {
+      const now = new Date();
+      let startDate = new Date();
+
+      if (period === 'daily') {
+        startDate.setHours(0, 0, 0, 0);
+        dateFilter = { 
+          date: { 
+            $gte: startDate,
+            $lte: new Date(now.getTime() + 24 * 60 * 60 * 1000).setHours(23, 59, 59, 999)
+          }
+        };
+      } else if (period === 'weekly') {
+        const dayOfWeek = now.getDay() === 0 ? 6 : now.getDay() - 1;
+        startDate = new Date(now);
+        startDate.setDate(now.getDate() - dayOfWeek);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(startDate);
+        endDate.setDate(startDate.getDate() + 6);
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter = { 
+          date: { 
+            $gte: startDate,
+            $lte: endDate
+          }
+        };
+      } else if (period === 'monthly') {
+        startDate.setDate(1);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + 1);
+        endDate.setDate(0);
+        endDate.setHours(23, 59, 59, 999);
+        dateFilter = { 
+          date: { 
+            $gte: startDate,
+            $lte: endDate
+          }
+        };
+      }
+    }
+
     // Get mood distribution for the section
+    const matchStage = { user: { $in: studentIds }, ...dateFilter };
+    
+    // Apply valence filter if specified
+    if (valence && valence !== 'Both') {
+      matchStage.afterValence = valence.toLowerCase();
+    }
+
     const moodDistribution = await MoodLog.aggregate([
-      { $match: { user: { $in: studentIds } } },
+      { $match: matchStage },
       { $group: { 
         _id: '$afterEmotion', 
         count: { $sum: 1 } 
@@ -1215,6 +1313,117 @@ exports.getAllStudentSeverities = async (req, res) => {
     res.status(200).json({ success: true, data: severities });
   } catch (error) {
     console.error('Error fetching all severities for student:', error);
+    res.status(500).json({ success: false, message: 'Server Error' });
+  }
+};
+
+// Get mood activities breakdown for a section based on emotion, mood type, and period
+exports.getSectionMoodActivities = async (req, res) => {
+  try {
+    const { section, emotion, moodType, period } = req.query;
+    const teacher = await User.findById(req.user._id);
+
+    if (!teacher || teacher.role !== 'teacher') {
+      return res.status(404).json({ success: false, message: 'Teacher not found.' });
+    }
+
+    // Verify teacher has access to this section
+    if (!teacher.assignedSections || !teacher.assignedSections.includes(section)) {
+      return res.status(403).json({ success: false, message: 'Access denied to this section.' });
+    }
+
+    // Get all students in the section
+    const students = await User.find({ 
+      section: section,
+      role: 'user' 
+    }).select('_id');
+
+    const studentIds = students.map(student => student._id);
+
+    // Build date filter based on period
+    let dateFilter = {};
+    const now = new Date();
+
+    if (period === 'daily') {
+      const startOfDay = new Date(now);
+      startOfDay.setHours(0, 0, 0, 0);
+      dateFilter = { date: { $gte: startOfDay } };
+    } else if (period === 'weekly') {
+      const oneWeekAgo = new Date(now);
+      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+      dateFilter = { date: { $gte: oneWeekAgo } };
+    } else if (period === 'monthly') {
+      const oneMonthAgo = new Date(now);
+      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+      dateFilter = { date: { $gte: oneMonthAgo } };
+    }
+
+    // Get mood logs for these students
+    const moodLogs = await MoodLog.find({ 
+      user: { $in: studentIds },
+      ...dateFilter
+    });
+
+    // Filter by emotion and mood type
+    const filteredLogs = moodLogs.filter(log => {
+      const logEmotion = moodType === 'before' ? log.beforeEmotion : log.afterEmotion;
+      return logEmotion && logEmotion.toLowerCase() === emotion.toLowerCase();
+    });
+
+    // Group activities by category
+    const groupedActivities = {
+      activity: {},
+      social: {},
+      health: {},
+      sleep: {}
+    };
+
+    filteredLogs.forEach(log => {
+      const category = log.category;
+      
+      let activity = log.activity;
+      if (category === 'sleep') {
+        activity = log.hrs;
+      }
+
+      if (category === 'activity') {
+        groupedActivities.activity[activity] = (groupedActivities.activity[activity] || 0) + 1;
+      } else if (category === 'social') {
+        groupedActivities.social[activity] = (groupedActivities.social[activity] || 0) + 1;
+      } else if (category === 'health') {
+        groupedActivities.health[activity] = (groupedActivities.health[activity] || 0) + 1;
+      } else if (category === 'sleep') {
+        groupedActivities.sleep[activity] = (groupedActivities.sleep[activity] || 0) + 1;
+      }
+    });
+
+    // Convert to array format and calculate percentages
+    const formatGroupedData = (obj) => {
+      const total = Object.values(obj).reduce((a, b) => a + b, 0);
+      return Object.entries(obj)
+        .map(([activity, count]) => ({
+          activity,
+          count,
+          percent: total > 0 ? Math.round((count / total) * 100) : 0
+        }))
+        .sort((a, b) => b.count - a.count);
+    };
+
+    const result = {
+      groupedActivities: {
+        activity: formatGroupedData(groupedActivities.activity),
+        social: formatGroupedData(groupedActivities.social),
+        health: formatGroupedData(groupedActivities.health),
+        sleep: formatGroupedData(groupedActivities.sleep)
+      }
+    };
+
+    res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error) {
+    console.error('Error fetching section mood activities:', error);
     res.status(500).json({ success: false, message: 'Server Error' });
   }
 };

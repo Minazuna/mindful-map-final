@@ -81,7 +81,7 @@ function getActivityName(activityId) {
   return activityMap[activityId] || toTitleCase(activityId);
 }
 
-export async function generateStudentLogsPDF(student, logs, section) {
+export async function generateStudentLogsPDF(student, logs, section, period = 'overall') {
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -147,10 +147,10 @@ export async function generateStudentLogsPDF(student, logs, section) {
     // Student Information
     yPos += 12;
     doc.setFillColor(240, 248, 255);
-    doc.roundedRect(15, yPos, pageWidth - 30, 20, 3, 3, 'F');
+    doc.roundedRect(15, yPos, pageWidth - 30, 25, 3, 3, 'F');
     
     // Student info items in horizontal layout (no label, no total logs)
-    const infoItemWidth = (pageWidth - 40) / 3;
+    const infoItemWidth = (pageWidth - 40) / 4;
     const infoStartY = yPos + 7;
     const drawInfoItem = (x, y, label, value) => {
       doc.setFontSize(8);
@@ -166,7 +166,8 @@ export async function generateStudentLogsPDF(student, logs, section) {
     drawInfoItem(infoStartX + infoItemWidth / 2, infoStartY, 'STUDENT NAME', student.name);
     drawInfoItem(infoStartX + infoItemWidth * 1.5, infoStartY, 'EMAIL', student.email);
     drawInfoItem(infoStartX + infoItemWidth * 2.5, infoStartY, 'SECTION', section ? decodeURIComponent(section) : 'N/A');
-    yPos += 25;
+    drawInfoItem(infoStartX + infoItemWidth * 3.5, infoStartY, 'PERIOD', period.toUpperCase());
+    yPos += 30;
     
     if (logs.length === 0) {
       doc.setFontSize(12);
@@ -355,7 +356,7 @@ export async function generateStudentLogsPDF(student, logs, section) {
   }
 }
 
-export async function generateSectionSummaryPDF(sectionName, students) {
+export async function generateSectionSummaryPDF(sectionName, students, period = 'overall') {
   const doc = new jsPDF('p', 'mm', 'a4'); // 'p' for portrait (A4)
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -415,6 +416,7 @@ export async function generateSectionSummaryPDF(sectionName, students) {
     doc.setFontSize(10);
     doc.setFont('helvetica', 'bold');
     doc.text(`SECTION: ${decodeURIComponent(sectionName)}`, 15, yPos);
+    doc.text(`PERIOD: ${period.toUpperCase()}`, pageWidth / 2, yPos, { align: 'center' });
     doc.text(`TOTAL STUDENTS: ${students.length}`, pageWidth - 15, yPos, { align: 'right' });
     
     yPos += 8;

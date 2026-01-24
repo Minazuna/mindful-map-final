@@ -66,4 +66,8 @@ router.post('/update-severity-status', teacherController.updateSeverityStatus);
 router.get('/severity-status-history', teacherController.getSeverityStatusHistory);
 router.get('/student-severity-details', teacherController.getStudentSeverityDetails);
 router.get('/student-severity-all', teacherController.getAllStudentSeverities);
+
+// Get section mood activities breakdown by emotion, mood type, and period
+router.get('/section-mood-activities', teacherController.getSectionMoodActivities);
+
 module.exports = router;

@@ -93,6 +93,7 @@ import ViewTeacherReccomendations from './components/Teachers/ViewRecommendation
 
 import MonitorStudents from './components/Teachers/MonitorStudents';
 import MonitorStudentsDetails from './components/Teachers/MonitorStudentsDetails';
+import SectionStatistics from './components/Teachers/SectionStatistics';
 const useAuth = () => {
   const token = localStorage.getItem('token');
   const [userRole, setUserRole] = useState(null);
@@ -737,6 +738,14 @@ const App = () => {
           element={
             <TeacherPrivateRoute>
               <AllMoodAnalysis />
+            </TeacherPrivateRoute>
+          }
+        />
+        <Route
+          path="/teacher/section-statistics"
+          element={
+            <TeacherPrivateRoute>
+              <SectionStatistics />
             </TeacherPrivateRoute>
           }
         />

@@ -9,6 +9,12 @@ const SectionStudents = () => {
   const { section } = useParams();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  const toTitleCase = (str) => {
+    if (!str || str === 'N/A') return 'N/A';
+    return str.replace(/[-_]/g, ' ').replace(/\b\w/g, char => char.toUpperCase());
+  };
+
   const [teacher, setTeacher] = useState(null);
   const [filteredStudents, setFilteredStudents] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -16,10 +22,12 @@ const SectionStudents = () => {
   const [studentsPerPage, setStudentsPerPage] = useState(10);
   const [imageErrorIds, setImageErrorIds] = useState({});
 
+  const [timeRange, setTimeRange] = useState('overall');
+
   useEffect(() => {
     fetchTeacherProfile();
     fetchSectionStudents();
-  }, [section]);
+  }, [section, timeRange]);
 
   useEffect(() => {
     filterStudents();
@@ -45,7 +53,8 @@ const SectionStudents = () => {
       const token = localStorage.getItem('token');
       const decodedSection = decodeURIComponent(section);
       const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/teacher/section-students/${encodeURIComponent(decodedSection)}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: { timeRange }
       });
       if (response.data.success) {
         setStudents(response.data.data);
@@ -80,11 +89,12 @@ const SectionStudents = () => {
     try {
       const token = localStorage.getItem('token');
       const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/teacher/student-mood-logs/${student._id}`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        params: { timeRange }
       });
 
       if (response.data.success) {
-        await generateStudentLogsPDF(student, response.data.data, section);
+        await generateStudentLogsPDF(student, response.data.data, section, timeRange);
         toast.success('Student logs downloaded successfully!');
       } else {
         toast.error('Failed to fetch student logs');
@@ -101,7 +111,7 @@ const SectionStudents = () => {
         toast.error('No students to download');
         return;
       }
-      await generateSectionSummaryPDF(section, students);
+      await generateSectionSummaryPDF(section, students, timeRange);
       toast.success('Section summary downloaded successfully!');
     } catch (error) {
       console.error('Error downloading section summary:', error);
@@ -188,36 +198,56 @@ const SectionStudents = () => {
             </button>
           </div>
 
-          {/* Search and Per Page Controls */}
-          <div className=" p-6 mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Search and Period Controls */}
+          <div className="bg-white p-6 rounded-lg shadow-sm mb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="flex-1">
               <input
                 type="text"
                 placeholder="Search students by name or email..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600">Per page:</span>
-              <select
-                value={studentsPerPage}
-                onChange={e => {
-                  setStudentsPerPage(Number(e.target.value));
-                  setCurrentPage(1);
-                }}
-                className="border border-gray-300 rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                {[10, 25, 50, 100].map(num => (
-                  <option key={num} value={num}>{num}</option>
-                ))}
-              </select>
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Period:</span>
+                <select
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                  className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55AD9B] bg-white"
+                >
+                  <option value="overall">Overall</option>
+                  <option value="daily">Daily</option>
+                  <option value="weekly">Weekly</option>
+                  <option value="monthly">Monthly</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-gray-700">Per page:</span>
+                <select
+                  value={studentsPerPage}
+                  onChange={e => {
+                    setStudentsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="border border-gray-300 rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#55AD9B] bg-white"
+                >
+                  {[10, 25, 50, 100].map(num => (
+                    <option key={num} value={num}>{num}</option>
+                  ))}
+                </select>
+              </div>
+
               <button
-                onClick={() => setSearchTerm('')}
-                className="px-2 py-1 bg-[#55AD9B] text-white rounded-md hover:bg-[#3e8e7e] transition-colors text-sm"
+                onClick={() => {
+                  setSearchTerm('');
+                  setTimeRange('overall');
+                }}
+                className="px-4 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors text-sm font-medium border border-gray-300"
               >
-                Clear
+                Reset
               </button>
             </div>
           </div>
@@ -245,6 +275,12 @@ const SectionStudents = () => {
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
                       Total Logs
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                      Top Emotion Before
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
+                      Top Emotion After
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-600 uppercase tracking-wider">
                       Actions
@@ -306,6 +342,12 @@ const SectionStudents = () => {
                         <span className="inline-flex px-2 py-1 text-md font-semibold text-[#55AD9B]">
                           {getTotalLogs(student)}
                         </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {toTitleCase(student.dominantBeforeEmotion)}
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                        {toTitleCase(student.dominantAfterEmotion)}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex space-x-2">
