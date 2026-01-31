@@ -16,6 +16,7 @@ const recommendationRoutes = require('./routes/recommendationRoutes');
 const anovaRoutes = require('./routes/anovaRoutes');
 const activityRoutes = require('./routes/activityRoutes');
 const musicRoutes = require('./routes/musicRoutes');
+const concordanceRoutes = require('./routes/concordanceRoutes');
 
 const app = express();
 
@@ -37,6 +38,7 @@ app.use('/api/anova', anovaRoutes);
 app.use('/api/recommendation', recommendationRoutes);
 app.use('/api/activity', activityRoutes);
 app.use('/api/music', musicRoutes);
+app.use('/api/concordance', concordanceRoutes);
 
 mongoose.connect(process.env.MONGO_URI, {
   useNewUrlParser: true,

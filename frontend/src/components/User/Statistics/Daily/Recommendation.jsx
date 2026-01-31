@@ -12,7 +12,7 @@ import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
 const Recommendation = () => {
-  const { moodScoreId } = useParams();
+  const { moodScoreId } = useParams(); // acts as a generic entry ID (MoodLog or MoodScore)
   const navigate = useNavigate();
   const [recommendations, setRecommendations] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -28,17 +28,27 @@ const Recommendation = () => {
       }
 
       const token = localStorage.getItem('token');
-      try {
-        const res = await axios.post(
-          `${import.meta.env.VITE_NODE_API}/api/recommendation/generate`,
-          { moodScoreId },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const recs = Array.isArray(res.data?.recommendations) ? res.data.recommendations : [];
-        setRecommendations(recs);
-      } catch {
-        setRecommendations([]);
+      const baseUrl = `${import.meta.env.VITE_NODE_API}/api/recommendation/generate`;
+
+      // Try CCC flow first (MoodLog), then legacy (MoodScore) as fallback
+      const tryGenerate = async (payload) => {
+        try {
+          const res = await axios.post(baseUrl, payload, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          const recs = Array.isArray(res.data?.recommendations) ? res.data.recommendations : [];
+          return recs;
+        } catch {
+          return null;
+        }
+      };
+
+      let recs = await tryGenerate({ moodLogId: moodScoreId });
+      if (!recs) {
+        recs = await tryGenerate({ moodScoreId }); // legacy fallback
       }
+
+      setRecommendations(recs || []);
       setLoading(false);
     };
 
@@ -65,7 +75,6 @@ const Recommendation = () => {
               <span>Personalized Recommendations</span>
             </div>
           </div>
-
         </div>
       </div>
 
@@ -100,7 +109,7 @@ const Recommendation = () => {
             <div className="h-24 w-24 rounded-full bg-gradient-to-br from-[#55AD9B]/10 to-[#95D2B3]/10 flex items-center justify-center mx-auto mb-6 border-2 border-[#55AD9B]/30">
               <SentimentSatisfiedAltIcon style={{ fontSize: 48, color: '#55AD9B' }} />
             </div>
-            <h3 className="text-2xl font-bold text-[#1b5f52] mb-4">No Mood Score Selected</h3>
+            <h3 className="text-2xl font-bold text-[#1b5f52] mb-4">No entry selected</h3>
             <p className="text-[#6b7280] text-base mb-6 max-w-md mx-auto leading-relaxed">
               Go to Daily Analysis and use "View Tips" on a specific entry to get personalized recommendations.
             </p>
@@ -142,7 +151,6 @@ const Recommendation = () => {
                   const hasExistingFeedback =
                     typeof item?.effectivenessCount === 'number' && item.effectivenessCount > 0;
 
-                  // Only show status chip if there's existing feedback
                   const statusChip =
                     hasExistingFeedback && typeof item?.effective === 'boolean' ? (
                       <span
@@ -227,7 +235,7 @@ const Recommendation = () => {
                 <div className="flex-1">
                   <h4 className="font-bold text-[#92400e] text-xl mb-2">Stay Consistent!</h4>
                   <p className="text-[#78350f] text-base leading-relaxed">
-                    Try one recommendation today and take note of how you feel afterward. Small, consistent actions create lasting change. You've got this! 
+                    Try one recommendation today and take note of how you feel afterward. Small, consistent actions create lasting change. You've got this!
                   </p>
                 </div>
               </div>

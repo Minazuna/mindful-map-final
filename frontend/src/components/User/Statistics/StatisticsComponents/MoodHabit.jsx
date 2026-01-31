@@ -4,11 +4,11 @@ import { motion } from 'framer-motion';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import CalendarViewDayIcon from '@mui/icons-material/CalendarViewDay';
 
-const Anova = () => {
+const MoodHabit = () => {
   const navigate = useNavigate();
 
-  const handleDailyAnovaClick = () => {
-    navigate('/daily-anova');
+  const handleMoodHabitClick = () => {
+    navigate('/mood-habit-analysis');
   };
 
   return (
@@ -40,7 +40,7 @@ const Anova = () => {
           <motion.button
             whileHover={{ scale: 1.02 }}
             whileTap={{ scale: 0.98 }}
-            onClick={handleDailyAnovaClick}
+            onClick={handleMoodHabitClick}
             className="flex items-center w-full sm:w-[500px] bg-white border border-[#d6e3df] rounded-2xl shadow-sm px-8 py-5 transition-all duration-200 hover:shadow-md"
             style={{ minHeight: 90, maxWidth: 520 }}
           >
@@ -56,4 +56,4 @@ const Anova = () => {
   );
 };
 
-export default Anova;
+export default MoodHabit;

@@ -22,28 +22,32 @@ def clean_text(text):
 def get_sentiment_score(text):
     """Get sentiment scores using both TextBlob and VADER"""
     try:
-        # Clean the text
         clean_text_input = clean_text(text)
-        
+
         # TextBlob analysis
         blob = TextBlob(clean_text_input)
         textblob_polarity = blob.sentiment.polarity
         textblob_subjectivity = blob.sentiment.subjectivity
-        
+
         # VADER analysis
         vader_scores = analyzer.polarity_scores(clean_text_input)
-        
-        # Combine scores for more accurate results
-        combined_score = (textblob_polarity + vader_scores['compound']) / 2
-        
-        # Determine sentiment category
-        if combined_score >= 0.1:
+        vader_compound = vader_scores['compound']
+
+        # Combine scores (VADER weighted more, per Hutto & Gilbert 2014)
+        combined_score = 0.7 * vader_compound + 0.3 * textblob_polarity
+
+        # Clip to [-1, 1] just in case
+        combined_score = max(-1.0, min(1.0, combined_score))
+
+        # Sentiment label using VADER-recommended thresholds
+        # Source: Hutto & Gilbert, 2014 ("VADER: A Parsimonious Rule-based Model...")
+        if combined_score >= 0.05:
             sentiment = 'positive'
-        elif combined_score <= -0.1:
+        elif combined_score <= -0.05:
             sentiment = 'negative'
         else:
             sentiment = 'neutral'
-        
+
         return {
             'sentiment': sentiment,
             'confidence': abs(combined_score),

@@ -3,7 +3,7 @@ from flask_cors import CORS
 import logging
 
 from recommendation_sentiment import bp as sentiment_bp
-from anova import bp as anova_bp
+from concordance import ccc_bp as concordance_bp
 from prediction import bp as prediction_bp
 
 logging.basicConfig(level=logging.INFO)
@@ -13,7 +13,7 @@ app = Flask(__name__)
 CORS(app)
 
 app.register_blueprint(sentiment_bp)
-app.register_blueprint(anova_bp)
+app.register_blueprint(concordance_bp)  # CCC endpoints (/api/ccc/run)
 app.register_blueprint(prediction_bp)
 
 @app.route('/health', methods=['GET'])

@@ -28,7 +28,7 @@ import axios from 'axios';
 
 //Statistics Dashboard Student
 import Statistics from './components/User/Statistics/Statistics';
-import Anova from './components/User/Statistics/StatisticsComponents/Anova';
+import Anova from './components/User/Statistics/StatisticsComponents/MoodHabit';
 import DetailedMoodAnalysis from './components/User/Statistics//StatisticsComponents/DetailedMoodAnalysis';
 import MoodAnalysis from './components/User/Statistics/StatisticsComponents/MoodAnalysis';
 import SleepAnalysis from './components/User/Statistics/StatisticsComponents/SleepAnalysis';
@@ -70,7 +70,7 @@ import ProgressModal from './components/User/Activities/BreathingExercise/Progre
 //Statistics
 import DailyStatistics from './components/User/Statistics/Daily/DailyStatistics';
 import WeeklyStatistics from './components/User/Statistics/Weekly/WeeklyStatistics';
-import DailyAnova from './components/User/Statistics/Daily/DailyAnova';
+import MoodHabitAnalysis from './components/User/Statistics/Daily/MoodHabitAnalysis';
 import WeeklyAnova from './components/User/Statistics/Weekly/WeeklyAnova';
 import MoodStatistics from './components/User/Statistics/MoodStatistics';
 import ActivityStatistics from './components/User/Statistics/StatisticsComponents/ActivitiesStatistics';
@@ -370,10 +370,10 @@ const App = () => {
           }
         />
        <Route
-          path="/daily-anova"
+          path="/mood-habit-analysis"
           element={
             <UserPrivateRoute>
-              <DailyAnova />
+              <MoodHabitAnalysis />
             </UserPrivateRoute>
           }
         />

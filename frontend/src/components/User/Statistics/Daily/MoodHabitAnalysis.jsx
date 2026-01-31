@@ -10,12 +10,8 @@ import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import PeopleIcon from '@mui/icons-material/People';
 import FavoriteIcon from '@mui/icons-material/Favorite';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloseIcon from '@mui/icons-material/Close';
-import AutoGraphIcon from '@mui/icons-material/AutoGraph';
-import InsightsIcon from '@mui/icons-material/Insights';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,7 +19,7 @@ const CATEGORY_ICONS = {
   sleep: <BedtimeIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
   activity: <EmojiEventsIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
   social: <PeopleIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
-  health: <FavoriteIcon style={{ fontSize: 32, color: '#55AD9B' }} />,
+  health: <FavoriteIcon style={{ fontSize: 32, color: '#55AD9B' }} />
 };
 
 const ACTIVITY_LABELS = {
@@ -105,7 +101,7 @@ const NEUTRAL_VARIANTS = [
 ];
 
 const formatText = (text) =>
-  text ? text.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : '';
+  text ? text.replace(/[-_]/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()) : '';
 
 const getMoodMessage = (activity, moodScore, idx = 0) => {
   const label = ACTIVITY_LABELS[activity] || formatText(activity);
@@ -148,242 +144,6 @@ const formatMonthDayYear = (dateStr) => {
   return local.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: '2-digit' });
 };
 
-const getFScoreExplanation = (f, p) => {
-  if (p == null || f == null || f === 0) return 'Not enough data today to compare activities.';
-  if (p < 0.05) return 'Some activities affected your mood differently today.';
-  return 'Activities had similar effects on your mood today.';
-};
-
-const FScoreAccordion = ({ f, p }) => {
-  const [open, setOpen] = useState(false);
-  const showValue = (v) => (v == null || v === 0 ? '—' : v);
-  return (
-    <div className="mb-5">
-      <button
-        className="flex items-center justify-between gap-3 px-5 py-3 rounded-xl border-2 border-[#55AD9B]/30 bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] hover:from-[#E6F4EF] hover:to-[#D8EFD3] transition-all duration-300 w-full text-left shadow-sm hover:shadow-md"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-      >
-        <div className="flex items-center gap-3">
-          <AutoGraphIcon style={{ color: '#55AD9B', fontSize: 24 }} />
-          <span className="font-bold text-lg text-[#1b5f52]">Daily Activity Comparison</span>
-        </div>
-        {open ? <ExpandLessIcon style={{ color: '#55AD9B' }} /> : <ExpandMoreIcon style={{ color: '#55AD9B' }} />}
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 px-5 py-4 space-y-3 text-sm bg-white/50 rounded-xl border border-[#D8EFD3]">
-              <div className="flex items-center gap-2 flex-wrap">
-                <span className="px-3 py-1 rounded-full bg-[#55AD9B]/10 text-[#1b5f52] font-semibold text-lg">
-                  F-score: {showValue(f)}
-                </span>
-                <span className="px-3 py-1 rounded-full bg-[#fbbf24]/10 text-[#92400e] font-semibold text-lg">
-                  p-value: {showValue(p)}
-                </span>
-              </div>
-              <p className="text-[#272829] leading-relaxed text-lg">{getFScoreExplanation(f, p)}</p>
-              <p className="text-mg text-[#6b7280] ">More logs = clearer differences. Keep tracking!</p>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-const ActivityComparisons = ({ tukeyHSD, groupMeans, groupCounts, includedSet }) => {
-  const [open, setOpen] = useState(false);
-  if (!tukeyHSD || tukeyHSD.length === 0 || !groupMeans) return null;
-
-  const validGroups = Array.from(includedSet || []);
-  const filteredPairs = tukeyHSD.filter(r => validGroups.includes(r.group1) && validGroups.includes(r.group2));
-  if (filteredPairs.length === 0) return null;
-
-  const significantPairs = filteredPairs.filter(r => r.reject);
-  const nonSignificantPairs = filteredPairs.filter(r => !r.reject);
-  const fmt = v => (typeof v === 'number' && !isNaN(v) ? v.toFixed(2) : 'n/a');
-
-  const ranked = [...validGroups]
-    .filter(g => typeof groupMeans[g] === 'number' && !isNaN(groupMeans[g]))
-    .sort((a, b) => groupMeans[b] - groupMeans[a]);
-
-  const sigMap = new Map();
-  significantPairs.forEach(r => {
-    sigMap.set(`${r.group1}||${r.group2}`, r);
-    sigMap.set(`${r.group2}||${r.group1}`, r);
-  });
-
-  const chain = [];
-  for (let i = 0; i < ranked.length - 1; i++) {
-    const g1 = ranked[i];
-    const g2 = ranked[i + 1];
-    const row = sigMap.get(`${g1}||${g2}`);
-    if (!row) continue;
-    const m1 = groupMeans[g1];
-    const m2 = groupMeans[g2];
-    const label1 = ACTIVITY_LABELS[g1] || formatText(g1);
-    const label2 = ACTIVITY_LABELS[g2] || formatText(g2);
-    const sentence = m1 === m2
-      ? `Similar: ${label1} & ${label2}`
-      : (m1 > m2
-          ? `${label1} improved mood more than ${label2}`
-          : `${label2} improved mood more than ${label1}`);
-    chain.push({
-      g1, g2, m1, m2,
-      p: row.p_adj,
-      sentence,
-      delta: Math.abs(m1 - m2).toFixed(2)
-    });
-    if (chain.length === 3) break;
-  }
-
-  const explainPair = (row) => {
-    const a1 = ACTIVITY_LABELS[row.group1] || formatText(row.group1);
-    const a2 = ACTIVITY_LABELS[row.group2] || formatText(row.group2);
-    const m1 = groupMeans[row.group1];
-    const m2 = groupMeans[row.group2];
-    if (typeof m1 !== 'number' || typeof m2 !== 'number') return `${a1} vs ${a2} (limited data).`;
-
-    const diff = m1 - m2;
-    const bothNeg = m1 < 0 && m2 < 0;
-    const bothPos = m1 > 0 && m2 > 0;
-    const equal = Number(m1.toFixed(2)) === Number(m2.toFixed(2));
-
-    if (!row.reject || equal) return `Similar effect: ${a1} & ${a2}.`;
-
-    if (diff > 0) {
-      if (bothNeg) return `${a1} lowered mood less than ${a2}.`;
-      if (bothPos) return `${a1} lifted mood more than ${a2}.`;
-      if (m1 > 0 && m2 < 0) return `${a1} lifted mood while ${a2} lowered it.`;
-      if (m1 < 0 && m2 > 0) return `${a2} lifted mood while ${a1} lowered it.`;
-      return `${a1} had a higher average mood than ${a2}.`;
-    } else {
-      if (bothNeg) return `${a2} lowered mood less than ${a1}.`;
-      if (bothPos) return `${a2} lifted mood more than ${a1}.`;
-      if (m2 > 0 && m1 < 0) return `${a2} lifted mood while ${a1} lowered it.`;
-      if (m2 < 0 && m1 > 0) return `${a1} lifted mood while ${m2} lowered it.`;
-      return `${a2} had a higher average mood than ${a1}.`;
-    }
-  };
-
-  return (
-    <div className="mb-6">
-      <button
-        className="flex items-center justify-between gap-3 px-5 py-3 rounded-xl border-2 border-[#55AD9B]/30 bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] hover:from-[#E6F4EF] hover:to-[#D8EFD3] transition-all duration-300 w-full text-left shadow-sm hover:shadow-md"
-        onClick={() => setOpen(o => !o)}
-        aria-expanded={open}
-      >
-        <div className="flex items-center gap-3">
-          <InsightsIcon style={{ color: '#55AD9B', fontSize: 24 }} />
-          <span className="font-bold text-lg text-[#1b5f52]">Activity Differences</span>
-        </div>
-        {open ? <ExpandLessIcon style={{ color: '#55AD9B' }} /> : <ExpandMoreIcon style={{ color: '#55AD9B' }} />}
-      </button>
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="overflow-hidden"
-          >
-            <div className="mt-3 space-y-4 px-2">
-              {chain.length > 0 && (
-                <div className="bg-white/50 rounded-xl border border-[#D8EFD3] p-4">
-                  <div className="font-semibold text-lg text-[#1b5f52] mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
-                    Ranked chain (adjacent significant):
-                  </div>
-                  {chain.map((c, i) => (
-                    <div key={i} className="text-xs bg-gradient-to-r from-white to-[#F7FBF9] border border-[#E6F4EA] rounded-lg px-4 py-3 mb-2 flex justify-between items-center hover:shadow-sm transition">
-                      <span className="text-[#272829]">{c.sentence}</span>
-                      <div className="flex gap-2">
-                        <span className="px-2 py-1 rounded-full bg-[#55AD9B]/10 text-[#1b5f52] font-semibold text-lg">Δ {c.delta}</span>
-                        <span className="px-2 py-1 rounded-full bg-[#fbbf24]/10 text-[#92400e] font-semibold text-lg">p {c.p}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-              {significantPairs.length > 0 ? (
-                <div className="bg-white/50 rounded-xl border border-[#D8EFD3] p-4">
-                  <div className="font-semibold text-lg text-[#1b5f52] mb-3 flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
-                    Clear differences (≥2 logs each):
-                  </div>
-                  {significantPairs.map((row, idx) => {
-                    const m1 = groupMeans[row.group1];
-                    const m2 = groupMeans[row.group2];
-                    const a1 = ACTIVITY_LABELS[row.group1] || formatText(row.group1);
-                    const a2 = ACTIVITY_LABELS[row.group2] || formatText(row.group2);
-                    const diffVal = Math.abs(m1 - m2).toFixed(2);
-                    return (
-                      <div
-                        key={idx}
-                        className="flex flex-col md:flex-row md:items-center gap-3 bg-gradient-to-r from-[#F1F8E8] to-[#F7FBF9] border border-[#95D2B3] rounded-xl px-4 py-3 mb-2 hover:shadow-md transition"
-                      >
-                        <div className="text-sm flex-1 text-[#272829]">
-                          {explainPair(row)}
-                          <span className="block text-xs text-[#6b7280] mt-1">
-                            {a1}: {fmt(m1)} | {a2}: {fmt(m2)}
-                          </span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg px-3 py-1 rounded-full bg-[#55AD9B] text-white font-semibold shadow-sm">
-                            Δ: {diffVal}
-                          </span>
-                          <span className="text-lg px-3 py-1 rounded-full bg-[#fbbf24] text-white font-semibold shadow-sm">
-                            p: {row.p_adj}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              ) : (
-                <div className="text-lg text-[#6b7280] bg-white/50 border border-[#E6F4EA] rounded-xl px-4 py-3">
-                  No clear differences between activities with ≥2 logs.
-                </div>
-              )}
-
-              {nonSignificantPairs.length > 0 && significantPairs.length > 0 && (
-                <div className="mt-2">
-                  <div className="font-semibold text-xs text-[#6b7280] mb-2">Other similar pairs:</div>
-                  <div className="flex flex-wrap gap-2">
-                    {nonSignificantPairs.slice(0, 8).map((row, idx) => {
-                      const a1 = ACTIVITY_LABELS[row.group1] || formatText(row.group1);
-                      const a2 = ACTIVITY_LABELS[row.group2] || formatText(row.group2);
-                      return (
-                        <div
-                          key={idx}
-                          className="text-xs bg-white border border-[#E6F4EA] rounded-lg px-3 py-1.5 shadow-sm hover:shadow transition"
-                        >
-                          {a1} & {a2}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-              <div className="text-mg text-[#6b7280] pt-2 border-t border-[#E6F4EA]">
-                Comparisons exclude activities with fewer than 2 logs for reliability.
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
 const InfoModal = ({ open, onClose }) => {
   if (!open) return null;
   return (
@@ -404,11 +164,7 @@ const InfoModal = ({ open, onClose }) => {
             <InfoOutlinedIcon style={{ color: '#55AD9B' }} />
             How Moods & Habits Analysis Works
           </h3>
-          <button
-            className="p-2 rounded-full hover:bg-[#F7FBF9] transition"
-            onClick={onClose}
-            aria-label="Close"
-          >
+          <button className="p-2 rounded-full hover:bg-[#F7FBF9] transition" onClick={onClose} aria-label="Close">
             <CloseIcon style={{ color: '#272829' }} />
           </button>
         </div>
@@ -420,8 +176,19 @@ const InfoModal = ({ open, onClose }) => {
               Mood score per log
             </span>
             <div className="text-[#555] leading-relaxed">
-              Each time you log a habit, we look at how your mood changed before and after.
-              If your mood went up, the score is positive. If it went down, the score is negative.
+              We look at how your mood changed before and after each habit. Positive change shows an increase, negative
+              means a decrease.
+            </div>
+          </div>
+
+          <div className="bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] rounded-xl p-4 border border-[#D8EFD3]">
+            <span className="font-semibold text-[#1b5f52] flex items-center gap-2 mb-2">
+              <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
+              Concordance check (CCC)
+            </span>
+            <div className="text-[#555] leading-relaxed">
+              CCC checks how well your before and after values agree. With more logs, results are more reliable. We don’t
+              show stats; we only label habits as boosted, lowered, or neutral.
             </div>
           </div>
 
@@ -431,32 +198,8 @@ const InfoModal = ({ open, onClose }) => {
               Activity averages
             </span>
             <div className="text-[#555] leading-relaxed">
-              For each activity (like "Reading" or "Gaming"), we average your mood scores for the day.
-              Activities with at least two logs are compared to keep things fair and steady.
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] rounded-xl p-4 border border-[#D8EFD3]">
-            <span className="font-semibold text-[#1b5f52] flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
-              ANOVA (Are activities different?)
-            </span>
-            <div className="text-[#555] leading-relaxed">
-              ANOVA is a check to see whether some activities affect mood differently than others.
-              The F-score tells us how strong the differences look. The p-value tells us how confident we
-              are about those differences (small p-value, like below 0.05, means we're more confident).
-            </div>
-          </div>
-
-          <div className="bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] rounded-xl p-4 border border-[#D8EFD3]">
-            <span className="font-semibold text-[#1b5f52] flex items-center gap-2 mb-2">
-              <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
-              Tukey HSD (Which pairs are different?)
-            </span>
-            <div className="text-[#555] leading-relaxed">
-              If ANOVA says "yes, there are differences," Tukey HSD looks at pairs of activities to see
-              exactly which ones are different. We show the average mood score for each activity and a p-value
-              to indicate how confident we are about the difference for that pair.
+              For each activity, we average your mood changes for the day and rank what boosted or lowered your mood the
+              most.
             </div>
           </div>
 
@@ -466,8 +209,7 @@ const InfoModal = ({ open, onClose }) => {
               Best results tip
             </span>
             <div className="text-[#78350f] leading-relaxed">
-              This works best when you log mood and habits consistently throughout the day and repeat the same
-              activities. More logs per activity = clearer and more helpful results.
+              More paired logs per activity = clearer results. Keep logging consistently throughout your day.
             </div>
           </div>
         </div>
@@ -485,8 +227,9 @@ const InfoModal = ({ open, onClose }) => {
   );
 };
 
-const DailyAnova = () => {
+const MoodHabitAnalysis = () => {
   const [results, setResults] = useState({});
+  const [thresholds, setThresholds] = useState({ minPairs: 1 });
   const [sleepQuality, setSleepQuality] = useState(null);
   const [sleepHours, setSleepHours] = useState(null);
   const [sleepMoodScore, setSleepMoodScore] = useState(null);
@@ -496,13 +239,21 @@ const DailyAnova = () => {
   const [showInfo, setShowInfo] = useState(false);
   const navigate = useNavigate();
 
+  // IMPORTANT:
+  // CCC returns MoodLog ids in groupLastIds and sleep._id.
+  // The Recommendation page must treat /recommendation/:id as a moodLogId for CCC.
+  const goToRecommendation = (moodLogId) => {
+    // Query param makes it explicit for Recommendation.jsx (so it can POST { moodLogId }).
+    navigate(`/recommendation/${moodLogId}?src=moodLog`);
+  };
+
   useEffect(() => {
-    const fetchAnova = async () => {
+    const fetchCCC = async () => {
       setLoading(true);
       const token = localStorage.getItem('token');
       try {
         const res = await axios.post(
-          `${import.meta.env.VITE_NODE_API}/api/anova/run`,
+          `${import.meta.env.VITE_NODE_API}/api/concordance/run`,
           { date },
           {
             headers: {
@@ -512,7 +263,10 @@ const DailyAnova = () => {
             params: { t: Date.now() }
           }
         );
-        setResults(res.data.anovaResults || {});
+
+        setResults(res.data.concordanceResults || {});
+        setThresholds(res.data.thresholds || { minPairs: 1 });
+
         if (res.data.sleep) {
           setSleepQuality(res.data.sleep.quality);
           setSleepHours(res.data.sleep.hours);
@@ -525,11 +279,11 @@ const DailyAnova = () => {
           setSleepMoodScoreId(null);
         }
       } catch (error) {
-        console.error('Error fetching daily analysis:', error);
+        console.error('Error fetching CCC analysis:', error);
       }
       setLoading(false);
     };
-    fetchAnova();
+    fetchCCC();
   }, [date]);
 
   const handlePrev = () => setDate(addDaysLocal(date, -1));
@@ -542,27 +296,83 @@ const DailyAnova = () => {
     health: 'from-[#7DD3C0] via-[#55AD9B] to-[#3e8e7e]'
   };
 
+  function renderTipsOnly(data, { title = 'Tips available for logged activities' } = {}) {
+    const groupLastIds = data?.groupLastIds || {};
+    const availableGroups = Array.isArray(data?.availableGroups) ? data.availableGroups : Object.keys(groupLastIds || {});
+    const groups = availableGroups.filter((g) => !!groupLastIds?.[g]);
+
+    if (groups.length === 0) return null;
+
+    return (
+      <div className="mt-5">
+        <div className="text-sm font-semibold text-[#1b5f52] mb-2">{title}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          {groups.map((g, idx) => (
+            <motion.div
+              key={g}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: idx * 0.03 }}
+              className="flex items-center justify-between gap-3 bg-white/70 border border-[#D8EFD3] rounded-xl px-4 py-3 shadow-sm"
+            >
+              <div className="text-[#272829] font-medium">{ACTIVITY_LABELS[g] || formatText(g)}</div>
+              <button
+                className="px-4 py-2 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white text-sm font-semibold hover:shadow-lg transition-all duration-300"
+                onClick={() => goToRecommendation(groupLastIds[g])}
+                aria-label={`View tips for ${g}`}
+              >
+                View Tips
+              </button>
+            </motion.div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   function renderCategoryResults(category, data) {
-    if (!data || data.insufficient) {
+    // If backend didn’t send the category object at all, show empty state
+    if (!data) {
       return (
         <div className="flex items-center justify-center h-full w-full py-12">
           <div className="text-center">
-            <span className="text-[#6b7280] text-lg">
-              {data && data.message ? data.message : 'No data for this category'}
-            </span>
+            <span className="text-[#6b7280] text-lg">No data for this category</span>
           </div>
+        </div>
+      );
+    }
+
+    // If CCC says "insufficient", still show tips for whatever was logged (decoupled from CCC)
+    if (data.insufficient) {
+      return (
+        <div className="w-full">
+          <div className="flex items-center justify-center h-full w-full py-8">
+            <div className="text-center max-w-xl">
+              <span className="text-[#6b7280] text-base">
+                {data.message || 'Not enough paired logs to analyze yet.'}
+              </span>
+              <div className="text-xs text-[#6b7280] mt-2">
+                You can still view recommendations for activities you logged today.
+              </div>
+            </div>
+          </div>
+
+          {renderTipsOnly(data, { title: 'View tips for logged activities' })}
         </div>
       );
     }
 
     const groupMeans = data.groupMeans || {};
     const groupCounts = data.groupCounts || {};
-    const hasMinTwo = (a) => (groupCounts[a] ?? 0) >= 2;
+    const minPairs = Number(thresholds.minPairs ?? 1);
+    const hasMinPairs = (a) => (groupCounts[a] ?? 0) >= minPairs;
 
     const rawIncluded = Array.isArray(data.includedGroups) ? data.includedGroups : [];
-    const includedSet = new Set(rawIncluded.filter(hasMinTwo));
+    const includedSet = new Set(rawIncluded.filter(hasMinPairs));
     if (includedSet.size === 0) {
-      Object.keys(groupCounts).forEach(g => { if (hasMinTwo(g)) includedSet.add(g); });
+      Object.keys(groupCounts).forEach((g) => {
+        if (hasMinPairs(g)) includedSet.add(g);
+      });
     }
 
     const entries = Object.entries(groupMeans).filter(
@@ -571,49 +381,54 @@ const DailyAnova = () => {
     const positivesComputed = entries.filter(([, m]) => m > 0).sort((a, b) => b[1] - a[1]);
     const negativesComputed = entries.filter(([, m]) => m < 0).sort((a, b) => a[1] - b[1]);
 
-    const topPositiveRaw = Array.isArray(data.topPositive) && data.topPositive.length > 0
-      ? data.topPositive
-      : positivesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
-    const topNegativeRaw = Array.isArray(data.topNegative) && data.topNegative.length > 0
-      ? data.topNegative
-      : negativesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
+    const topPositiveRaw =
+      Array.isArray(data.topPositive) && data.topPositive.length > 0
+        ? data.topPositive
+        : positivesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
+    const topNegativeRaw =
+      Array.isArray(data.topNegative) && data.topNegative.length > 0
+        ? data.topNegative
+        : negativesComputed.map(([activity, mean]) => ({ activity, moodScore: mean }));
 
-    const topPositive = topPositiveRaw.filter(r => includedSet.has(r.activity));
-    const topNegative = topNegativeRaw.filter(r => includedSet.has(r.activity));
+    const topPositive = topPositiveRaw.filter((r) => includedSet.has(r.activity));
+    const topNegative = topNegativeRaw.filter((r) => includedSet.has(r.activity));
 
     const includedGroups = Array.from(includedSet);
-    const notEnoughGroups = Array.isArray(data.ignoredGroups) && data.ignoredGroups.length > 0
-      ? data.ignoredGroups
-      : Object.keys(groupCounts).filter(g => !includedSet.has(g));
+    const notEnoughGroups =
+      Array.isArray(data.ignoredGroups) && data.ignoredGroups.length > 0
+        ? data.ignoredGroups
+        : Object.keys(groupCounts).filter((g) => !includedSet.has(g));
+
+    // NOTE:
+    // Do NOT use React hooks (useMemo/useEffect/etc.) inside this helper.
+    // This function is called conditionally, and hooks would cause:
+    // "Rendered more hooks than during the previous render."
+    const groupLastIds = data?.groupLastIds || {};
+    const availableGroups = Array.isArray(data?.availableGroups) ? data.availableGroups : Object.keys(groupLastIds || {});
+    const tipsOnlyGroups = availableGroups.filter((g) => !!groupLastIds?.[g] && !includedSet.has(g));
+    const tipsOnlyData = { groupLastIds, availableGroups: tipsOnlyGroups };
 
     return (
       <>
-        <FScoreAccordion f={data.F_value} p={data.p_value} />
         {(includedGroups.length > 0 || notEnoughGroups.length > 0) && (
           <div className="mb-4 text-lg text-[#6b7280] bg-white/40 rounded-lg px-4 py-3 border border-[#E6F4EA]">
             {includedGroups.length > 0 && (
               <div className="mb-1">
-                <b className="text-[#1b5f52]">Activities considered:</b>{' '}
-                {includedGroups.map(g => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}
+                <b className="text-[#1b5f52]">Activities analyzed:</b>{' '}
+                {includedGroups.map((g) => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}
               </div>
             )}
             {notEnoughGroups.length > 0 && (
               <div>
-                <b className="text-[#92400e]">Not enough logs:</b>{' '}
-                {notEnoughGroups.map(g => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}
+                <b className="text-[#92400e]">Not enough paired logs (analysis):</b>{' '}
+                {notEnoughGroups.map((g) => ACTIVITY_LABELS[g] || formatText(g)).join(', ')}
               </div>
             )}
           </div>
         )}
-        <ActivityComparisons
-          tukeyHSD={data.tukeyHSD}
-          groupMeans={groupMeans}
-          groupCounts={groupCounts}
-          includedSet={includedSet}
-        />
 
         <div className="text-md text-[#6b7280] mb-5 bg-[#FEF3C7]/30 rounded-lg px-4 py-2 border border-[#fbbf24]/30">
-           Lists show average mood change per activity (only if ≥2 logs).
+          Lists show average mood change per activity. More paired logs = more reliable results.
         </div>
 
         {topPositive.length > 0 && (
@@ -637,13 +452,13 @@ const DailyAnova = () => {
                 <span className="text-lg text-[#272829] flex-1 leading-relaxed">
                   {getMoodMessage(row.activity, row.moodScore, idx)}
                 </span>
-                <span className="text-md font-semibold px-3 py-1 rounded-full bg-[#55AD9B]/10 text-[#1b5f52]">
+                {/* <span className="text-md font-semibold px-3 py-1 rounded-full bg-[#55AD9B]/10 text-[#1b5f52]">
                   avg {typeof row.moodScore === 'number' ? row.moodScore.toFixed(2) : row.moodScore}
-                </span>
+                </span> */}
                 {data?.groupLastIds?.[row.activity] && (
                   <button
                     className="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white text-md font-semibold hover:shadow-lg transition-all duration-300"
-                    onClick={() => navigate(`/recommendation/${data.groupLastIds[row.activity]}`)}
+                    onClick={() => goToRecommendation(data.groupLastIds[row.activity])}
                     aria-label={`View recommendation for ${row.activity}`}
                   >
                     View Tips
@@ -675,13 +490,13 @@ const DailyAnova = () => {
                 <span className="text-lg text-[#272829] flex-1 leading-relaxed">
                   {getMoodMessage(row.activity, row.moodScore, idx)}
                 </span>
-                <span className="text-md font-semibold px-3 py-1 rounded-full bg-[#FF9800]/10 text-[#92400e]">
+                {/* <span className="text-md font-semibold px-3 py-1 rounded-full bg-[#FF9800]/10 text-[#92400e]">
                   avg {typeof row.moodScore === 'number' ? row.moodScore.toFixed(2) : row.moodScore}
-                </span>
+                </span> */}
                 {data?.groupLastIds?.[row.activity] && (
                   <button
-                    className="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#FF9800] to-[#e07f00] text-white text-xs font-semibold hover:shadow-lg transition-all duration-300"
-                    onClick={() => navigate(`/recommendation/${data.groupLastIds[row.activity]}`)}
+                    className="ml-2 px-4 py-2 rounded-full bg-gradient-to-r from-[#FF9800] to-[#e07f00] text-white text-md font-semibold hover:shadow-lg transition-all duration-300"
+                    onClick={() => goToRecommendation(data.groupLastIds[row.activity])}
                     aria-label={`View recommendation for ${row.activity}`}
                   >
                     View Tips
@@ -691,6 +506,9 @@ const DailyAnova = () => {
             ))}
           </div>
         )}
+
+        {/* If analysis exists but some logged activities didn't qualify for CCC, still show tips for them */}
+        {renderTipsOnly(tipsOnlyData, { title: 'Other logged activities (tips only)' })}
       </>
     );
   }
@@ -708,9 +526,7 @@ const DailyAnova = () => {
             <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
           </button>
           <div className="flex-1 text-center">
-            <div className="text-[#1b5f52] text-2xl font-bold tracking-wide mb-2">
-              Daily Moods & Habits Analysis
-            </div>
+            <div className="text-[#1b5f52] text-2xl font-bold tracking-wide mb-2">Daily Moods & Habits Analysis</div>
             <div className="flex justify-center items-center gap-4 mt-3">
               <button
                 onClick={handlePrev}
@@ -727,7 +543,10 @@ const DailyAnova = () => {
                 className="p-2.5 rounded-full bg-white hover:bg-[#F7FBF9] shadow-md hover:shadow-lg transition-all duration-300"
                 aria-label="Next Day"
                 disabled={date >= toLocalISODate()}
-                style={{ opacity: date >= toLocalISODate() ? 0.4 : 1, cursor: date >= toLocalISODate() ? 'not-allowed' : 'pointer' }}
+                style={{
+                  opacity: date >= toLocalISODate() ? 0.4 : 1,
+                  cursor: date >= toLocalISODate() ? 'not-allowed' : 'pointer'
+                }}
               >
                 <ArrowForwardIosIcon style={{ color: '#55AD9B', fontSize: 20 }} />
               </button>
@@ -779,11 +598,7 @@ const DailyAnova = () => {
                               className="flex flex-col items-center bg-gradient-to-br from-white to-[#F7FBF9] backdrop-blur border-2 rounded-2xl px-6 py-6 w-full shadow-md hover:shadow-xl transition-all duration-300"
                               style={{
                                 borderColor:
-                                  sleepMoodScore > 0
-                                    ? POSITIVE_COLOR
-                                    : sleepMoodScore < 0
-                                    ? NEGATIVE_COLOR
-                                    : '#fbbf24',
+                                  sleepMoodScore > 0 ? POSITIVE_COLOR : sleepMoodScore < 0 ? NEGATIVE_COLOR : '#fbbf24',
                                 minHeight: 140
                               }}
                             >
@@ -805,7 +620,7 @@ const DailyAnova = () => {
                               {sleepMoodScoreId && (
                                 <button
                                   className="mt-5 px-6 py-2.5 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white font-semibold shadow-md hover:shadow-lg transition-all duration-300"
-                                  onClick={() => navigate(`/recommendation/${sleepMoodScoreId}`)}
+                                  onClick={() => goToRecommendation(sleepMoodScoreId)}
                                 >
                                   View Sleep Tips
                                 </button>
@@ -819,17 +634,15 @@ const DailyAnova = () => {
                             <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#F7FBF9] flex items-center justify-center border-2 border-[#D8EFD3]">
                               <span className="text-3xl">💤</span>
                             </div>
-                            <span className="text-[#6b7280] text-base font-medium">
-                              No sleep data recorded
-                            </span>
+                            <span className="text-[#6b7280] text-base font-medium">No sleep data recorded</span>
                           </div>
                         </div>
                       )}
                     </div>
                   </div>
-                ),
+                )
               },
-              ...['activity', 'social', 'health'].map(category => ({
+              ...['activity', 'social', 'health'].map((category) => ({
                 key: category,
                 title: CATEGORY_LABELS[category],
                 icon: CATEGORY_ICONS[category],
@@ -857,24 +670,21 @@ const DailyAnova = () => {
             ))}
           </div>
         )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6 }}
           className="text-center bg-gradient-to-r from-[#D8EFD3] to-[#95D2B3] rounded-2xl p-6 mt-10 shadow-lg border-2 border-[#55AD9B]/30"
         >
-          <p className="text-[#1b5f52] text-lg font-bold">
-             Each log teaches what lifts you. Keep going! 
-          </p>
+          <p className="text-[#1b5f52] text-lg font-bold">Each log teaches what lifts you. Keep going!</p>
         </motion.div>
       </div>
 
       {/* Info modal */}
-      <AnimatePresence>
-        {showInfo && <InfoModal open={showInfo} onClose={() => setShowInfo(false)} />}
-      </AnimatePresence>
+      <AnimatePresence>{showInfo && <InfoModal open={showInfo} onClose={() => setShowInfo(false)} />}</AnimatePresence>
     </div>
   );
 };
 
-export default DailyAnova;
+export default MoodHabitAnalysis;

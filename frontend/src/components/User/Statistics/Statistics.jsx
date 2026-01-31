@@ -4,7 +4,7 @@ import axios from 'axios';
 import moment from 'moment';
 import BottomNav from '../../BottomNav';
 
-import Anova from './StatisticsComponents/Anova';
+import MoodHabit from './StatisticsComponents/MoodHabit';
 import DetailedMoodAnalysis from './StatisticsComponents/DetailedMoodAnalysis';
 import MoodAnalysis from './StatisticsComponents/MoodAnalysis';
 import SleepAnalysis from './StatisticsComponents/SleepAnalysis';
@@ -63,7 +63,7 @@ const Statistics = () => {
   return (
     <div className="min-h-screen pb-20 bg-[#55AD9B]">
       <div className="max-w-4xl mx-auto pt-6 px-4">
-        <Anova />
+        <MoodHabit />
         <DetailedMoodAnalysis />
         <MoodAnalysis
           moodLogs={moodLogs}
