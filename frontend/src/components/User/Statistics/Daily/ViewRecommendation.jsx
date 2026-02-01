@@ -193,7 +193,7 @@ const ViewRecommendation = () => {
             {/* Action Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
               <button
-                onClick={() => navigate('/daily-anova')}
+                onClick={() => navigate('/mood-habit-analysis')}
                 className="w-full sm:w-auto px-8 py-3 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white text-base font-semibold shadow-md hover:shadow-lg transition-all duration-300"
               >
                 Back to Daily Analysis

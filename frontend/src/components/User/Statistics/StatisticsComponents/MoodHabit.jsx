@@ -24,16 +24,19 @@ const MoodHabit = () => {
             <AssessmentIcon style={{ color: '#55AD9B', fontSize: 28 }} />
           </div>
           <div>
-            <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>Mood & Habits Analysis</h2>
-            <p className="text-gray-600">Statistical insights into how your habits affect mood</p>
+            <h2 className="text-2xl font-bold" style={{ color: '#272829' }}>
+              Mood & Habits Analysis
+            </h2>
+            <p className="text-gray-600">
+              Insights from your mood and habit logs to support your recommendations
+            </p>
           </div>
         </div>
 
-        <p className="text-gray-700 mb-8 leading-relaxed">
-          This dashboard combines several methods: per‑activity average mood change from your logs
-          (before vs. after), one‑way ANOVA to test for differences across activities, and Tukey’s
-          HSD for pairwise comparisons (only activities with at least 2 logs are included). Sleep
-          impact is derived from hours/quality to a mood score.
+        <p className="text-gray-700 mb-8 leading-relaxed text-justify">
+          This dashboard uses your logged moods and habits to highlight patterns—like how you tend to feel before and
+          after different activities, social time, health habits, and sleep. These insights help form the basis of the
+          recommendations you receive, so you can spot what’s helping, what’s not, and what to try next.
         </p>
 
         <div className="flex justify-center">
@@ -47,7 +50,9 @@ const MoodHabit = () => {
             <CalendarViewDayIcon className="mr-4" style={{ fontSize: 32, color: '#55AD9B' }} />
             <div className="flex flex-col items-start">
               <span className="text-lg font-semibold text-[#222] mb-1">Daily Statistics</span>
-              <span className="text-[#256353] text-base font-normal opacity-70">Today's activity impact analysis</span>
+              <span className="text-[#256353] text-base font-normal opacity-70">
+                Today&apos;s mood and habit insights
+              </span>
             </div>
           </motion.button>
         </div>
