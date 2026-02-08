@@ -20,8 +20,6 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogTitle from '@mui/material/DialogTitle';
 import Button from '@mui/material/Button';
-import LinearProgress from '@mui/material/LinearProgress';
-import Box from '@mui/material/Box';
 import { motion } from 'framer-motion';
 
 // Daily inspirational quotes
@@ -51,7 +49,6 @@ const JournalLogs = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [openDeleteModal, setOpenDeleteModal] = useState(false);
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [challengesAnchorEl, setChallengesAnchorEl] = useState(null);
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -68,11 +65,13 @@ const JournalLogs = () => {
     const today = getTodayString();
     const lastQuoteDay = localStorage.getItem('lastQuoteDay');
     if (lastQuoteDay === today) return false;
+
     const hasLoggedToday = entries.some(entry => {
       const entryDate = new Date(entry.date);
       const entryDateString = `${entryDate.getFullYear()}-${entryDate.getMonth() + 1}-${entryDate.getDate()}`;
       return entryDateString === today;
     });
+
     return !hasLoggedToday;
   };
 
@@ -89,10 +88,9 @@ const JournalLogs = () => {
         setIsLoading(true);
         const token = localStorage.getItem('token');
         const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/all`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
+
         const entries = response.data.entries || [];
         setJournalEntries(entries);
 
@@ -174,16 +172,14 @@ const JournalLogs = () => {
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`${import.meta.env.VITE_NODE_API}/api/journal/${selectedEntry._id}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
+
       const updatedEntries = journalEntries.filter(entry => entry._id !== selectedEntry._id);
       setJournalEntries(updatedEntries);
 
       const updatedMonthEntries = filterEntriesByMonth(updatedEntries, currentDate);
       setEntriesForCurrentMonth(updatedMonthEntries);
-
       setFilteredEntries(updatedMonthEntries);
     } catch (error) {
       // Optionally show toast
@@ -214,19 +210,6 @@ const JournalLogs = () => {
     });
   };
 
-  const getWeekStartDate = (date) => {
-    const day = date.getDay();
-    const diff = date.getDate() - day + (day === 0 ? -6 : 1);
-    return new Date(date.setDate(diff));
-  };
-  const weekStartDate = getWeekStartDate(new Date());
-  const completedChallenges = journalEntries.filter(entry => {
-    const entryDate = new Date(entry.date);
-    return entry.challenges && entryDate >= weekStartDate;
-  }).length;
-  const totalChallenges = 7;
-  const progress = (completedChallenges / totalChallenges) * 100;
-
   const formattedDate = currentDate.toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'long',
@@ -252,16 +235,17 @@ const JournalLogs = () => {
           </span>
         ))}
       </div>
+
       <div className="text-gray-700 text-md whitespace-pre-line mb-2 line-clamp-3">
-        {entry.content.length > 100
-          ? entry.content.slice(0, 100) + '...'
-          : entry.content}
+        {entry.content.length > 100 ? entry.content.slice(0, 100) + '...' : entry.content}
       </div>
+
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center text-sm text-gray-400">
           <CalendarTodayIcon fontSize="small" className="mr-1" />
           {new Date(entry.date).toLocaleString()}
         </div>
+
         <MoreHorizIcon
           onClick={(event) => {
             event.stopPropagation();
@@ -284,24 +268,22 @@ const JournalLogs = () => {
     >
       <div className="w-16 h-16 bg-[#d8f3dc] rounded-lg flex items-center justify-center mr-4">
         <div className="text-center">
-          <div className="font-bold text-[#40916c]">
-            {new Date(entry.date).getDate()}
-          </div>
+          <div className="font-bold text-[#40916c]">{new Date(entry.date).getDate()}</div>
           <div className="text-xs text-gray-500">
             {new Date(entry.date).toLocaleDateString('en-US', { month: 'short' })}
           </div>
         </div>
       </div>
+
       <div className="flex-1 overflow-hidden">
         <h2 className="text-lg font-bold mb-1 text-gray-800">
           {entry.challenges && entry.challenges.join(', ')}
         </h2>
         <p className="text-sm text-gray-600 mb-2 line-clamp-1">
-          {entry.content.length > 100
-            ? entry.content.slice(0, 100) + '...'
-            : entry.content}
+          {entry.content.length > 100 ? entry.content.slice(0, 100) + '...' : entry.content}
         </p>
       </div>
+
       <MoreHorizIcon
         onClick={(event) => {
           event.stopPropagation();
@@ -317,69 +299,17 @@ const JournalLogs = () => {
       {/* Fixed navbar */}
       <nav className="bg-white py-4 shadow-md sticky top-0 z-10">
         <div className="max-w-5xl mx-auto px-4 flex items-center">
-          {/* Left side */}
-          <div className="w-1/4">
-            <div
-              className="cursor-pointer w-8 h-8 flex items-center justify-center"
-              onClick={() => setChallengesAnchorEl(true)}
-            >
-              <img
-                src="/images/goal.gif"
-                alt="Challenge"
-                className="w-20 h-20 object-contain"
-              />
-            </div>
-            <Menu
-              anchorEl={challengesAnchorEl}
-              open={Boolean(challengesAnchorEl)}
-              onClose={() => setChallengesAnchorEl(null)}
-              anchorOrigin={{
-                vertical: 'top',
-                horizontal: 'left',
-              }}
-              transformOrigin={{
-                vertical: 'top',
-                horizontal: 'left',
-              }}
-            >
-              <Box sx={{ width: 280, padding: '16px' }}>
-                <h3 className="font-bold mb-2">Weekly Challenge Progress</h3>
-                <LinearProgress
-                  variant="determinate"
-                  value={progress}
-                  sx={{
-                    height: 10,
-                    borderRadius: 5,
-                    backgroundColor: '#e0e0e0',
-                    '& .MuiLinearProgress-bar': {
-                      backgroundColor: '#52b788'
-                    }
-                  }}
-                />
-                <div className="flex justify-between mt-2">
-                  <span className="text-sm font-medium">
-                    {completedChallenges}/{totalChallenges} Days Completed
-                  </span>
-                  <span className="text-sm font-medium text-[#52b788]">
-                    {Math.round(progress)}%
-                  </span>
-                </div>
-              </Box>
-            </Menu>
-          </div>
+          {/* Left side (weekly progress removed) */}
+          <div className="w-1/4" />
+
           {/* Center - Month display */}
           <div className="flex-1 flex justify-center items-center">
-            <ChevronLeftIcon
-              className="cursor-pointer mx-2 hover:text-[#40916c]"
-              onClick={handlePrevMonth}
-            />
+            <ChevronLeftIcon className="cursor-pointer mx-2 hover:text-[#40916c]" onClick={handlePrevMonth} />
             <h1 className="text-xl font-bold">{formattedDate}</h1>
-            <ChevronRightIcon
-              className="cursor-pointer mx-2 hover:text-[#40916c]"
-              onClick={handleNextMonth}
-            />
+            <ChevronRightIcon className="cursor-pointer mx-2 hover:text-[#40916c]" onClick={handleNextMonth} />
           </div>
-          {/* Right side - Only Journal Challenge Button */}
+
+          {/* Right side - Journal Challenge Button */}
           <div className="w-1/4 flex justify-end">
             <div
               className="bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white rounded-full p-2 shadow-md hover:from-[#3e8e7e] hover:to-[#55AD9B] transition-colors duration-300 cursor-pointer"
@@ -391,6 +321,7 @@ const JournalLogs = () => {
           </div>
         </div>
       </nav>
+
       {/* Main content - scrollable area */}
       <div className="flex-1 overflow-y-auto pb-16">
         <div className="max-w-5xl mx-auto px-4 py-6">
@@ -405,12 +336,11 @@ const JournalLogs = () => {
               />
               <SearchIcon className="absolute left-3 top-2.5 text-gray-400" />
             </div>
+
             <div className="flex items-center bg-white rounded-lg border border-gray-200">
               <div
                 className={`px-4 py-2 cursor-pointer ${
-                  viewMode === 'grid'
-                    ? 'bg-[#d8f3dc] text-[#40916c]'
-                    : 'text-gray-500'
+                  viewMode === 'grid' ? 'bg-[#d8f3dc] text-[#40916c]' : 'text-gray-500'
                 } rounded-l-lg`}
                 onClick={() => setViewMode('grid')}
               >
@@ -418,9 +348,7 @@ const JournalLogs = () => {
               </div>
               <div
                 className={`px-4 py-2 cursor-pointer ${
-                  viewMode === 'list'
-                    ? 'bg-[#d8f3dc] text-[#40916c]'
-                    : 'text-gray-500'
+                  viewMode === 'list' ? 'bg-[#d8f3dc] text-[#40916c]' : 'text-gray-500'
                 } rounded-r-lg`}
                 onClick={() => setViewMode('list')}
               >
@@ -428,16 +356,19 @@ const JournalLogs = () => {
               </div>
             </div>
           </div>
+
           {isLoading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#55AD9B]"></div>
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#55AD9B]" />
             </div>
           ) : filteredEntries.length === 0 ? (
             <div className="text-center p-8 bg-white rounded-lg shadow-md">
               <CalendarTodayIcon style={{ fontSize: 48 }} className="mx-auto mb-4 text-gray-300" />
               <h3 className="text-xl font-medium mb-2">No journal entries found</h3>
               <p className="mb-4 text-gray-500">
-                {searchTerm ? 'Try adjusting your search term' : 'No entries for this month. Add a new entry to get started!'}
+                {searchTerm
+                  ? 'Try adjusting your search term'
+                  : 'No entries for this month. Add a new entry to get started!'}
               </p>
               <div className="flex justify-center">
                 <div
@@ -463,10 +394,12 @@ const JournalLogs = () => {
           )}
         </div>
       </div>
+
       {/* Fixed bottom nav */}
       <div className="fixed bottom-0 left-0 right-0 z-10">
         <BottomNav value="journal" setValue={() => {}} />
       </div>
+
       {/* Journal entry operations menu */}
       <Menu
         anchorEl={anchorEl}
@@ -476,8 +409,8 @@ const JournalLogs = () => {
           style: {
             borderRadius: 16,
             minWidth: 180,
-            boxShadow: '0 4px 24px 0 rgba(85,173,155,0.10)'
-          }
+            boxShadow: '0 4px 24px 0 rgba(85,173,155,0.10)',
+          },
         }}
       >
         <MenuItem onClick={handleUpdateClick}>
@@ -489,6 +422,7 @@ const JournalLogs = () => {
           Delete
         </MenuItem>
       </Menu>
+
       {/* Delete confirmation dialog */}
       <Dialog
         open={openDeleteModal}
@@ -499,8 +433,8 @@ const JournalLogs = () => {
             borderRadius: 20,
             padding: 0,
             background: '#FFFFFF',
-            border: '2px solid #E6F4EA'
-          }
+            border: '2px solid #E6F4EA',
+          },
         }}
       >
         <DialogTitle className="text-center font-bold text-[#1b5f52] text-2xl pt-8 pb-2">
@@ -523,7 +457,7 @@ const JournalLogs = () => {
               color: '#55AD9B',
               borderRadius: 999,
               padding: '8px 28px',
-              fontWeight: 600
+              fontWeight: 600,
             }}
           >
             Cancel
@@ -537,7 +471,7 @@ const JournalLogs = () => {
               borderRadius: 999,
               padding: '8px 28px',
               fontWeight: 600,
-              marginLeft: 12
+              marginLeft: 12,
             }}
             autoFocus
           >
@@ -545,6 +479,7 @@ const JournalLogs = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
       {/* Daily Quote Modal */}
       <Dialog
         open={showDailyQuote}
@@ -555,8 +490,8 @@ const JournalLogs = () => {
           style: {
             borderRadius: '16px',
             padding: '0',
-            overflow: 'hidden'
-          }
+            overflow: 'hidden',
+          },
         }}
       >
         <motion.div
@@ -572,15 +507,13 @@ const JournalLogs = () => {
           >
             <CloseIcon />
           </div>
+
           {/* Quote content */}
           <div className="flex flex-col items-center pt-2 pb-6 px-4">
             <div className="w-32 h-32 mb-6">
-              <img
-                src="/images/type.gif"
-                alt="Daily Quote"
-                className="w-full h-full object-contain"
-              />
+              <img src="/images/type.gif" alt="Daily Quote" className="w-full h-full object-contain" />
             </div>
+
             <div className="text-center">
               <h2 className="text-xl font-bold text-[#40916c] mb-4">Today's Inspiration</h2>
               {todaysQuote && (
@@ -590,6 +523,7 @@ const JournalLogs = () => {
                 </>
               )}
             </div>
+
             <button
               onClick={handleCloseQuote}
               className="mt-8 px-6 py-2 bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white rounded-lg hover:from-[#3e8e7e] hover:to-[#55AD9B] transition-colors duration-300"

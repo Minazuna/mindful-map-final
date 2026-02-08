@@ -156,7 +156,6 @@ export default function JournalChallenge({ onSelect }) {
                   >
                     Start
                   </button>
-                  <div className="text-xs text-[#6b7280] select-none font-mono tracking-tight">#{challenge.key}</div>
                 </div>
               </div>
               {/* Decorative footer */}

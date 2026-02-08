@@ -1,13 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLocation, useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { motion } from 'framer-motion';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import StarIcon from '@mui/icons-material/Star';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import CommentIcon from '@mui/icons-material/Comment';
-import AssessmentIcon from '@mui/icons-material/Assessment';
 import EmojiEmotionsIcon from '@mui/icons-material/EmojiEmotions';
 
 const ViewRecommendation = () => {
@@ -17,7 +13,6 @@ const ViewRecommendation = () => {
 
   const [recommendation, setRecommendation] = useState(location.state?.recommendation || null);
   const [feedback, setFeedback] = useState(location.state?.feedback || null);
-  const [sentimentScore, setSentimentScore] = useState(location.state?.sentimentScore ?? 0);
   const [combinedScore, setCombinedScore] = useState(location.state?.combinedScore ?? 0);
   const [effective, setEffective] = useState(!!location.state?.effective);
   const [loading, setLoading] = useState(false);
@@ -40,14 +35,34 @@ const ViewRecommendation = () => {
       }
     }
     fetchRec();
-  }, [recommendationId]);
+  }, [recommendationId, recommendation]);
+
+  // If feedback exists but wasn’t passed in via navigation state, keep combined/effective in sync where possible
+  useEffect(() => {
+    if (feedback) {
+      if (typeof feedback.combinedScore === 'number') setCombinedScore(feedback.combinedScore);
+      if (typeof feedback.effective === 'boolean') setEffective(feedback.effective);
+    }
+  }, [feedback]);
+
+  // Sentiment label (VADER-style thresholds) derived from numeric sentimentScore stored in feedback/state
+  const rawSentimentScore =
+    location.state?.sentimentScore ?? feedback?.sentimentScore ?? feedback?.scores?.combined ?? 0;
+
+  const sentimentLabel = useMemo(() => {
+    const s = Number(rawSentimentScore);
+    if (Number.isNaN(s)) return 'Neutral';
+    if (s >= 0.05) return 'Positive';
+    if (s <= -0.05) return 'Negative';
+    return 'Neutral';
+  }, [rawSentimentScore]);
 
   // Helper function to format text: capitalize first letters and remove dashes
   const formatText = (text) => {
     if (!text) return '';
     return text
       .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
@@ -57,8 +72,6 @@ const ViewRecommendation = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
-
-
       {/* Content */}
       <div className="max-w-4xl mx-auto px-6 py-10">
         {loading ? (
@@ -73,11 +86,7 @@ const ViewRecommendation = () => {
             </motion.div>
           </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
             {/* Success Banner */}
             <div className="bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] rounded-2xl p-7 shadow-lg text-white">
               <div className="flex items-center gap-4">
@@ -151,11 +160,13 @@ const ViewRecommendation = () => {
                 </div>
 
                 <div className="space-y-4">
-                  <div className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-base font-bold ${
-                    effective 
-                      ? 'bg-[#55AD9B]/10 text-[#1b5f52] border-2 border-[#55AD9B]/30' 
-                      : 'bg-[#FF9800]/10 text-[#92400e] border-2 border-[#FF9800]/30'
-                  }`}>
+                  <div
+                    className={`inline-flex items-center gap-2 px-4 py-2 rounded-full text-base font-bold ${
+                      effective
+                        ? 'bg-[#55AD9B]/10 text-[#1b5f52] border-2 border-[#55AD9B]/30'
+                        : 'bg-[#FF9800]/10 text-[#92400e] border-2 border-[#FF9800]/30'
+                    }`}
+                  >
                     {effective ? '✓ Effective' : '✗ Needs Improvement'}
                   </div>
 
@@ -165,7 +176,7 @@ const ViewRecommendation = () => {
                       <span className="font-bold text-[#1b5f52]">{scorePct}%</span>
                     </div>
                     <div className="w-full bg-[#E6F4EA] rounded-full h-3 overflow-hidden">
-                      <div 
+                      <div
                         className="h-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] rounded-full transition-all duration-500"
                         style={{ width: `${scorePct}%` }}
                       />
@@ -174,7 +185,7 @@ const ViewRecommendation = () => {
 
                   <div className="flex items-center gap-2 text-sm text-[#6b7280]">
                     <EmojiEmotionsIcon style={{ fontSize: 18 }} />
-                    <span>Sentiment: {sentimentScore?.toFixed(3)}</span>
+                    <span>Sentiment Analysis: {sentimentLabel}</span>
                   </div>
                 </div>
               </div>
