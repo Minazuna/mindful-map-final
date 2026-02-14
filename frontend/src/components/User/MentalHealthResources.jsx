@@ -113,7 +113,7 @@ const MentalHealthResources = () => {
                 to="/signup"
                 className="bg-[#F1F8E8] text-[#55AD9B] text-lg px-8 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 font-semibold hover:bg-white"
               >
-                Get Started
+                Sign Up
               </Link>
             </motion.div>
           </div>

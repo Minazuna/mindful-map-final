@@ -178,7 +178,7 @@ const AboutUs = () => {
                 to="/signup"
                 className="bg-[#F1F8E8] text-[#55AD9B] text-lg px-8 py-3 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 font-semibold hover:bg-white"
               >
-                Get Started
+                Sign Up
               </Link>
             </motion.div>
           </div>
@@ -326,7 +326,7 @@ const AboutUs = () => {
                 className="w-full"
               >
                 <img
-                  src="/images/about.png"
+                  src="/images/logo.png"
                   alt="About Mindful Map"
                   className="w-full h-auto max-w-xl drop-shadow-2xl"
                 />

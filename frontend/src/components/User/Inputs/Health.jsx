@@ -14,7 +14,7 @@ const Health = ({ categoryFormData, setCategoryFormData }) => {
     { id: 'eat-healthy', label: 'Eat Healthy', icon: '/images/eatHealthy.png' },
     { id: 'no-physical', label: 'No Physical Activity', icon: '/images/noPhysicalActivity.png' },
     { id: 'eat-unhealthy', label: 'Eat Unhealthy', icon: '/images/eatUnhealthy.png' },
-    { id: 'drink-alcohol', label: 'Drink Alcohol', icon: '/images/drinkAlcohol.png' }
+    // { id: 'drink-alcohol', label: 'Drink Alcohol', icon: '/images/drinkAlcohol.png' }
   ];
 
   const handleHealthSelect = (healthId) => {
