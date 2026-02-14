@@ -6,6 +6,7 @@ const PredictedMood = require('../models/PredictedMood');
 const jwt = require("jsonwebtoken");
 const mongoose = require('mongoose');
 const moment = require('moment');
+const bcrypt = require('bcrypt');
 const admin = require('../config/firebaseConfig');
 
 // Get admin dashboard statistics
@@ -419,7 +420,7 @@ exports.createTeacher = async (req, res) => {
 exports.updateTeacher = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    const { firstName, lastName, middleInitial, assignedSections, subject } = req.body;
+    const { firstName, lastName, middleInitial, email, assignedSections, subject, password } = req.body;
 
     // Validation
     if (!firstName || !lastName || !assignedSections || !Array.isArray(assignedSections) || assignedSections.length === 0 || !subject) {
@@ -429,26 +430,65 @@ exports.updateTeacher = async (req, res) => {
       });
     }
 
-    const updatedTeacher = await User.findByIdAndUpdate(
-      teacherId,
-      {
-        firstName,
-        lastName,
-        middleInitial: middleInitial || '',
-        assignedSections,
-        subject
-      },
-      { new: true, runValidators: true }
-    ).select('-password');
-
-    if (!updatedTeacher) {
+    const teacher = await User.findById(teacherId);
+    if (!teacher) {
       return res.status(404).json({ success: false, message: 'Teacher not found.' });
     }
+
+    // Prepare updates
+    const firebaseUpdate = {};
+    const updateFields = {
+      firstName,
+      lastName,
+      middleInitial: middleInitial || '',
+      assignedSections,
+      subject
+    };
+
+    // Update Email if changed
+    if (email && email !== teacher.email) {
+      // Check if new email is already in use
+      const existingUser = await User.findOne({ email, _id: { $ne: teacherId } });
+      if (existingUser) {
+        return res.status(400).json({ success: false, message: 'Email is already in use by another account.' });
+      }
+      updateFields.email = email;
+      firebaseUpdate.email = email;
+    }
+
+    // Update Password if provided
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+      }
+      // Explicitly hash the password for MongoDB
+      const salt = await bcrypt.genSalt(10);
+      updateFields.password = await bcrypt.hash(password, salt);
+      
+      // Update Firebase (Firebase handles hashing internally from plain text provided here)
+      firebaseUpdate.password = password;
+    }
+
+    // Update displayName in Firebase
+    firebaseUpdate.displayName = `${firstName} ${middleInitial ? middleInitial + ' ' : ''}${lastName}`;
+
+    // Update Firebase if needed
+    if (Object.keys(firebaseUpdate).length > 0 && teacher.firebaseUid) {
+      await admin.auth().updateUser(teacher.firebaseUid, firebaseUpdate);
+    }
+
+    // Update MongoDB - Using findByIdAndUpdate to bypass the pre-save hook 
+    // since we've already manually hashed the password if it was changed
+    const updatedUser = await User.findByIdAndUpdate(
+      teacherId,
+      { $set: updateFields },
+      { new: true, runValidators: true }
+    ).select('-password');
 
     res.status(200).json({
       success: true,
       message: 'Teacher updated successfully.',
-      data: updatedTeacher
+      data: updatedUser
     });
 
   } catch (error) {

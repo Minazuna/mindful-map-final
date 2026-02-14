@@ -106,18 +106,20 @@ const AfterNegative = ({ categoryFormData, setCategoryFormData }) => {
 
   const handleSubmit = async () => {
     if (selectedEmotion && intensity > 0) {
-      // Validate reason
-      const validation = validateReason(reason);
-      if (!validation.isValid) {
-        setReasonError(validation.error);
-        return;
-      }
+      // Only validate reason if one is provided (reason is optional)
+      if (reason.trim()) {
+        const validation = validateReason(reason);
+        if (!validation.isValid) {
+          setReasonError(validation.error);
+          return;
+        }
 
-      // Count words in reason
-      const wordCount = reason.trim() ? reason.trim().split(/\s+/).length : 0;
-      if (wordCount > 100) {
-        setReasonError('Please limit your response to 100 words or less.');
-        return;
+        // Count words in reason
+        const wordCount = reason.trim().split(/\s+/).length;
+        if (wordCount > 100) {
+          setReasonError('Please limit your response to 100 words or less.');
+          return;
+        }
       }
 
       try {

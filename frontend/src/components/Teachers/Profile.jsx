@@ -1,17 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
+import { Eye, EyeOff } from 'lucide-react';
 import Sidebar from './Sidebar';
 
 const EditProfile = () => {
   const [teacher, setTeacher] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     middleInitial: '',
     subject: '',
-    avatar: ''
+    avatar: '',
+    password: ''
   });
   const [avatarFile, setAvatarFile] = useState(null);
   const [avatarPreview, setAvatarPreview] = useState(null);
@@ -35,7 +38,8 @@ const EditProfile = () => {
           lastName: teacherData.lastName,
           middleInitial: teacherData.middleInitial || '',
           subject: teacherData.subject,
-          avatar: teacherData.avatar || ''
+          avatar: teacherData.avatar || '',
+          password: ''
         });
         if (teacherData.avatar) {
           setAvatarPreview(teacherData.avatar);
@@ -90,6 +94,14 @@ const EditProfile = () => {
       submitData.append('middleInitial', formData.middleInitial);
       submitData.append('subject', formData.subject);
       
+      if (formData.password) {
+        if (formData.password.length < 6) {
+          toast.error('Password must be at least 6 characters long');
+          return;
+        }
+        submitData.append('password', formData.password);
+      }
+      
       if (avatarFile) {
         submitData.append('avatar', avatarFile);
       }
@@ -109,6 +121,10 @@ const EditProfile = () => {
         toast.success('Profile updated successfully!');
         setTeacher({ ...teacher, ...response.data.data });
         setAvatarFile(null);
+        // Clear password field after successful update
+        setFormData(prev => ({ ...prev, password: '' }));
+      } else {
+        toast.error(response.data.message || 'Update failed');
       }
     } catch (error) {
       console.error('Error updating profile:', error);
@@ -264,7 +280,6 @@ const EditProfile = () => {
                 </div>
               </div>
 
-              {/* Read-only fields */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -278,20 +293,48 @@ const EditProfile = () => {
                   />
                   <p className="text-xs text-gray-500 mt-1">Email cannot be changed</p>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Assigned Sections
+                    New Password
                   </label>
-                  <div className="flex flex-wrap gap-2">
-                    {teacher?.assignedSections?.map((section, index) => (
-                      <span key={index} className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: '#E8F5F0', color: '#2D5A45' }}>
-                        {section}
-                      </span>
-                    ))}
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Leave blank to keep current password"
+                      minLength="6"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 pr-10"
+                      style={{ '--tw-ring-color': '#7BC5A5' }}
+                      onFocus={(e) => e.target.style.borderColor = '#7BC5A5'}
+                      onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                    </button>
                   </div>
-                  <p className="text-xs text-gray-500 mt-1">Sections are managed by admin</p>
                 </div>
+              </div>
+
+              {/* Read-only fields */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assigned Sections
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {teacher?.assignedSections?.map((section, index) => (
+                    <span key={index} className="px-3 py-1 rounded-full text-sm font-medium" style={{ backgroundColor: '#E8F5F0', color: '#2D5A45' }}>
+                      {section}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 mt-1">Sections are managed by admin</p>
               </div>
 
               <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">

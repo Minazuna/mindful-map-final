@@ -6,6 +6,8 @@ const { getTeacherRecommendations } = require('../services/teacherRecommendEngin
 const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const bcrypt = require('bcrypt');
+const admin = require('../config/firebaseConfig');
 
 const storage = new CloudinaryStorage({
   cloudinary: cloudinary,
@@ -41,7 +43,7 @@ exports.getTeacherProfile = async (req, res) => {
 // Update teacher profile
 exports.updateTeacherProfile = async (req, res) => {
   try {
-    const { firstName, lastName, middleInitial, subject } = req.body;
+    const { firstName, lastName, middleInitial, subject, password } = req.body;
     
     const teacher = await User.findById(req.user._id);
     
@@ -50,30 +52,56 @@ exports.updateTeacherProfile = async (req, res) => {
     }
 
     // Update allowed fields
-    teacher.firstName = firstName || teacher.firstName;
-    teacher.lastName = lastName || teacher.lastName;
-    teacher.middleInitial = middleInitial || teacher.middleInitial;
-    teacher.subject = subject || teacher.subject;
+    const updateFields = {
+      firstName: firstName || teacher.firstName,
+      lastName: lastName || teacher.lastName,
+      middleInitial: middleInitial || teacher.middleInitial,
+      subject: subject || teacher.subject
+    };
+
+    // Prepare Firebase update
+    const firebaseUpdate = {};
+    if ((firstName && firstName !== teacher.firstName) || 
+        (lastName && lastName !== teacher.lastName) || 
+        (middleInitial && middleInitial !== teacher.middleInitial)) {
+       firebaseUpdate.displayName = `${updateFields.firstName} ${updateFields.middleInitial ? updateFields.middleInitial + ' ' : ''}${updateFields.lastName}`;
+    }
+
+    // Handle password update
+    if (password) {
+      if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'Password must be at least 6 characters long.' });
+      }
+      
+      // Hash password for MongoDB
+      const salt = await bcrypt.genSalt(10);
+      updateFields.password = await bcrypt.hash(password, salt);
+      
+      // Add to Firebase update
+      firebaseUpdate.password = password;
+    }
 
     // Update avatar if provided
     if (req.file) {
-      teacher.avatar = req.file.path;
+      updateFields.avatar = req.file.path;
     }
 
-    await teacher.save();
+    // Update Firebase if needed
+    if (Object.keys(firebaseUpdate).length > 0 && teacher.firebaseUid) {
+      await admin.auth().updateUser(teacher.firebaseUid, firebaseUpdate);
+    }
+
+    // Update MongoDB
+    const updatedTeacher = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updateFields },
+      { new: true }
+    ).select('-password');
 
     res.status(200).json({
       success: true,
       message: 'Profile updated successfully',
-      data: {
-        firstName: teacher.firstName,
-        lastName: teacher.lastName,
-        middleInitial: teacher.middleInitial,
-        subject: teacher.subject,
-        email: teacher.email,
-        assignedSections: teacher.assignedSections,
-        avatar: teacher.avatar
-      }
+      data: updatedTeacher
     });
   } catch (error) {
     console.error('Error updating teacher profile:', error);
