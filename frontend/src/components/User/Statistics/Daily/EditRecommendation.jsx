@@ -1,764 +1,371 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  ScrollView,
-  TextInput,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { colors } from '../../../../utils/colors/colors';
-import { fonts } from '../../../../utils/fonts/fonts';
-import {
-  getWeeklyRecommendations,
-  getRecommendationById,
-  generateRecommendations,
-  submitRecommendationFeedback,
-  getUserFeedbackForRecommendation,
-} from '../../../../services/recommendationService';
+import React, { useEffect, useState, useMemo } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import axios from 'axios';
+import { motion } from 'framer-motion';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import StarIcon from '@mui/icons-material/Star';
+import CommentIcon from '@mui/icons-material/Comment';
+import EditIcon from '@mui/icons-material/Edit';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import SaveIcon from '@mui/icons-material/Save';
+import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 
-export default function RecommendationRating() {
-  const route = useRoute();
-  const navigation = useNavigation();
+const EditRecommendation = () => {
+  const { recommendationId } = useParams();
+  const navigate = useNavigate();
+  const location = useLocation();
 
-  const {
-    recommendationId,
-    hasExistingFeedback,
-    moodScoreId,
-    date,
-    category,
-    activity,
-  } = route.params || {};
-
-  const [recommendation, setRecommendation] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [moodScoreId, setMoodScoreId] = useState(location.state?.moodScoreId ?? null);
 
-  // Editable fields
+  // Editable fields (pre-filled)
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
 
-  // Analysis fields (match web behavior: keep numeric internally, but display label only)
+  // Last saved analysis (pre-filled if available)
   const [sentimentScore, setSentimentScore] = useState(0);
   const [combinedScore, setCombinedScore] = useState(0);
   const [effective, setEffective] = useState(null);
 
-  const [submitting, setSubmitting] = useState(false);
-
-  const ratingLabels = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
-  const ratingEmojis = ['😟', '😐', '🙂', '😊', '🤩'];
-
-  const formatText = (text) => {
-    if (!text) return '';
-    return String(text)
-      .split('-')
-      .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : ''))
-      .join(' ');
-  };
-
-  const sentimentLabel = useMemo(() => {
-    const s = Number(sentimentScore);
-    if (Number.isNaN(s)) return 'Neutral';
-    if (s >= 0.05) return 'Positive';
-    if (s <= -0.05) return 'Negative';
-    return 'Neutral';
-  }, [sentimentScore]);
-
-  const sentimentBadgeStyle = useMemo(() => {
-    if (sentimentLabel === 'Positive') {
-      return { bg: 'rgba(85, 173, 155, 0.10)', border: 'rgba(85, 173, 155, 0.30)', text: '#1b5f52' };
-    }
-    if (sentimentLabel === 'Negative') {
-      return { bg: 'rgba(255, 152, 0, 0.10)', border: 'rgba(255, 152, 0, 0.30)', text: '#92400e' };
-    }
-    return { bg: 'rgba(148, 163, 184, 0.10)', border: 'rgba(148, 163, 184, 0.30)', text: '#334155' };
-  }, [sentimentLabel]);
-
-  const scorePct = useMemo(() => {
-    const clamped = Math.max(0, Math.min(1, Number(combinedScore) || 0));
-    return Math.round(clamped * 100);
-  }, [combinedScore]);
+  const token = useMemo(() => localStorage.getItem('token'), []);
 
   useEffect(() => {
-    const loadExistingFeedback = async () => {
+    const load = async () => {
+      if (!recommendationId) {
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
       try {
-        const feedbackData = await getUserFeedbackForRecommendation(recommendationId);
-        const fb = feedbackData?.feedback;
+        // If moodScoreId not passed via navigation state, resolve via weekly list
+        if (!moodScoreId) {
+          const weekRes = await axios.get(
+            `${import.meta.env.VITE_NODE_API}/api/recommendation/week`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const weekItems = Array.isArray(weekRes.data?.recommendations) ? weekRes.data.recommendations : [];
+          const rec = weekItems.find(r => String(r?._id) === String(recommendationId));
+          if (rec?.moodScore) setMoodScoreId(rec.moodScore);
+        }
+
+        // Fetch existing feedback for this recommendation (current user)
+        const fbRes = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/recommendation/feedback/${recommendationId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        const fb = fbRes.data?.feedback;
 
         if (fb) {
           setRating(Number(fb.rating || 0));
           setComment(String(fb.comment || ''));
-
-          // analysis (do not render numeric sentimentScore)
           setSentimentScore(typeof fb.sentimentScore === 'number' ? fb.sentimentScore : 0);
           setCombinedScore(typeof fb.combinedScore === 'number' ? fb.combinedScore : 0);
           setEffective(typeof fb.effective === 'boolean' ? fb.effective : null);
+        } else {
+          setRating(0);
+          setComment('');
+          setSentimentScore(0);
+          setCombinedScore(0);
+          setEffective(null);
         }
-      } catch (error) {
-        console.error('Error loading existing feedback:', error);
-      }
-    };
-
-    const loadRecommendation = async () => {
-      setLoading(true);
-      try {
-        // Strategy 1: Try weekly recommendations first
-        try {
-          const weekData = await getWeeklyRecommendations();
-          const byId = Array.isArray(weekData?.recommendations)
-            ? weekData.recommendations.find((r) => r?._id === recommendationId)
-            : null;
-
-          if (byId) {
-            setRecommendation(byId);
-
-            if (hasExistingFeedback) {
-              await loadExistingFeedback();
-            }
-            setLoading(false);
-            return;
-          }
-        } catch (e) {
-          console.log('Weekly recommendations not available:', e);
-        }
-
-        // Strategy 2: Try direct recommendation fetch
-        if (recommendationId) {
-          try {
-            const singleData = await getRecommendationById(recommendationId);
-            if (singleData?.recommendation) {
-              setRecommendation(singleData.recommendation);
-
-              if (hasExistingFeedback) {
-                await loadExistingFeedback();
-              }
-              setLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.log('Direct fetch failed:', e);
-          }
-        }
-
-        // Strategy 3: Generate recommendations using original params
-        if (moodScoreId || (date && category)) {
-          try {
-            const payload = moodScoreId
-              ? { moodScoreId }
-              : { date, category, activity: activity || null };
-
-            const recs = await generateRecommendations(payload);
-            const list = Array.isArray(recs) ? recs : recs?.recommendations || [];
-
-            const foundRec = list.find((r) => r?._id === recommendationId);
-            if (foundRec) {
-              setRecommendation(foundRec);
-
-              if (hasExistingFeedback) {
-                await loadExistingFeedback();
-              }
-              setLoading(false);
-              return;
-            }
-
-            if (list.length > 0) {
-              setRecommendation(list[0]);
-
-              if (hasExistingFeedback) {
-                await loadExistingFeedback();
-              }
-              setLoading(false);
-              return;
-            }
-          } catch (e) {
-            console.log('Generate recommendations failed:', e);
-          }
-        }
-
-        setRecommendation(null);
-      } catch (error) {
-        console.error('Error loading recommendation:', error);
-        setRecommendation(null);
+      } catch (_) {
+        setRating(0);
+        setComment('');
+        setSentimentScore(0);
+        setCombinedScore(0);
+        setEffective(null);
       } finally {
         setLoading(false);
       }
     };
+    load();
+  }, [recommendationId, token, moodScoreId]);
 
-    loadRecommendation();
-  }, [recommendationId, moodScoreId, date, category, activity, hasExistingFeedback]);
-
-  const handleSubmit = async () => {
-    if (!rating) {
-      Alert.alert('Rating Required', 'Please select a rating before submitting.');
-      return;
-    }
-
-    if (!recommendationId) {
-      Alert.alert('Error', 'Cannot submit feedback without a recommendation ID.');
-      return;
-    }
-
-    setSubmitting(true);
+const handleSave = async () => {
+    if (!recommendationId || !rating) return;
+    setSaving(true);
     try {
-      const result = await submitRecommendationFeedback(recommendationId, rating, comment);
+      const res = await axios.post(
+        `${import.meta.env.VITE_NODE_API}/api/recommendation/feedback`,
+        { recommendationId, rating, comment },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
 
-      // If backend returns updated analysis, store it (still do not display numeric sentimentScore)
-      const fb = result?.feedback || result;
-      if (fb && typeof fb === 'object') {
-        if (typeof fb.sentimentScore === 'number') setSentimentScore(fb.sentimentScore);
-        if (typeof fb.combinedScore === 'number') setCombinedScore(fb.combinedScore);
-        if (typeof fb.effective === 'boolean') setEffective(fb.effective);
+      const fb = res.data?.feedback;
+      let updatedSentiment = sentimentScore;
+      let updatedCombined = combinedScore;
+      let updatedEffective = effective;
+
+      if (fb) {
+        updatedSentiment = typeof fb.sentimentScore === 'number' ? fb.sentimentScore : 0;
+        updatedCombined = typeof fb.combinedScore === 'number' ? fb.combinedScore : 0;
+        updatedEffective = typeof fb.effective === 'boolean' ? fb.effective : null;
+        
+        setSentimentScore(updatedSentiment);
+        setCombinedScore(updatedCombined);
+        setEffective(updatedEffective);
       }
 
-      Alert.alert(
-        'Success!',
-        hasExistingFeedback
-          ? 'Your feedback has been updated successfully!'
-          : 'Thank you for your feedback! This helps us improve your recommendations.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              navigation.navigate('Recommendation', {
-                moodScoreId,
-                date,
-                category,
-                activity,
-                refresh: Date.now(), // Force refresh
-              });
-            },
-          },
-        ]
-      );
-    } catch (error) {
-      Alert.alert('Error', error?.message || 'Failed to submit feedback. Please try again.');
+      // Try to fetch the recommendation details, if it fails use basic info
+      let recommendation = null;
+      try {
+        const recRes = await axios.get(
+          `${import.meta.env.VITE_NODE_API}/api/recommendation/${recommendationId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        recommendation = recRes.data?.recommendation || null;
+      } catch (error) {
+        console.error('Could not fetch recommendation details:', error);
+        // If fetch fails, try to get it from the weekly list
+        try {
+          const weekRes = await axios.get(
+            `${import.meta.env.VITE_NODE_API}/api/recommendation/week`,
+            { headers: { Authorization: `Bearer ${token}` } }
+          );
+          const weekItems = Array.isArray(weekRes.data?.recommendations) ? weekRes.data.recommendations : [];
+          recommendation = weekItems.find(r => String(r?._id) === String(recommendationId)) || null;
+        } catch (weekError) {
+          console.error('Could not fetch from weekly list:', weekError);
+        }
+      }
+
+      // Redirect to ViewRecommendation page with state
+      navigate(`/recommendation/${recommendationId}/view`, {
+        state: {
+          recommendation,
+          feedback: { rating, comment },
+          sentimentScore: updatedSentiment,
+          combinedScore: updatedCombined,
+          effective: updatedEffective,
+        }
+      });
+    } catch (_) {
+      // Optional: show toast
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-  const showCurrentAnalysis = combinedScore !== 0 || effective !== null || sentimentScore !== 0;
+  const ratingLabels = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
+  const ratingEmojis = ['😟', '😐', '🙂', '😊', '🤩'];
+  const scorePct = Math.round(Math.max(0, Math.min(1, combinedScore)) * 100);
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.primary }}>
-      {/* Header (match web intent) */}
-      <View
-        style={{
-          paddingTop: 30,
-          paddingBottom: 18,
-          backgroundColor: '#fff',
-          borderBottomWidth: 2,
-          borderBottomColor: '#CBE7DC',
-          shadowColor: '#000',
-          shadowOpacity: 0.06,
-          shadowOffset: { width: 0, height: 2 },
-          shadowRadius: 6,
-          elevation: 3,
-        }}
-      >
-        <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12 }}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            style={{
-              padding: 10,
-              borderRadius: 999,
-              backgroundColor: 'rgba(255,255,255,0.8)',
-            }}
-            accessibilityLabel="Back"
+    <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
+      {/* Header */}
+      <div className="py-8 border-b-2 border-[#CBE7DC] bg-white backdrop-blur-sm">
+        <div className="max-w-4xl mx-auto px-6 flex items-center justify-between">
+          <button
+            onClick={() => (moodScoreId ? navigate(`/recommendation/${moodScoreId}`) : navigate(-1))}
+            className="p-3 rounded-full hover:bg-white/80 shadow-md hover:shadow-lg transition-all duration-300"
+            aria-label="Back"
           >
-            <Ionicons name="arrow-back" size={24} color="#55AD9B" />
-          </TouchableOpacity>
+            <ArrowBackIcon style={{ color: '#55AD9B', fontSize: 28 }} />
+          </button>
 
-          <View style={{ flex: 1, alignItems: 'center', paddingHorizontal: 20 }}>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: '#1b5f52', textAlign: 'center' }}>
-              Update Recommendation&apos;s Effectiveness
-            </Text>
-          </View>
+          <div className="flex-1 text-center">
+            <div className="flex items-center justify-center gap-3 text-[#1b5f52] text-3xl font-bold mb-2">
+              <span>Update Recommendation's Effectiveness</span>
+            </div>
+          </div>
 
-          <View style={{ width: 44 }} />
-        </View>
-      </View>
+          <div className="w-[52px]"></div>
+        </div>
+      </div>
 
       {/* Content */}
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}>
+      <div className="max-w-4xl mx-auto px-6 py-10">
         {loading ? (
-          <View style={{ gap: 16 }}>
-            {[1, 2, 3].map((i) => (
-              <View
-                key={i}
-                style={{
-                  backgroundColor: '#fff',
-                  borderRadius: 16,
-                  padding: 20,
-                  borderWidth: 2,
-                  borderColor: '#E6F4EA',
-                }}
-              >
-                <View style={{ height: 16, width: '75%', backgroundColor: '#E6F4EA', borderRadius: 8, marginBottom: 12 }} />
-                <View style={{ height: 16, width: '50%', backgroundColor: '#F7FBF9', borderRadius: 8 }} />
-              </View>
-            ))}
-            <View style={{ alignItems: 'center', marginTop: 20 }}>
-              <ActivityIndicator size="large" color={colors.primary} />
-            </View>
-          </View>
-        ) : recommendation ? (
-          <View style={{ gap: 16 }}>
-            {/* Info Banner */}
-            <View
-              style={{
-                backgroundColor: '#FEF3C7',
-                borderRadius: 16,
-                padding: 16,
-                borderWidth: 2,
-                borderColor: 'rgba(251, 191, 36, 0.3)',
-              }}
+          <div className="space-y-6">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="animate-pulse bg-white rounded-2xl p-8 border-2 border-[#E6F4EA] shadow-sm"
             >
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12 }}>
-                <MaterialIcons name="info-outline" size={24} color="#92400e" />
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: fonts.semiBold, fontSize: 15, color: '#92400e', marginBottom: 4 }}>
-                    Update Your Feedback
-                  </Text>
-                  <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: '#78350f', lineHeight: 20 }}>
+              <div className="h-6 w-3/4 bg-[#E6F4EA] rounded mb-4" />
+              <div className="h-6 w-1/2 bg-[#F7FBF9] rounded" />
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="animate-pulse bg-white rounded-2xl p-8 border-2 border-[#E6F4EA] shadow-sm h-32"
+            />
+          </div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-6"
+          >
+            {/* Info Banner */}
+            <div className="bg-gradient-to-r from-[#FEF3C7] to-[#FDE68A] rounded-2xl p-5 border-2 border-[#fbbf24]/30 shadow-sm">
+              <div className="flex items-start gap-3">
+                <InfoOutlinedIcon style={{ color: '#92400e', fontSize: 24 }} />
+                <div>
+                  <p className="text-[#92400e] font-semibold text-base mb-1">Update Your Feedback</p>
+                  <p className="text-[#78350f] text-sm leading-relaxed">
                     Your previous rating and comments are loaded below. Make changes and save to update your feedback.
-                  </Text>
-                </View>
-              </View>
-            </View>
+                  </p>
+                </div>
+              </div>
+            </div>
 
-            {/* Current Analysis (match web: label only for sentiment) */}
-            {showCurrentAnalysis && (
-              <View
-                style={{
-                  backgroundColor: '#fff',
-                  borderRadius: 16,
-                  padding: 20,
-                  borderWidth: 2,
-                  borderColor: '#D8EFD3',
-                }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                  <MaterialCommunityIcons name="trending-up" size={22} color="#55AD9B" />
-                  <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: '#1b5f52' }}>Current Analysis</Text>
-                </View>
-
-                <View style={{ gap: 10 }}>
-                  {/* Sentiment */}
-                  <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#E6F4EA' }}>
-                    <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: '#6b7280', marginBottom: 10 }}>
-                      Sentiment Analysis
-                    </Text>
-                    <View
-                      style={{
-                        alignSelf: 'flex-start',
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
-                        borderRadius: 999,
-                        backgroundColor: sentimentBadgeStyle.bg,
-                        borderWidth: 1,
-                        borderColor: sentimentBadgeStyle.border,
-                      }}
-                    >
-                      <Text style={{ fontFamily: fonts.bold, fontSize: 13, color: sentimentBadgeStyle.text }}>
-                        Sentiment Analysis: Result {sentimentLabel}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Combined Score */}
-                  <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#E6F4EA' }}>
-                    <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
-                      Combined Score
-                    </Text>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={{ fontFamily: fonts.bold, fontSize: 22, color: '#1b5f52' }}>{scorePct}%</Text>
-
-                      <View style={{ flex: 1, height: 8, borderRadius: 999, backgroundColor: '#E6F4EA', overflow: 'hidden' }}>
-                        <View style={{ height: '100%', width: `${scorePct}%`, backgroundColor: '#55AD9B' }} />
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Effectiveness */}
-                  <View style={{ backgroundColor: '#fff', borderRadius: 14, padding: 14, borderWidth: 1, borderColor: '#E6F4EA' }}>
-                    <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: '#6b7280', marginBottom: 8 }}>
-                      Effectiveness
-                    </Text>
-                    <Text
-                      style={{
-                        fontFamily: fonts.bold,
-                        fontSize: 22,
-                        color: effective === null ? '#6b7280' : effective ? '#1b5f52' : '#92400e',
-                      }}
-                    >
+            {/* Current Analysis Stats */}
+            {(sentimentScore !== 0 || combinedScore !== 0 || effective !== null) && (
+              <div className="bg-white rounded-2xl p-6 border-2 border-[#D8EFD3]">
+                <div className="flex items-center gap-3 mb-4">
+                  <TrendingUpIcon style={{ color: '#55AD9B', fontSize: 24 }} />
+                  <h3 className="text-[#1b5f52] font-bold text-xl">Current Analysis</h3>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white rounded-xl p-4 border border-[#E6F4EA]">
+                    <p className="text-sm text-[#6b7280] mb-1">Sentiment Score</p>
+                    <p className="text-2xl font-bold text-[#1b5f52]">
+                      {Number.isFinite(sentimentScore) ? sentimentScore.toFixed(3) : '—'}
+                    </p>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 border border-[#E6F4EA]">
+                    <p className="text-sm text-[#6b7280] mb-1">Combined Score</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-2xl font-bold text-[#1b5f52]">{scorePct}%</p>
+                      <div className="flex-1 bg-[#E6F4EA] rounded-full h-2">
+                        <div 
+                          className="h-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] rounded-full transition-all duration-500"
+                          style={{ width: `${scorePct}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-white rounded-xl p-4 border border-[#E6F4EA]">
+                    <p className="text-sm text-[#6b7280] mb-1">Effectiveness</p>
+                    <p className={`text-2xl font-bold ${effective ? 'text-[#1b5f52]' : 'text-[#92400e]'}`}>
                       {effective === null ? '—' : effective ? '✓ Yes' : '✗ No'}
-                    </Text>
-                  </View>
-                </View>
-              </View>
+                    </p>
+                  </div>
+                </div>
+              </div>
             )}
 
-            {/* Recommendation Card */}
-            <View
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                padding: 20,
-                borderWidth: 2,
-                borderColor: '#D8EFD3',
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowOffset: { width: 0, height: 2 },
-                shadowRadius: 6,
-                elevation: 3,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 16 }}>
-                <View
-                  style={{
-                    height: 48,
-                    width: 48,
-                    borderRadius: 999,
-                    backgroundColor: 'rgba(85, 173, 155, 0.1)',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderWidth: 2,
-                    borderColor: 'rgba(85, 173, 155, 0.3)',
-                  }}
-                >
-                  <Ionicons name="star" size={24} color="#55AD9B" />
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: '#1b5f52', marginBottom: 8 }}>
-                    Your Recommendation
-                  </Text>
-                  <Text style={{ fontFamily: fonts.regular, fontSize: 15, color: '#272829', lineHeight: 22 }}>
-                    {recommendation.recommendation}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Tags */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
-                {recommendation.category && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 6,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 999,
-                      backgroundColor: 'rgba(85, 173, 155, 0.1)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(85, 173, 155, 0.3)',
-                    }}
-                  >
-                    <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: '#55AD9B' }} />
-                    <Text style={{ fontFamily: fonts.semiBold, fontSize: 13, color: '#1b5f52' }}>
-                      {formatText(recommendation.category)}
-                    </Text>
-                  </View>
-                )}
-
-                {recommendation.activity && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 6,
-                      paddingHorizontal: 12,
-                      paddingVertical: 6,
-                      borderRadius: 999,
-                      backgroundColor: 'rgba(149, 210, 179, 0.1)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(149, 210, 179, 0.3)',
-                    }}
-                  >
-                    <View style={{ width: 8, height: 8, borderRadius: 999, backgroundColor: '#95D2B3' }} />
-                    <Text style={{ fontFamily: fonts.semiBold, fontSize: 13, color: '#1b5f52' }}>
-                      {formatText(recommendation.activity)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-
             {/* Rating Selector */}
-            <View
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                padding: 20,
-                borderWidth: 2,
-                borderColor: '#D8EFD3',
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowOffset: { width: 0, height: 2 },
-                shadowRadius: 6,
-                elevation: 3,
-              }}
-            >
-              <View style={{ marginBottom: 20 }}>
-                <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: '#1b5f52', marginBottom: 4 }}>
-                  Update your rating
-                </Text>
-                <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: '#6b7280' }}>
-                  Select a rating from 1 (not helpful) to 5 (very helpful)
-                </Text>
-              </View>
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="flex-1">
+                  <h3 className="text-[#1b5f52] font-bold text-xl">Update your rating</h3>
+                  <p className="text-[#6b7280] text-sm">Select a rating from 1 (not helpful) to 5 (very helpful)</p>
+                </div>
+              </div>
 
-              <View style={{ alignItems: 'center', gap: 20 }}>
-                <View style={{ flexDirection: 'row', gap: 12 }}>
+              <div className="flex flex-col items-center gap-6">
+                <div className="flex items-center gap-4">
                   {[1, 2, 3, 4, 5].map((n) => {
                     const active = n === rating;
                     return (
-                      <TouchableOpacity
+                      <motion.button
                         key={n}
-                        onPress={() => setRating(n)}
-                        style={{
-                          height: 56,
-                          width: 56,
-                          borderRadius: 16,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderWidth: 2,
-                          backgroundColor: active ? '#55AD9B' : '#fff',
-                          borderColor: active ? '#55AD9B' : '#D8EFD3',
-                          transform: active ? [{ scale: 1.1 }] : [{ scale: 1 }],
-                          shadowColor: active ? '#55AD9B' : '#000',
-                          shadowOpacity: active ? 0.3 : 0.05,
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowRadius: 6,
-                          elevation: active ? 4 : 1,
-                        }}
-                        accessibilityLabel={`Rate ${n}`}
+                        onClick={() => setRating(n)}
+                        whileHover={{ scale: 1.1 }}
+                        whileTap={{ scale: 0.95 }}
+                        className={`h-16 w-16 rounded-2xl flex items-center justify-center font-bold text-lg transition-all duration-300 ${
+                          active
+                            ? 'bg-gradient-to-br from-[#55AD9B] to-[#3e8e7e] text-white shadow-lg scale-110'
+                            : 'bg-white border-2 border-[#D8EFD3] text-[#55AD9B] hover:border-[#55AD9B]'
+                        }`}
+                        aria-label={`Rate ${n}`}
                       >
-                        <Text
-                          style={{
-                            fontFamily: fonts.bold,
-                            fontSize: 20,
-                            color: active ? '#fff' : '#55AD9B',
-                          }}
-                        >
-                          {n}
-                        </Text>
-                      </TouchableOpacity>
+                        {n}
+                      </motion.button>
                     );
                   })}
-                </View>
+                </div>
 
                 {rating > 0 && (
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 12,
-                      paddingHorizontal: 20,
-                      paddingVertical: 12,
-                      borderRadius: 999,
-                      backgroundColor: '#F7FBF9',
-                      borderWidth: 2,
-                      borderColor: '#D8EFD3',
-                    }}
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] border-2 border-[#D8EFD3]"
                   >
-                    <Text style={{ fontSize: 32 }}>{ratingEmojis[rating - 1]}</Text>
-                    <View>
-                      <Text style={{ fontFamily: fonts.bold, fontSize: 16, color: '#1b5f52' }}>
-                        {ratingLabels[rating - 1]}
-                      </Text>
-                      <Text style={{ fontFamily: fonts.regular, fontSize: 12, color: '#6b7280' }}>
-                        You rated this {rating} out of 5
-                      </Text>
-                    </View>
-                  </View>
+                    <span className="text-3xl">{ratingEmojis[rating - 1]}</span>
+                    <div>
+                      <p className="text-[#1b5f52] font-bold text-lg">{ratingLabels[rating - 1]}</p>
+                      <p className="text-[#6b7280] text-sm">You rated this {rating} out of 5</p>
+                    </div>
+                  </motion.div>
                 )}
-              </View>
-            </View>
+              </div>
+            </div>
 
             {/* Comment Box */}
-            <View
-              style={{
-                backgroundColor: '#fff',
-                borderRadius: 16,
-                padding: 20,
-                borderWidth: 2,
-                borderColor: '#D8EFD3',
-                shadowColor: '#000',
-                shadowOpacity: 0.08,
-                shadowOffset: { width: 0, height: 2 },
-                shadowRadius: 6,
-                elevation: 3,
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                <Text style={{ fontFamily: fonts.bold, fontSize: 18, color: '#1b5f52' }}>
-                  Update your thoughts
-                </Text>
-                <View
-                  style={{
-                    paddingHorizontal: 12,
-                    paddingVertical: 4,
-                    borderRadius: 999,
-                    backgroundColor: 'rgba(251, 191, 36, 0.1)',
-                    borderWidth: 1,
-                    borderColor: 'rgba(251, 191, 36, 0.3)',
-                  }}
-                >
-                  <Text style={{ fontFamily: fonts.semiBold, fontSize: 12, color: '#92400e' }}>Optional</Text>
-                </View>
-              </View>
+            <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1">
+                  <h3 className="text-[#1b5f52] font-bold text-xl">Update your thoughts</h3>
+                </div>
+                <span className="px-3 py-1.5 rounded-full bg-[#fbbf24]/10 text-[#92400e] border border-[#fbbf24]/30 text-md font-semibold">
+                  Optional
+                </span>
+              </div>
 
-              <TextInput
+              <textarea
                 value={comment}
-                onChangeText={setComment}
-                multiline
-                numberOfLines={5}
-                style={{
-                  borderRadius: 12,
-                  borderWidth: 2,
-                  borderColor: '#E6F4EA',
-                  padding: 12,
-                  fontFamily: fonts.regular,
-                  fontSize: 14,
-                  color: '#272829',
-                  backgroundColor: 'rgba(247, 251, 249, 0.5)',
-                  minHeight: 120,
-                  textAlignVertical: 'top',
-                }}
+                onChange={(e) => setComment(e.target.value)}
+                rows={5}
+                className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-base bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none"
                 placeholder="e.g., This helped me feel more relaxed and focused. Nakatulong talaga siya sa akin!"
-                placeholderTextColor="#9CA3AF"
               />
 
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 12 }}>
-                <MaterialIcons name="info-outline" size={18} color="#6b7280" />
-                <Text style={{ flex: 1, fontFamily: fonts.regular, fontSize: 12, color: '#6b7280', lineHeight: 18 }}>
-                  Comments with at least 10 characters will be analyzed to better understand your experience. Feel free to
-                  write in Filipino, English, or a mix of both!
-                </Text>
-              </View>
-            </View>
+              <div className="mt-3 flex items-start gap-2 text-sm text-[#6b7280]">
+                <InfoOutlinedIcon style={{ fontSize: 18, color: '#6b7280' }} />
+                <p className="leading-relaxed">
+                  Comments with at least 10 characters will be analyzed to better understand your experience. 
+                  Feel free to write in Filipino, English, or a mix of both!
+                </p>
+              </div>
+            </div>
 
             {/* Action Buttons */}
-            <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-              <TouchableOpacity
-                onPress={() => navigation.goBack()}
-                style={{
-                  flex: 1,
-                  paddingVertical: 14,
-                  borderRadius: 999,
-                  borderWidth: 2,
-                  borderColor: '#D8EFD3',
-                  backgroundColor: '#fff',
-                  alignItems: 'center',
-                }}
-                accessibilityLabel="Cancel"
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+              <button
+                onClick={() => (moodScoreId ? navigate(`/recommendation/${moodScoreId}`) : navigate(-1))}
+                className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
               >
-                <Text style={{ fontFamily: fonts.semiBold, fontSize: 15, color: '#1b5f52' }}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={handleSubmit}
-                disabled={submitting || !rating}
-                style={{
-                  flex: 1,
-                  paddingVertical: 14,
-                  borderRadius: 999,
-                  backgroundColor: submitting || !rating ? '#94A3B8' : '#55AD9B',
-                  alignItems: 'center',
-                  flexDirection: 'row',
-                  justifyContent: 'center',
-                  gap: 8,
-                  shadowColor: submitting || !rating ? 'transparent' : '#55AD9B',
-                  shadowOpacity: 0.3,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowRadius: 8,
-                  elevation: submitting || !rating ? 0 : 4,
-                }}
-                accessibilityLabel="Save Changes"
+                Cancel
+              </button>
+              <button
+                onClick={handleSave}
+                disabled={saving || !rating}
+                className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
+                  saving || !rating
+                    ? 'bg-[#94A3B8] cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg'
+                }`}
               >
-                {submitting ? (
+                {saving ? (
                   <>
-                    <ActivityIndicator size="small" color="#fff" />
-                    <Text style={{ fontFamily: fonts.semiBold, fontSize: 15, color: '#fff' }}>Saving...</Text>
+                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                    <span>Saving...</span>
                   </>
                 ) : (
                   <>
-                    <MaterialIcons name="save" size={18} color="#fff" />
-                    <Text style={{ fontFamily: fonts.semiBold, fontSize: 15, color: '#fff' }}>Save Changes</Text>
+                    <SaveIcon style={{ fontSize: 20 }} />
+                    <span>Save Changes</span>
                   </>
                 )}
-              </TouchableOpacity>
-            </View>
+              </button>
+            </div>
 
             {/* Bottom Note */}
-            <View style={{ alignItems: 'center', paddingVertical: 16 }}>
-              <Text style={{ fontFamily: fonts.regular, fontSize: 13, color: '#6b7280', textAlign: 'center', lineHeight: 20 }}>
+            <div className="text-center">
+              <p className="text-[#6b7280] text-md leading-relaxed">
                 Your updated feedback helps us continuously improve your recommendations.
-              </Text>
-            </View>
-          </View>
-        ) : (
-          <View
-            style={{
-              backgroundColor: '#fff',
-              borderRadius: 16,
-              padding: 32,
-              borderWidth: 2,
-              borderColor: '#D8EFD3',
-              alignItems: 'center',
-              shadowColor: '#000',
-              shadowOpacity: 0.08,
-              shadowOffset: { width: 0, height: 2 },
-              shadowRadius: 8,
-              elevation: 4,
-            }}
-          >
-            <View
-              style={{
-                height: 80,
-                width: 80,
-                borderRadius: 999,
-                backgroundColor: 'rgba(85, 173, 155, 0.1)',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginBottom: 20,
-                borderWidth: 2,
-                borderColor: 'rgba(85, 173, 155, 0.3)',
-              }}
-            >
-              <MaterialIcons name="info-outline" size={40} color="#55AD9B" />
-            </View>
-            <Text style={{ fontFamily: fonts.bold, fontSize: 20, color: '#1b5f52', marginBottom: 12, textAlign: 'center' }}>
-              Recommendation Not Found
-            </Text>
-            <Text style={{ fontFamily: fonts.regular, fontSize: 14, color: '#6b7280', textAlign: 'center', marginBottom: 24, lineHeight: 20 }}>
-              We couldn&apos;t find this recommendation. Please try again from the recommendations screen.
-            </Text>
-            <TouchableOpacity
-              onPress={() => navigation.goBack()}
-              style={{
-                paddingHorizontal: 24,
-                paddingVertical: 12,
-                borderRadius: 999,
-                backgroundColor: '#55AD9B',
-                shadowColor: '#55AD9B',
-                shadowOpacity: 0.3,
-                shadowOffset: { width: 0, height: 4 },
-                shadowRadius: 8,
-                elevation: 4,
-              }}
-              accessibilityLabel="Go Back"
-            >
-              <Text style={{ fontFamily: fonts.semiBold, fontSize: 15, color: '#fff' }}>Go Back</Text>
-            </TouchableOpacity>
-          </View>
+              </p>
+            </div>
+          </motion.div>
         )}
-      </ScrollView>
-    </View>
+      </div>
+    </div>
   );
-}
+};
+
+export default EditRecommendation;
