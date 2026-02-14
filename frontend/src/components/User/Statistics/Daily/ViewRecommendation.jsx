@@ -23,10 +23,9 @@ const ViewRecommendation = () => {
         setLoading(true);
         const token = localStorage.getItem('token');
         try {
-          const { data } = await axios.get(
-            `${import.meta.env.VITE_NODE_API}/api/recommendation/${recommendationId}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
+          const { data } = await axios.get(`${import.meta.env.VITE_NODE_API}/api/recommendation/${recommendationId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
           setRecommendation(data?.recommendation || null);
         } catch {
           setRecommendation(null);
@@ -45,17 +44,23 @@ const ViewRecommendation = () => {
     }
   }, [feedback]);
 
+  // Only show sentiment analysis if the user actually filled in the comment textbox
+  const commentText = typeof feedback?.comment === 'string' ? feedback.comment : '';
+  const hasComment = commentText.trim().length > 0;
+
   // Sentiment label (VADER-style thresholds) derived from numeric sentimentScore stored in feedback/state
-  const rawSentimentScore =
-    location.state?.sentimentScore ?? feedback?.sentimentScore ?? feedback?.scores?.combined ?? 0;
+  const rawSentimentScore = hasComment
+    ? location.state?.sentimentScore ?? feedback?.sentimentScore ?? feedback?.scores?.combined
+    : null;
 
   const sentimentLabel = useMemo(() => {
-    const s = Number(rawSentimentScore);
+    if (!hasComment) return null;
+    const s = Number(rawSentimentScore ?? 0);
     if (Number.isNaN(s)) return 'Neutral';
     if (s >= 0.05) return 'Positive';
     if (s <= -0.05) return 'Negative';
     return 'Neutral';
-  }, [rawSentimentScore]);
+  }, [rawSentimentScore, hasComment]);
 
   // Helper function to format text: capitalize first letters and remove dashes
   const formatText = (text) => {
@@ -143,9 +148,7 @@ const ViewRecommendation = () => {
                     <div>
                       <div className="text-4xl font-bold text-[#55AD9B]">{feedback.rating}</div>
                       <div className="text-sm text-[#6b7280]">out of 5</div>
-                      <div className="text-base font-semibold text-[#1b5f52] mt-1">
-                        {ratingLabels[feedback.rating - 1]}
-                      </div>
+                      <div className="text-base font-semibold text-[#1b5f52] mt-1">{ratingLabels[feedback.rating - 1]}</div>
                     </div>
                   </div>
                 ) : (
@@ -183,21 +186,23 @@ const ViewRecommendation = () => {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 text-sm text-[#6b7280]">
-                    <EmojiEmotionsIcon style={{ fontSize: 18 }} />
-                    <span>Sentiment Analysis: {sentimentLabel}</span>
-                  </div>
+                  {hasComment && sentimentLabel && (
+                    <div className="flex items-center gap-2 text-sm text-[#6b7280]">
+                      <EmojiEmotionsIcon style={{ fontSize: 18 }} />
+                      <span>Sentiment Analysis: {sentimentLabel}</span>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Comment */}
-            {feedback?.comment && (
+            {hasComment && (
               <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
                 <div className="flex items-center gap-3 mb-4">
                   <h3 className="text-[#1b5f52] font-bold text-lg">Your Thoughts</h3>
                 </div>
-                <p className="text-[#272829] text-base leading-relaxed">{feedback.comment}</p>
+                <p className="text-[#272829] text-base leading-relaxed">{commentText}</p>
               </div>
             )}
 
