@@ -4,7 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 import BarChartIcon from '@mui/icons-material/BarChart';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import NotificationsIcon from '@mui/icons-material/Notifications';
 import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
 import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import MenuIcon from '@mui/icons-material/Menu';
@@ -60,6 +59,7 @@ const AboutUs = () => {
     setMobileMenuOpen(false);
   };
 
+  // Only the first 3 feature containers (centered)
   const features = [
     {
       icon: <BarChartIcon sx={{ fontSize: 46, color: '#55AD9B' }} />,
@@ -79,12 +79,6 @@ const AboutUs = () => {
       description:
         'Turn your entries into meaningful visuals and insights to support reflection and healthier emotional habits.',
     },
-    {
-      icon: <NotificationsIcon sx={{ fontSize: 46, color: '#55AD9B' }} />,
-      title: 'Smart Reminders',
-      description:
-        'Gentle nudges to stay consistent. Build an easy, sustainable tracking habit without pressure.',
-    },
   ];
 
   const values = [
@@ -99,6 +93,21 @@ const AboutUs = () => {
     {
       title: 'Clarity over complexity',
       description: 'Insights should be understandable and actionable, not overwhelming.',
+    },
+  ];
+
+  const partnershipHighlights = [
+    {
+      title: 'Student-centered approach',
+      description: 'Designed to support healthy reflection and emotional awareness in a school setting.',
+    },
+    {
+      title: 'Real-world impact',
+      description: 'Built with practical use in mind—simple, guided, and easy to sustain.',
+    },
+    {
+      title: 'Supportive environment',
+      description: 'Encourages gentle routines that complement wellness initiatives.',
     },
   ];
 
@@ -138,11 +147,17 @@ const AboutUs = () => {
           {/* Desktop Navigation - Centered */}
           <div className="hidden md:flex items-center justify-center flex-1">
             <div className="flex items-center space-x-8">
-              <Link to="/" className="text-[#F1F8E8] text-lg font-semibold hover:text-white transition-all duration-300 relative group">
+              <Link
+                to="/"
+                className="text-[#F1F8E8] text-lg font-semibold hover:text-white transition-all duration-300 relative group"
+              >
                 Home
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F1F8E8] group-hover:w-full transition-all duration-300" />
               </Link>
-              <Link to="/about" className="text-[#F1F8E8] text-lg font-semibold hover:text-white transition-all duration-300 relative group">
+              <Link
+                to="/about"
+                className="text-[#F1F8E8] text-lg font-semibold hover:text-white transition-all duration-300 relative group"
+              >
                 About
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F1F8E8] group-hover:w-full transition-all duration-300" />
               </Link>
@@ -153,10 +168,6 @@ const AboutUs = () => {
                 Resources
                 <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F1F8E8] group-hover:w-full transition-all duration-300" />
               </Link>
-              {/* <Link to="/" className="text-[#F1F8E8] text-lg font-semibold hover:text-white transition-all duration-300 relative group">
-                Contact
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#F1F8E8] group-hover:w-full transition-all duration-300" />
-              </Link> */}
             </div>
           </div>
 
@@ -174,7 +185,10 @@ const AboutUs = () => {
 
           {/* Mobile Menu Button */}
           <div className="md:hidden">
-            <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="text-[#F1F8E8] focus:outline-none p-2">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-[#F1F8E8] focus:outline-none p-2"
+            >
               {mobileMenuOpen ? <CloseIcon /> : <MenuIcon />}
             </button>
           </div>
@@ -191,10 +205,16 @@ const AboutUs = () => {
               className="md:hidden bg-[#55AD9B]/95 backdrop-blur-lg border-t border-[#95D2B3]/20 shadow-lg"
             >
               <div className="flex flex-col space-y-4 py-6 px-6">
-                <Link to="/" className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors">
+                <Link
+                  to="/"
+                  className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors"
+                >
                   Home
                 </Link>
-                <Link to="/about" className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors">
+                <Link
+                  to="/about"
+                  className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors"
+                >
                   About
                 </Link>
                 <Link
@@ -203,7 +223,10 @@ const AboutUs = () => {
                 >
                   Resources
                 </Link>
-                <Link to="/signin" className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors">
+                <Link
+                  to="/signin"
+                  className="text-[#F1F8E8] font-semibold py-3 px-4 hover:bg-white/20 rounded-lg transition-colors"
+                >
                   Login
                 </Link>
 
@@ -224,7 +247,10 @@ const AboutUs = () => {
                   </button>
                 </div>
 
-                <Link to="/signup" className="bg-[#F1F8E8] text-[#55AD9B] px-6 py-3 rounded-full text-center shadow-lg hover:bg-white">
+                <Link
+                  to="/signup"
+                  className="bg-[#F1F8E8] text-[#55AD9B] px-6 py-3 rounded-full text-center shadow-lg hover:bg-white"
+                >
                   Get Started
                 </Link>
               </div>
@@ -285,16 +311,7 @@ const AboutUs = () => {
                 </motion.button>
               </div>
 
-              <div className="mt-10 hidden lg:block">
-                <motion.button
-                  onClick={scrollToFeatures}
-                  className="flex items-center text-[#55AD9B] hover:text-[#1F8E8E] transition-all group"
-                  whileHover={{ y: 5 }}
-                >
-                  <span className="mr-2 font-semibold">Learn more</span>
-                  <KeyboardArrowDownIcon className="animate-bounce group-hover:animate-pulse" />
-                </motion.button>
-              </div>
+              <div className="mt-10 hidden lg:block"></div>
             </motion.div>
 
             <motion.div
@@ -331,12 +348,10 @@ const AboutUs = () => {
           >
             <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-8">
               <div className="md:max-w-xl">
-                <h2 className="text-3xl md:text-4xl font-bold text-gray-800">
-                  Our Mission
-                </h2>
+                <h2 className="text-3xl md:text-4xl font-bold text-gray-800">Our Mission</h2>
                 <p className="mt-4 text-gray-600 text-lg leading-relaxed">
-                  To make emotional reflection simple, supportive, and consistent—through tools that help people notice patterns,
-                  name feelings, and take small steps toward better well-being.
+                  To make emotional reflection simple, supportive, and consistent—through tools that help people notice
+                  patterns, name feelings, and take small steps toward better well-being.
                 </p>
               </div>
 
@@ -382,11 +397,12 @@ const AboutUs = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-7">
+          {/* Center the 3 containers */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-7 max-w-6xl mx-auto place-items-center">
             {features.map((feature, index) => (
               <motion.div
                 key={feature.title}
-                className="bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all border border-[#95D2B3]/20 group hover:bg-gradient-to-br hover:from-[#55AD9B] hover:to-[#95D2B3]"
+                className="w-full max-w-sm bg-white/80 backdrop-blur-sm rounded-3xl p-8 shadow-lg hover:shadow-2xl transition-all border border-[#95D2B3]/20 group hover:bg-gradient-to-br hover:from-[#55AD9B] hover:to-[#95D2B3]"
                 initial={{ opacity: 0, y: 18 }}
                 animate={fadeInFeatures ? { opacity: 1, y: 0 } : {}}
                 transition={{ duration: 0.55, delay: 0.08 * index }}
@@ -404,66 +420,82 @@ const AboutUs = () => {
               </motion.div>
             ))}
           </div>
+
+
         </div>
       </section>
 
-      {/* Partnership */}
+      {/* Partnership (simple + same background as Features) */}
       <section
         ref={partnershipRef}
         id="partnership-section"
-        className={`w-full bg-gradient-to-r from-[#55AD9B] via-[#95D2B3] to-[#55AD9B] py-20 md:py-24 transition-opacity duration-1000 ${
+        className={`w-full bg-white/60 backdrop-blur-sm py-20 md:py-24 transition-opacity duration-1000 border-y border-[#95D2B3]/20 ${
           fadeInPartnership ? 'opacity-100' : 'opacity-0'
-        } relative overflow-hidden`}
+        }`}
       >
-        {/* Background Decorations */}
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.1, 0.2, 0.1] }}
-          transition={{ duration: 8, repeat: Infinity }}
-          className="absolute top-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl"
-        />
-        <motion.div
-          animate={{ scale: [1.3, 1, 1.3], opacity: [0.15, 0.25, 0.15] }}
-          transition={{ duration: 10, repeat: Infinity }}
-          className="absolute bottom-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl"
-        />
-
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="container mx-auto px-6">
           <motion.div
-            className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center"
             initial={{ opacity: 0, y: 18 }}
             animate={fadeInPartnership ? { opacity: 1, y: 0 } : {}}
-            transition={{ duration: 0.8 }}
+            transition={{ duration: 0.6 }}
+            className="text-center mb-12 md:mb-14"
           >
-            <div className="text-center md:text-left">
-              <h2 className="text-4xl md:text-6xl font-bold text-white mb-6 leading-tight">
-                Built in
-                <span className="block">Partnership With</span>
-              </h2>
-              <p className="text-lg md:text-xl text-white/95 leading-relaxed mb-6">
-                Mindful Map is developed as a collaborative initiative with{' '}
-                <span className="font-bold text-white">Sto. Niño Catholic School Inc.</span>, supporting student mental
-                wellness and emotional intelligence through thoughtful, real-world tools.
+            <h2 className="text-4xl md:text-6xl font-bold text-[#1F8E8E] mb-4">
+              Built in Partnership With
+              <span className="block bg-gradient-to-r from-[#55AD9B] to-[#95D2B3] bg-clip-text text-transparent">
+                Sto. Niño Catholic School Inc.
+              </span>
+            </h2>
+            <div className="w-24 h-1 bg-gradient-to-r from-[#55AD9B] to-[#95D2B3] rounded-full mx-auto mb-6" />
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={fadeInPartnership ? { opacity: 1, y: 0 } : {}}
+            transition={{ duration: 0.7, delay: 0.05 }}
+            className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-10 items-start max-w-6xl mx-auto"
+          >
+            {/* Left: short text + highlights */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-[#95D2B3]/25 shadow-lg p-8 md:p-10">
+              <h3 className="text-2xl md:text-3xl font-bold text-[#1F8E8E]">A grounded collaboration</h3>
+              <p className="mt-3 text-gray-600 text-base md:text-lg leading-relaxed">
+                This partnership helps ensure Mindful Map stays practical, supportive, and appropriate in a school
+                setting.
               </p>
-              <p className="text-base md:text-lg text-white/85 font-semibold">
-                This partnership reflects our commitment to meaningful impact in educational communities.
-              </p>
+
+              <div className="mt-7 space-y-4">
+                {partnershipHighlights.map((h) => (
+                  <div key={h.title} className="flex items-start gap-3">
+                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-[#55AD9B]" />
+                    <div>
+                      <div className="font-bold text-[#1F8E8E]">{h.title}</div>
+                      <div className="text-gray-600 text-sm md:text-base leading-relaxed">{h.description}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
 
-            <motion.div
-              className="flex justify-center md:justify-end"
-              whileHover={{ scale: 1.05, rotate: 1 }}
-              initial={{ opacity: 0, scale: 0.92 }}
-              animate={fadeInPartnership ? { opacity: 1, scale: 1 } : {}}
-              transition={{ duration: 0.7, delay: 0.12 }}
-            >
-              <div className="bg-white rounded-3xl p-8 md:p-10 shadow-3xl border-4 border-white/80 backdrop-blur-sm">
+            {/* Right: partner logo (single clean card) */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl border border-[#95D2B3]/25 shadow-lg p-8 md:p-10">
+              <div className="flex items-center justify-between gap-4 mb-5">
+                <div>
+                  <div className="text-xl md:text-2xl font-bold text-[#1F8E8E]">Sto. Niño Catholic School Inc.</div>
+                </div>
+              </div>
+
+              <div className="bg-white rounded-2xl border border-[#D8EFD3] p-6">
                 <img
                   src="/images/sncs.png"
                   alt="Sto. Niño Catholic School Inc."
                   className="w-full h-auto max-w-xs mx-auto"
                 />
               </div>
-            </motion.div>
+
+              <div className="mt-5 text-gray-600 text-sm md:text-base leading-relaxed">
+                Working together to support calm, consistent emotional reflection—without adding pressure.
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>
@@ -471,7 +503,12 @@ const AboutUs = () => {
       {/* Call to Action */}
       <section className="w-full bg-gradient-to-r from-[#55AD9B] via-[#95D2B3] to-[#55AD9B] py-16 md:py-20 relative">
         <div className="container mx-auto px-6 text-center">
-          <motion.div initial={{ opacity: 0, y: 18 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ duration: 0.8 }}>
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
             <h2 className="text-4xl md:text-5xl text-white font-bold mb-6">Ready to Start?</h2>
             <p className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto mb-8">
               Begin your journey with tools designed to help you reflect, track, and grow—one day at a time.
@@ -487,50 +524,6 @@ const AboutUs = () => {
           </motion.div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="w-full bg-[#292f33] text-white/80 py-12">
-        <div className="container mx-auto px-6">
-          <div className="flex flex-col md:flex-row justify-between mb-8">
-            <div className="mb-8 md:mb-0">
-              <h3 className="text-3xl font-bold text-white mb-4">Mindful Map</h3>
-              <p className="max-w-xs text-gray-300">
-                Track your moods, understand your emotions, and improve your mental well-being through data-driven insights.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8">
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">Links</h4>
-                <ul className="space-y-2">
-                  <li><Link to="/" className="hover:text-white transition-colors">Home</Link></li>
-                  <li><Link to="/about" className="hover:text-white transition-colors">About Us</Link></li>
-                  <li><Link to="/features" className="hover:text-white transition-colors">Features</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">Account</h4>
-                <ul className="space-y-2">
-                  <li><Link to="/signin" className="hover:text-white transition-colors">Log In</Link></li>
-                  <li><Link to="/signup" className="hover:text-white transition-colors">Sign Up</Link></li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="text-lg font-semibold text-white mb-4">Legal</h4>
-                <ul className="space-y-2">
-                  <li><Link to="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
-                  <li><Link to="/terms" className="hover:text-white transition-colors">Terms of Service</Link></li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-white/20 pt-8 text-center">
-            <p className="text-white font-semibold">© {new Date().getFullYear()} Mindful Map. All rights reserved.</p>
-            <p className="mt-2 text-gray-400">In partnership with Sto. Niño Catholic School Inc.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

@@ -188,14 +188,7 @@ const LandingPage = () => {
           </div>
           
           <div className="mt-16 hidden lg:block">
-            <motion.button 
-              onClick={scrollToWhatWeDo}
-              className="flex items-center text-[#55AD9B] hover:text-[#95D2B3] transition-all group"
-              whileHover={{ y: 5 }}
-            >
-              <span className="mr-2 font-semibold">Discover Features</span>
-              <KeyboardArrowDownIcon className="animate-bounce group-hover:animate-pulse" />
-            </motion.button>
+
           </div>
         </motion.div>
         
@@ -402,9 +395,6 @@ const LandingPage = () => {
               Start Your Journey
               <span className="block">Today</span>
             </h2>
-            <p className="text-xl md:text-2xl text-white/90 mb-12 max-w-2xl mx-auto leading-relaxed">
-              Join thousands of users building healthier mental habits.
-            </p>
             <motion.button
               whileHover={{ scale: 1.05, y: -3 }}
               whileTap={{ scale: 0.95 }}
