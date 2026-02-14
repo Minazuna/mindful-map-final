@@ -291,7 +291,7 @@ const ActivitiesStatistics = () => {
           <div className="flex items-center justify-between w-full">
             {/* Back button */}
             <button
-              onClick={() => navigate(-1)}
+              onClick={() => navigate('/statistics')}
               className="flex items-center justify-center w-16 h-16 rounded-full bg-white shadow-md hover:shadow-lg transition-all duration-300"
               aria-label="Back"
               style={{ marginLeft: '-0.5rem' }}

@@ -519,7 +519,7 @@ const MoodHabitAnalysis = () => {
       <div className="py-8 border-b-2 border-[#CBE7DC] bg-gradient-to-r from-white/50 to-[#F7FBF9]/50 backdrop-blur-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between px-6">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate('/statistics')}
             className="p-3 rounded-full hover:bg-white/80 shadow-md hover:shadow-lg transition-all duration-300"
             aria-label="Back"
           >
