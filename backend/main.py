@@ -16,6 +16,10 @@ app.register_blueprint(sentiment_bp)
 app.register_blueprint(concordance_bp)  # CCC endpoints (/api/ccc/run)
 app.register_blueprint(prediction_bp)
 
+@app.route('/', methods=['GET'])
+def root():
+    return {'message': 'Backend is running!'}
+
 @app.route('/health', methods=['GET'])
 def health():
     return {'status': 'healthy', 'service': 'combined-python-services'}
