@@ -94,6 +94,8 @@ const Recommendations = () => {
 
   const navigate = useNavigate();
 
+  const MAX_INSIGHTS = 5;
+
   useEffect(() => { fetchTeacherProfile(); }, []);
   useEffect(() => { if (selectedSection) fetchRecommendations(); }, [selectedSection, timeFilter]);
 
@@ -182,7 +184,7 @@ const Recommendations = () => {
         category: categoryKey,
         section: selectedSection,
         teacher,
-        period: timeFilter // Pass the selected period!
+        period: timeFilter
       }
     });
   };
@@ -218,14 +220,21 @@ const Recommendations = () => {
             </div>
           ) : (
             <ul className="space-y-5">
-              {recs.slice(0, 6).map((rec, idx) => {
+              {recs.slice(0, MAX_INSIGHTS).map((rec, idx) => {
                 const labelText = generateSentence(
                   selectedSection,
                   rec?.afterEmotion,
                   rec?.activity || rec?.message || rec?.text
                 );
                 return (
-                  <li key={rec._id ? `${categoryKey}-${rec._id}` : `${categoryKey}-${fmtKey(rec?.activity || rec?.message || rec?.text)}-${rec?.afterEmotion || ''}-${idx}`} className="group">
+                  <li
+                    key={
+                      rec._id
+                        ? `${categoryKey}-${rec._id}`
+                        : `${categoryKey}-${fmtKey(rec?.activity || rec?.message || rec?.text)}-${rec?.afterEmotion || ''}-${idx}`
+                    }
+                    className="group"
+                  >
                     <div className={`rounded-2xl border border-[#95D2B3] shadow-md hover:shadow-xl transition-all p-6 ${palette.white}`}>
                       <div className="flex items-start justify-between gap-6">
                         <div className="flex-1 min-w-0">
@@ -256,10 +265,10 @@ const Recommendations = () => {
               })}
             </ul>
           )}
-          {recs.length > 6 && (
+          {recs.length > MAX_INSIGHTS && (
             <div className="mt-6 text-center">
               <p className="text-base text-[#55AD9B] font-medium">
-                +{recs.length - 6} more insights available
+                +{recs.length - MAX_INSIGHTS} more insights available
               </p>
             </div>
           )}
