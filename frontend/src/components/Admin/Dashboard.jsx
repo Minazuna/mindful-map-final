@@ -30,6 +30,12 @@ const Dashboard = () => {
   const [currentWeekStart, setCurrentWeekStart] = useState(getMondayOfCurrentWeek());
   const [weeklyLogsLoading, setWeeklyLogsLoading] = useState(false);
   const [viewType, setViewType] = useState('weekly');
+  const [sections, setSections] = useState([]);
+  const [selectedSectionMonthly, setSelectedSectionMonthly] = useState('All');
+  const [selectedSectionStatus, setSelectedSectionStatus] = useState('All');
+  const [selectedSectionMood, setSelectedSectionMood] = useState('All');
+  const [selectedSectionJournal, setSelectedSectionJournal] = useState('All');
+  const [selectedSectionCategory, setSelectedSectionCategory] = useState('All');
 
   function getMondayOfCurrentWeek() {
     const now = new Date();
@@ -64,6 +70,21 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    const fetchSections = async () => {
+      try {
+        const token = localStorage.getItem('token');
+        const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/users`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const uniqueSections = [...new Set(response.data.map(user => user.section).filter(s => s && s !== 'Not Assigned'))];
+        setSections(uniqueSections.sort());
+      } catch (error) {
+        console.error('Error fetching sections:', error);
+      }
+    };
+
     const fetchDashboardStats = async () => {
       try {
         const token = localStorage.getItem('token');
@@ -85,10 +106,12 @@ const Dashboard = () => {
     const fetchMonthlyUsers = async () => {
       try {
         const token = localStorage.getItem('token');
+        const params = selectedSectionMonthly !== 'All' ? { section: selectedSectionMonthly } : {};
         const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/monthly-users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          params
         });
         setMonthlyUserData(response.data);
       } catch (error) {
@@ -99,10 +122,12 @@ const Dashboard = () => {
     const fetchDailyMoodLogs = async () => {
       try {
         const token = localStorage.getItem('token');
+        const params = selectedSectionMood !== 'All' ? { section: selectedSectionMood } : {};
         const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/daily-mood-logs`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          params
         });
         setDailyMoodLogsData(response.data);
       } catch (error) {
@@ -113,10 +138,12 @@ const Dashboard = () => {
     const fetchDailyJournalLogs = async () => {
       try {
         const token = localStorage.getItem('token');
+        const params = selectedSectionJournal !== 'All' ? { section: selectedSectionJournal } : {};
         const response = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/daily-journal-logs`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          params
         });
         setDailyJournalLogsData(response.data);
       } catch (error) {
@@ -127,17 +154,20 @@ const Dashboard = () => {
     const fetchActiveVsInactiveStudents = async () => {
       try {
         const token = localStorage.getItem('token');
+        const params = selectedSectionStatus !== 'All' ? { section: selectedSectionStatus } : {};
         // Fetch active students
         const activeResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/active-users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          params
         });
         // Fetch inactive students  
         const inactiveResponse = await axios.get(`${import.meta.env.VITE_NODE_API}/api/admin/inactive-users`, {
           headers: {
             Authorization: `Bearer ${token}`,
           },
+          params
         });
         
         const activeStudents = activeResponse.data.length;
@@ -152,15 +182,19 @@ const Dashboard = () => {
       try {
         setWeeklyLogsLoading(true);
         const token = localStorage.getItem('token');
+        const params = { 
+          viewType,
+          weekStartDate: getFormattedDate(currentWeekStart),
+          year: new Date().getFullYear()
+        };
+        if (selectedSectionCategory !== 'All') {
+          params.section = selectedSectionCategory;
+        }
         const response = await axios.get(
           `${import.meta.env.VITE_NODE_API}/api/admin/logs-by-category`,
           {
             headers: { Authorization: `Bearer ${token}` },
-            params: { 
-              viewType,
-              weekStartDate: getFormattedDate(currentWeekStart),
-              year: new Date().getFullYear()
-            }
+            params
           }
         );
         
@@ -175,13 +209,14 @@ const Dashboard = () => {
       }
     };
   
+    fetchSections();
     fetchDashboardStats();
     fetchMonthlyUsers();
     fetchDailyMoodLogs();
     fetchDailyJournalLogs();
     fetchActiveVsInactiveStudents();
     fetchLogsByCategory();
-  }, [currentWeekStart, viewType]);
+  }, [currentWeekStart, viewType, selectedSectionMonthly, selectedSectionStatus, selectedSectionMood, selectedSectionJournal, selectedSectionCategory]);
 
   const barChartData = {
     labels: monthlyUserData.map(data => data.month),
@@ -300,6 +335,13 @@ const Dashboard = () => {
   };
 
   const handleGeneratePDF = (chartId, title) => {
+    let section = 'All';
+    if (chartId === 'monthly-users-chart') section = selectedSectionMonthly;
+    else if (chartId === 'active-vs-inactive-students-chart') section = selectedSectionStatus;
+    else if (chartId === 'daily-mood-logs-chart') section = selectedSectionMood;
+    else if (chartId === 'daily-journal-logs-chart') section = selectedSectionJournal;
+    else if (chartId === 'weekly-logs-by-category-chart') section = selectedSectionCategory;
+
     const data = {
       monthlyUsers,
       monthlyUserData,
@@ -308,7 +350,8 @@ const Dashboard = () => {
       dailyJournalLogsData,
       weeklyLogsData,
       currentWeekStart,
-      viewType
+      viewType,
+      section
     };
     generatePDF(chartId, title, data);
   };
@@ -379,13 +422,25 @@ const Dashboard = () => {
                   <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Monthly Registrations</h2>
                   <p className="text-base text-gray-500 mt-1 font-medium italic">New user growth overview</p>
                 </div>
-                <button
-                  onClick={() => handleGeneratePDF('monthly-users-chart', 'Monthly User Registrations Report')}
-                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
-                  title="Download Report"
-                >
-                  <DownloadIcon />
-                </button>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedSectionMonthly}
+                    onChange={(e) => setSelectedSectionMonthly(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                  >
+                    <option value="All">All Sections</option>
+                    {sections.map((section) => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleGeneratePDF('monthly-users-chart', 'Monthly User Registrations Report')}
+                    className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                    title="Download Report"
+                  >
+                    <DownloadIcon />
+                  </button>
+                </div>
               </div>
             </div>
             <div className="p-8" id="monthly-users-chart">
@@ -403,13 +458,25 @@ const Dashboard = () => {
                   <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Student Status Distribution</h2>
                   <p className="text-base text-gray-500 mt-1 font-medium italic">Activity participation analysis</p>
                 </div>
-                <button
-                  onClick={() => handleGeneratePDF('active-vs-inactive-students-chart', 'Active vs Inactive Students Report')}
-                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
-                  title="Download Report"
-                >
-                  <DownloadIcon />
-                </button>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedSectionStatus}
+                    onChange={(e) => setSelectedSectionStatus(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                  >
+                    <option value="All">All Sections</option>
+                    {sections.map((section) => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleGeneratePDF('active-vs-inactive-students-chart', 'Active vs Inactive Students Report')}
+                    className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                    title="Download Report"
+                  >
+                    <DownloadIcon />
+                  </button>
+                </div>
               </div>
             </div>
             <div className="p-8 flex justify-center items-center" id="active-vs-inactive-students-chart">
@@ -427,13 +494,25 @@ const Dashboard = () => {
                   <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Daily Mood Logs</h2>
                   <p className="text-base text-gray-500 mt-1 font-medium italic">Student emotional engagement</p>
                 </div>
-                <button
-                  onClick={() => handleGeneratePDF('daily-mood-logs-chart', 'Daily Mood Logs')}
-                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
-                  title="Download Report"
-                >
-                  <DownloadIcon />
-                </button>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedSectionMood}
+                    onChange={(e) => setSelectedSectionMood(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                  >
+                    <option value="All">All Sections</option>
+                    {sections.map((section) => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleGeneratePDF('daily-mood-logs-chart', 'Daily Mood Logs')}
+                    className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                    title="Download Report"
+                  >
+                    <DownloadIcon />
+                  </button>
+                </div>
               </div>
             </div>
             <div className="p-8" id="daily-mood-logs-chart">
@@ -470,13 +549,25 @@ const Dashboard = () => {
                   <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Daily Journal Logs</h2>
                   <p className="text-base text-gray-500 mt-1 font-medium italic">Reflection trends frequency</p>
                 </div>
-                <button
-                  onClick={() => handleGeneratePDF('daily-journal-logs-chart', 'Daily Journal Logs')}
-                  className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
-                  title="Download Report"
-                >
-                  <DownloadIcon />
-                </button>
+                <div className="flex items-center gap-3">
+                  <select
+                    value={selectedSectionJournal}
+                    onChange={(e) => setSelectedSectionJournal(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
+                  >
+                    <option value="All">All Sections</option>
+                    {sections.map((section) => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={() => handleGeneratePDF('daily-journal-logs-chart', 'Daily Journal Logs')}
+                    className="p-2.5 rounded-xl text-blue-600 hover:bg-blue-50 transition-all duration-200 border border-transparent hover:border-blue-100 shadow-sm hover:shadow group-hover:scale-110 active:scale-95"
+                    title="Download Report"
+                  >
+                    <DownloadIcon />
+                  </button>
+                </div>
               </div>
             </div>
             <div className="p-8" id="daily-journal-logs-chart">
@@ -495,28 +586,40 @@ const Dashboard = () => {
                 <div>
                   <h2 className="text-2xl font-bold text-gray-800 tracking-tight">Categorical Analytics</h2>
                 </div>
-                <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shadow-inner">
-                  {['daily', 'weekly', 'monthly'].map((type) => (
-                    <button 
-                      key={type}
-                      onClick={() => setViewType(type)}
-                      className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 capitalize ${
-                        viewType === type 
-                          ? 'bg-white text-blue-600 shadow-md' 
-                          : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
-                      }`}
-                    >
-                      {type}
-                    </button>
-                  ))}
-                  <div className="mx-2 w-px bg-gray-200 my-1"></div>
-                  <button
-                    onClick={() => handleGeneratePDF('weekly-logs-by-category-chart', 'Categorical Logs Report')}
-                    className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
-                    title="Download Report"
+                <div className="flex flex-wrap items-center gap-3">
+                  <select
+                    value={selectedSectionCategory}
+                    onChange={(e) => setSelectedSectionCategory(e.target.value)}
+                    className="px-4 py-2 border border-gray-200 rounded-lg text-sm font-semibold text-gray-600 hover:border-blue-300 focus:outline-none focus:ring-2 focus:ring-blue-100 transition-all bg-white"
                   >
-                    <DownloadIcon sx={{ fontSize: 20 }} />
-                  </button>
+                    <option value="All">All Sections</option>
+                    {sections.map((section) => (
+                      <option key={section} value={section}>{section}</option>
+                    ))}
+                  </select>
+                  <div className="flex bg-gray-50 p-1.5 rounded-2xl border border-gray-100 shadow-inner">
+                    {['daily', 'weekly', 'monthly'].map((type) => (
+                      <button 
+                        key={type}
+                        onClick={() => setViewType(type)}
+                        className={`px-6 py-2 rounded-xl text-sm font-bold transition-all duration-200 capitalize ${
+                          viewType === type 
+                            ? 'bg-white text-blue-600 shadow-md' 
+                            : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                    <div className="mx-2 w-px bg-gray-200 my-1"></div>
+                    <button
+                      onClick={() => handleGeneratePDF('weekly-logs-by-category-chart', 'Categorical Logs Report')}
+                      className="p-2 rounded-xl text-gray-500 hover:bg-gray-100 transition-colors"
+                      title="Download Report"
+                    >
+                      <DownloadIcon sx={{ fontSize: 20 }} />
+                    </button>
+                  </div>
                 </div>
               </div>
               

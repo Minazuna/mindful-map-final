@@ -64,13 +64,19 @@ exports.getDashboardStats = async (req, res) => {
 exports.getMonthlyUsers = async (req, res) => {
   try {
     const currentYear = new Date().getFullYear();
+    const { section } = req.query;
+
+    const matchStage = {
+      role: { $ne: 'admin' }
+    };
+    if (section && section !== 'All') {
+      matchStage.section = section;
+    }
 
     const users = await User.aggregate([
-      // Exclude admin role from the count
+      // Exclude admin role from the count and filter by section if provided
       {
-        $match: {
-          role: { $ne: 'admin' }
-        }
+        $match: matchStage
       },
       {
         $addFields: {
@@ -114,6 +120,7 @@ exports.getMonthlyUsers = async (req, res) => {
 
 exports.getActiveUsers = async (req, res) => {
   try {
+    const { section } = req.query;
     const twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
@@ -148,6 +155,22 @@ exports.getActiveUsers = async (req, res) => {
         },
       },
       {
+        $addFields: {
+          sectionMatch: {
+            $cond: {
+              if: { $and: [{ $ne: [section, null] }, { $ne: [section, 'All'] }] },
+              then: { $eq: ['$user.section', section] },
+              else: true
+            }
+          }
+        }
+      },
+      {
+        $match: {
+          sectionMatch: true
+        }
+      },
+      {
         $project: {
           _id: 0,
           userId: '$_id',
@@ -167,6 +190,7 @@ exports.getActiveUsers = async (req, res) => {
 
 exports.getInactiveUsers = async (req, res) => {
   try {
+    const { section } = req.query;
     const twoWeeksAgo = new Date();
     twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
@@ -187,11 +211,15 @@ exports.getInactiveUsers = async (req, res) => {
     const activeUserIds = activeUsers.map(user => user._id.toString());
 
     // Find users who haven't logged in the past 2 weeks
+    const matchConditions = [
+      { role: 'user' },
+      { _id: { $nin: activeUserIds } }
+    ];
+    if (section && section !== 'All') {
+      matchConditions.push({ section: section });
+    }
     const inactiveUsers = await User.find({
-      $and: [
-        { role: 'user' },
-        { _id: { $nin: activeUserIds } }
-      ]
+      $and: matchConditions
     }).select('name email avatar createdAt');
 
     const formattedUsers = inactiveUsers.map(user => ({
@@ -277,7 +305,30 @@ exports.getUserMoodLogs = async (req, res) => {
 
 exports.getDailyMoodLogs = async (req, res) => {
   try {
-    const dailyMoodLogs = await MoodLog.aggregate([
+    const { section } = req.query;
+    
+    const pipeline = [];
+    
+    // Add section filter if provided
+    if (section && section !== 'All') {
+      pipeline.push(
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: '_id',
+            as: 'userInfo'
+          }
+        },
+        {
+          $match: {
+            'userInfo.section': section
+          }
+        }
+      );
+    }
+    
+    pipeline.push(
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
@@ -286,8 +337,10 @@ exports.getDailyMoodLogs = async (req, res) => {
       },
       {
         $sort: { _id: 1 },
-      },
-    ]);
+      }
+    );
+    
+    const dailyMoodLogs = await MoodLog.aggregate(pipeline);
 
     const dailyMoodLogsData = dailyMoodLogs.map(data => ({
       date: data._id,
@@ -303,7 +356,30 @@ exports.getDailyMoodLogs = async (req, res) => {
 
 exports.getDailyJournalLogs = async (req, res) => {
   try {
-    const dailyJournalLogs = await Journal.aggregate([
+    const { section } = req.query;
+    
+    const pipeline = [];
+    
+    // Add section filter if provided
+    if (section && section !== 'All') {
+      pipeline.push(
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'user',
+            foreignField: '_id',
+            as: 'userInfo'
+          }
+        },
+        {
+          $match: {
+            'userInfo.section': section
+          }
+        }
+      );
+    }
+    
+    pipeline.push(
       {
         $group: {
           _id: { $dateToString: { format: "%Y-%m-%d", date: "$date" } },
@@ -312,8 +388,10 @@ exports.getDailyJournalLogs = async (req, res) => {
       },
       {
         $sort: { _id: 1 },
-      },
-    ]);
+      }
+    );
+    
+    const dailyJournalLogs = await Journal.aggregate(pipeline);
 
     const dailyJournalLogsData = dailyJournalLogs.map(data => ({
       date: data._id,
@@ -1201,7 +1279,7 @@ exports.getAvailableWeeks = async (req, res) => {
 // Get logs by category for admin dashboard with filtering (weekly, daily, monthly)
 exports.getAdminLogsByCategory = async (req, res) => {
   try {
-    const { viewType = 'weekly' } = req.query;
+    const { viewType = 'weekly', section } = req.query;
     
     let startDate, endDate, groupBy, labels = [], dateRanges = [];
     const categories = ['activity', 'health', 'social', 'sleep'];
@@ -1246,6 +1324,13 @@ exports.getAdminLogsByCategory = async (req, res) => {
     }
 
     // Get mood logs for the period by category and time unit (only from students)
+    const matchStage = {
+      'userInfo.role': 'user'
+    };
+    if (section && section !== 'All') {
+      matchStage['userInfo.section'] = section;
+    }
+    
     const logs = await MoodLog.aggregate([
       {
         $match: {
@@ -1261,9 +1346,7 @@ exports.getAdminLogsByCategory = async (req, res) => {
         }
       },
       {
-        $match: {
-          'userInfo.role': 'user'
-        }
+        $match: matchStage
       },
       {
         $group: {
