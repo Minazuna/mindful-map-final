@@ -725,7 +725,8 @@ const calculateAndSavePredictionsForUser = async (userId) => {
     // Call Python service for each category to get predictions
     for (const category of categories) {
       try {
-        const pythonResponse = await axios.post('http://localhost:5001/api/predict-category-mood-internal', {
+        const pythonApi = process.env.PYTHON_API_URL
+        const pythonResponse = await axios.post( `${pythonApi}/api/predict-category-mood-internal`, {
           category: category,
           mood_logs: moodLogsData
         }, {

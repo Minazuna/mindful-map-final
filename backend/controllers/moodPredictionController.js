@@ -140,7 +140,7 @@ exports.predictCategoryMood = async (req, res) => {
         }
 
         // Forward the request to the Python service
-        const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:5001';
+        const pythonApiUrl = process.env.PYTHON_API_URL;
         const token = req.headers.authorization;
         
         const pythonResponse = await fetch(`${pythonApiUrl}/api/predict-category-mood?category=${category}`, {
@@ -181,7 +181,7 @@ exports.predictCategoryMood = async (req, res) => {
 exports.checkCategoryData = async (req, res) => {
     try {
         // Forward the request to the Python service
-        const pythonApiUrl = process.env.PYTHON_API_URL || 'http://localhost:5001';
+        const pythonApiUrl = process.env.PYTHON_API_URL;
         const token = req.headers.authorization;
         
         const pythonResponse = await fetch(`${pythonApiUrl}/api/check-category-data`, {
