@@ -297,10 +297,10 @@ const Signup = () => {
             if (loggedToday) {
               navigate('/mood-entries');
             } else {
-              navigate('/log-mood');
+              navigate('/daily-quote');
             }
           } catch (error) {
-            navigate('/log-mood');
+            navigate('/daily-quote');
           }
         }
       }
