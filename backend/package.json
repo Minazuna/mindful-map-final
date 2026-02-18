@@ -1,9 +1,10 @@
 {
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "start:node": "nodemon server.js",
-    "start:python": "python main.py"
+    "start": "concurrently \"node server.js\" \"gunicorn main:app --bind 0.0.0.0:5001\"",
+    "start:node": "node server.js",
+    "start:python": "gunicorn main:app --bind 0.0.0.0:5001",
+    "dev": "concurrently \"nodemon server.js\" \"python main.py\""
   },
   "dependencies": {
     "@react-spring/web": "^9.7.5",

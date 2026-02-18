@@ -1,3 +1,21 @@
+import nltk
+from textblob import download_corpora
+
+# Ensure required NLTK corpora exist
+nltk_data_path = "/opt/render/nltk_data"  # persistent folder in Render
+nltk.data.path.append(nltk_data_path)
+
+# Download only once at startup
+nltk.download('punkt', download_dir=nltk_data_path)
+nltk.download('wordnet', download_dir=nltk_data_path)
+nltk.download('averaged_perceptron_tagger', download_dir=nltk_data_path)
+nltk.download('movie_reviews', download_dir=nltk_data_path)
+nltk.download('conll2000', download_dir=nltk_data_path)
+
+# TextBlob corpora
+download_corpora.download_all()
+
+
 from flask import Flask
 from flask_cors import CORS
 import logging
@@ -26,6 +44,6 @@ def health():
     return {'status': 'healthy', 'service': 'combined-python-services'}
 
 if __name__ == '__main__':
-    print("Starting Combined Python Services on port 5001...")
-    port = int(os.environ.get("PORT", 5001))
+    port = int(os.environ.get("PYTHON_PORT", 5001))
+    print(f"Starting Combined Python Services on port {port}...")
     app.run(host='0.0.0.0', port=port)
