@@ -20,7 +20,9 @@ async function loadImageAsDataURL(url) {
 }
 
 const generateSummaryText = (chartId, data) => {
-  const { monthlyUsers, monthlyUserData, activeVsInactiveUsersData, dailyMoodLogsData, dailyJournalLogsData, weeklyLogsData, currentWeekStart } = data;
+  const { monthlyUsers, monthlyUserData, activeVsInactiveUsersData, dailyMoodLogsData, dailyJournalLogsData, weeklyLogsData, currentWeekStart, section = 'All' } = data;
+  
+  const sectionText = section !== 'All' ? ` in section ${section}` : ' across all sections';
   
   switch (chartId) {
     case 'monthly-users-chart':
@@ -28,32 +30,33 @@ const generateSummaryText = (chartId, data) => {
       const highestMonth = monthlyUserData.reduce((max, data) => data.count > max.count ? data : max, { count: 0 }).month || 'N/A';
       const averageMonthlyUsers = monthlyUserData.length > 0 ? 
         (monthlyUserData.reduce((sum, data) => sum + data.count, 0) / monthlyUserData.length).toFixed(2) : 0;
-      return `The total number of registered users (students and teachers) across all months is ${totalMonthlyUsers}. The highest number of registrations occurred in ${highestMonth}. The average number of users registered per month is ${averageMonthlyUsers}. This data helps track user growth trends over time and identify seasonal patterns in user registration.`;
+      return `The total number of registered users (students and teachers)${sectionText} is ${totalMonthlyUsers}. The highest number of registrations occurred in ${highestMonth}. The average number of users registered per month is ${averageMonthlyUsers}. This data helps track user growth trends over time and identify seasonal patterns in user registration.`;
     
     case 'active-vs-inactive-students-chart':
       const active = activeVsInactiveUsersData.active || 0;
       const inactive = activeVsInactiveUsersData.inactive || 0;
       const total = active + inactive;
       const activePercentage = total > 0 ? ((active / total) * 100).toFixed(2) : 0;
-      return `Currently, there are ${active} active students and ${inactive} inactive students on the platform. Active students represent ${activePercentage}% of the total student base. This ratio is important for understanding student retention and engagement levels across the platform.`;
+      return `Currently${sectionText}, there are ${active} active students and ${inactive} inactive students on the platform. Active students represent ${activePercentage}% of the total student base. This ratio is important for understanding student retention and engagement levels across the platform.`;
     
     case 'daily-mood-logs-chart':
       const totalMoodLogs = dailyMoodLogsData.reduce((sum, data) => sum + data.count, 0);
       const avgMoodLogs = dailyMoodLogsData.length > 0 ?
         (totalMoodLogs / dailyMoodLogsData.length).toFixed(2) : 0;
       const highestMoodLogDay = dailyMoodLogsData.reduce((max, data) => data.count > max.count ? data : max, { count: 0 }).date || 'N/A';
-      return `Students have recorded a total of ${totalMoodLogs} mood entries across the displayed period. The average is ${avgMoodLogs} mood logs per day, with the highest activity on ${highestMoodLogDay}. This data shows how frequently students are tracking their emotional states.`;
+      return `Students${sectionText} have recorded a total of ${totalMoodLogs} mood entries across the displayed period. The average is ${avgMoodLogs} mood logs per day, with the highest activity on ${highestMoodLogDay}. This data shows how frequently students are tracking their emotional states.`;
     
     case 'daily-journal-logs-chart':
       const totalJournalLogs = dailyJournalLogsData.reduce((sum, data) => sum + data.count, 0);
       const avgJournalLogs = dailyJournalLogsData.length > 0 ?
         (totalJournalLogs / dailyJournalLogsData.length).toFixed(2) : 0;
       const highestJournalLogDay = dailyJournalLogsData.reduce((max, data) => data.count > max.count ? data : max, { count: 0 }).date || 'N/A';
-      return `Students have created a total of ${totalJournalLogs} journal entries during this period. Daily journaling averages ${avgJournalLogs} entries per day, with peak activity occurring on ${highestJournalLogDay}. Journal logs represent deeper student engagement with the reflection process.`;
+      return `Students${sectionText} have created a total of ${totalJournalLogs} journal entries during this period. Daily journaling averages ${avgJournalLogs} entries per day, with peak activity occurring on ${highestJournalLogDay}. Journal logs represent deeper student engagement with the reflection process.`;
     
     case 'weekly-logs-by-category-chart':
       if (weeklyLogsData) {
-        const { viewType = 'weekly' } = data;
+        const { viewType = 'weekly', section = 'All' } = data;
+        const sectionText = section !== 'All' ? ` in section ${section}` : ' across all sections';
         let dateRange = "";
         const labels = weeklyLogsData.labels || [];
         
@@ -87,7 +90,7 @@ const generateSummaryText = (chartId, data) => {
                           viewType === 'daily' ? `For the past 30 days (${dateRange})` : 
                           `For the past 12 months (${dateRange})`;
 
-        return `${periodText}, students recorded a total of ${grandTotal} logs across all categories. Activity logs account for ${activityPercent}% (${activityTotal} logs), Social logs for ${socialPercent}% (${socialTotal} logs), Health logs for ${healthPercent}% (${healthTotal} logs), and Sleep logs for ${sleepPercent}% (${sleepTotal} logs).`;
+        return `${periodText}${sectionText}, students recorded a total of ${grandTotal} logs across all categories. Activity logs account for ${activityPercent}% (${activityTotal} logs), Social logs for ${socialPercent}% (${socialTotal} logs), Health logs for ${healthPercent}% (${healthTotal} logs), and Sleep logs for ${sleepPercent}% (${sleepTotal} logs).`;
       }
       return "Logs by category data is not available for this period.";
     
@@ -184,6 +187,15 @@ export const generatePDF = async (chartId, title, data) => {
     pdf.text(title, pageWidth / 2, yPos, { align: 'center' });
     
     yPos += 8;
+    
+    // Add section filter info
+    if (data.section && data.section !== 'All') {
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      pdf.setTextColor(100, 100, 100);
+      pdf.text(`Section: ${data.section}`, pageWidth / 2, yPos, { align: 'center' });
+      yPos += 7;
+    }
     
     // Add view type and period for weekly logs chart
     if (chartId === 'weekly-logs-by-category-chart') {

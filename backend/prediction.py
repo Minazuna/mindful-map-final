@@ -286,8 +286,9 @@ def get_category_prediction():
             
         # Forward the token to Node backend to validate and get mood logs
         import requests
+        import os
         
-        node_api = 'http://localhost:5000'
+        node_api = os.environ.get("VITE_NODE_API", "http://localhost:5000")
         response = requests.get(
             f"{node_api}/api/mood-logs-category", 
             headers={
@@ -340,8 +341,9 @@ def check_category_data():
             
         # Forward the token to Node backend to validate and get mood logs
         import requests
+        import os
         
-        node_api = 'http://localhost:5000'
+        node_api = os.environ.get("VITE_NODE_API", "http://localhost:5000")
         response = requests.get(
             f"{node_api}/api/mood-logs-category", 
             headers={

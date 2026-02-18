@@ -11,66 +11,6 @@ import FormControl from '@mui/material/FormControl';
 import { getAuth, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { initializeApp } from 'firebase/app';
 
-// Terms and Conditions Modal
-function TermsModal({ open, onClose }) {
-  const [agreed, setAgreed] = useState(false);
-
-  useEffect(() => {
-    if (!open) setAgreed(false);
-  }, [open]);
-
-  return (
-    open && (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
-          <div className="text-2xl font-bold mb-4 text-[#1b5f52] text-center">Terms &amp; Conditions</div>
-          <div className="text-gray-700 text-base mb-6 max-h-72 overflow-y-auto">
-            <p>
-              <strong>Data Usage:</strong> Mindful Map collects and stores your journal entries, activity logs, and profile information solely for the purpose of providing personalized insights, progress tracking, and enhancing your experience within the system.
-            </p>
-            <ul className="list-disc pl-6 my-3">
-              <li>Your data is <strong>never</strong> sold or shared with third parties.</li>
-              <li>All data is used only for analysis and features within Mindful Map.</li>
-              <li>
-                We use industry-standard security to protect your privacy and information. However, some data (such as mood logs) may not be fully deletable due to technical or analytical requirements, but will always remain private and secure.
-              </li>
-              <li>
-                You can request deletion of your data at any time, except for certain records (like mood logs) that may be retained for system integrity and analytics, but these will never be shared or used outside Mindful Map.
-              </li>
-            </ul>
-            <p>
-              By using Mindful Map, you agree to our use of your data as described above. Your privacy and trust are our top priorities.
-            </p>
-          </div>
-          <div className="flex items-center mb-6">
-            <input
-              id="agree"
-              type="checkbox"
-              checked={agreed}
-              onChange={() => setAgreed(!agreed)}
-              className="w-5 h-5 accent-[#55AD9B] mr-2"
-            />
-            <label htmlFor="agree" className="text-[#1b5f52] font-medium cursor-pointer">
-              I have read and agree to the Terms &amp; Conditions
-            </label>
-          </div>
-          <button
-            className={`w-full py-3 rounded-xl font-bold text-white transition-colors ${
-              agreed
-                ? 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:from-[#3e8e7e] hover:to-[#55AD9B]'
-                : 'bg-gray-300 cursor-not-allowed'
-            }`}
-            disabled={!agreed}
-            onClick={onClose}
-          >
-            Close
-          </button>
-        </div>
-      </div>
-    )
-  );
-}
-
 const Signup = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
@@ -86,7 +26,6 @@ const Signup = () => {
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
 
   useEffect(() => {
     const firebaseConfig = {
@@ -290,17 +229,17 @@ const Signup = () => {
                 Authorization: `Bearer ${response.data.token}`,
               },
             });
-
+  
             const today = new Date().toISOString().split('T')[0];
             const loggedToday = moodLogResponse.data.some(log => log.date.split('T')[0] === today);
-
+  
             if (loggedToday) {
               navigate('/mood-entries');
             } else {
-              navigate('/log-mood');
+              navigate('/daily-quote');
             }
           } catch (error) {
-            navigate('/log-mood');
+            navigate('/daily-quote');
           }
         }
       }
@@ -324,9 +263,6 @@ const Signup = () => {
         pauseOnHover
         theme="light"
       />
-
-      {/* Terms Modal */}
-      <TermsModal open={showTerms} onClose={() => setShowTerms(false)} />
       
       {/* Left Side - Form */}
       <div className="w-1/2 flex items-center justify-center p-8">
@@ -595,16 +531,6 @@ const Signup = () => {
             </svg>
             Sign up with Google
           </button>
-
-          {/* Terms and Conditions */}
-          <div className="mb-4 text-center">
-            <span
-              className="text-md text-[#55AD9B] underline cursor-pointer hover:text-[#3e8e7e] transition-colors"
-              onClick={() => setShowTerms(true)}
-            >
-              Terms &amp; Conditions
-            </span>
-          </div>
           
           {/* Sign In Link */}
           <p className="text-center text-base text-gray-600">

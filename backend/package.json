@@ -1,7 +1,7 @@
 {
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "concurrently \"nodemon server.js\" \"python main.py\"",
+    "start": "node server.js",
     "start:node": "nodemon server.js",
     "start:python": "python main.py"
   },

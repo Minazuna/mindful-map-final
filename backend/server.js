@@ -24,6 +24,15 @@ const app = express();
 app.use(bodyParser.json());
 app.use(cors()); 
 
+// Health check endpoint for uptime monitoring (prevents cold starts)
+app.get('/', (req, res) => {
+  res.status(200).json({ status: 'ok', message: 'Mindful Map API is running' });
+});
+
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api', moodLogRoutes);
