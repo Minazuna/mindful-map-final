@@ -12,7 +12,13 @@ import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 
 // Image arrays (KEEP these as-is)
-const heroImages = ['/images/landing1.png', '/images/landing2.png', '/images/landing3.png', '/images/landing4.png', '/images/landing5.png'];
+const heroImages = [
+  '/images/landing1.png',
+  '/images/landing2.png',
+  '/images/landing3.png',
+  '/images/landing4.png',
+  '/images/landing5.png'
+];
 
 // Carousel images (landing/landing1.png - landing/landing9.png)
 const montageImages = Array.from({ length: 9 }, (_, i) => `/images/landing/landing${i + 1}.png`);
@@ -374,12 +380,8 @@ const LandingPage = () => {
             aria-label="App preview carousel"
           >
             <div className="max-w-6xl mx-auto">
-
-
               <div className="relative">
                 {/* background glow */}
-
-
                 <div className="relative flex items-center justify-center py-4 md:py-6">
                   {/* main image only */}
                   <div className="relative w-full max-w-6xl">
@@ -425,7 +427,6 @@ const LandingPage = () => {
                       />
                     ))}
                   </div>
-
                 </div>
               </div>
             </div>
@@ -433,30 +434,69 @@ const LandingPage = () => {
         </div>
       </div>
 
-     {/* Call to Action */}
-         <section className="w-full bg-gradient-to-r from-[#55AD9B] via-[#95D2B3] to-[#55AD9B] py-16 md:py-20 relative">
-           <div className="container mx-auto px-6 text-center">
-             <motion.div
-               initial={{ opacity: 0, y: 18 }}
-               whileInView={{ opacity: 1, y: 0 }}
-               viewport={{ once: true }}
-               transition={{ duration: 0.8 }}
-             >
-               <h2 className="text-4xl md:text-5xl text-white font-bold mb-6">Ready to Start?</h2>
-               <p className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto mb-8">
-                 Begin your journey with tools designed to help you reflect, track, and grow—one day at a time.
-               </p>
-               <motion.button
-                 whileHover={{ scale: 1.05, y: -3 }}
-                 whileTap={{ scale: 0.96 }}
-                 className="bg-white text-[#55AD9B] px-12 py-4 rounded-full text-xl font-bold shadow-2xl hover:shadow-3xl transition-all"
-                 onClick={() => navigate('/signup')}
-               >
-                 Begin Your Journey Today
-               </motion.button>
-             </motion.div>
-           </div>
-         </section>
+      {/* Try it on Android Section */}
+      <section className="w-full flex justify-center py-16 md:py-20 relative">
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.7 }}
+          className="relative flex flex-col md:flex-row items-center gap-10 bg-white/90 rounded-3xl shadow-2xl border-2 border-[#55AD9B]/30 px-8 py-10 max-w-3xl w-full overflow-hidden"
+        >
+          {/* Decorative background shapes */}
+          <div className="absolute -top-10 -left-10 w-40 h-40 bg-[#95D2B3]/30 rounded-full blur-2xl z-0"></div>
+          <div className="absolute -bottom-12 -right-12 w-48 h-48 bg-[#55AD9B]/20 rounded-full blur-2xl z-0"></div>
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-80 h-32 bg-[#D8EFD3]/40 rounded-full blur-3xl z-0"></div>
+
+          <div className="flex-shrink-0 flex flex-col items-center z-10">
+            <div className="bg-gradient-to-br from-[#F1F8E8] to-[#D8EFD3] p-3 rounded-2xl shadow-lg mb-4 border-4 border-[#55AD9B]/40">
+              <img
+                src="/images/qr.png"
+                alt="QR code to install Mindful Map on Android"
+                className="w-40 h-40 rounded-xl"
+              />
+            </div>
+            <span className="text-[#1b5f52] font-bold text-lg mt-2">Scan the QR Code</span>
+          </div>
+          <div className="flex-1 z-10">
+            <h3 className="text-3xl md:text-3xl font-bold text-[#1b5f52] mb-3 flex items-center gap-2">
+              Try it on Android
+            </h3>
+            <ul className="list-disc pl-5 text-[#272829] text-md leading-relaxed mb-2">
+              <li>Scan the QR code above with your phone's camera.</li>
+              <li>Go to the link and tap <b>Install</b> on the page.</li>
+              <li>Open your <b>Downloads</b> folder and tap the APK file.</li>
+              <li>Allow installation from unknown sources if prompted.</li>
+              <li>Follow the prompts to finish installing Mindful Map.</li>
+            </ul>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Call to Action */}
+      <section className="w-full bg-gradient-to-r from-[#55AD9B] via-[#95D2B3] to-[#55AD9B] py-16 md:py-20 relative">
+        <div className="container mx-auto px-6 text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.8 }}
+          >
+            <h2 className="text-4xl md:text-5xl text-white font-bold mb-6">Ready to Start?</h2>
+            <p className="text-white/90 text-lg md:text-xl max-w-2xl mx-auto mb-8">
+              Begin your journey with tools designed to help you reflect, track, and grow—one day at a time.
+            </p>
+            <motion.button
+              whileHover={{ scale: 1.05, y: -3 }}
+              whileTap={{ scale: 0.96 }}
+              className="bg-white text-[#55AD9B] px-12 py-4 rounded-full text-xl font-bold shadow-2xl hover:shadow-3xl transition-all"
+              onClick={() => navigate('/signup')}
+            >
+              Begin Your Journey Today
+            </motion.button>
+          </motion.div>
+        </div>
+      </section>
     </div>
   );
 };
