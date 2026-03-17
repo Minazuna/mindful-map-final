@@ -18,6 +18,7 @@ const RecommendationRating = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [tried, setTried] = useState(null); // New state for follow-up question
 
   useEffect(() => {
     const loadRecommendation = async () => {
@@ -176,6 +177,43 @@ const RecommendationRating = () => {
                     <span className="w-2 h-2 rounded-full bg-[#95D2B3]"></span>
                     {formatText(recommendation.activity)}
                   </span>
+                )}
+              </div>
+            </div>
+
+            {/* Follow-up Question: Did you try it? */}
+            <div className="bg-white rounded-2xl p-6 border-2 border-[#D8EFD3] shadow-md flex items-center gap-4">
+              <ThumbUpIcon style={{ color: '#55AD9B', fontSize: 28 }} />
+              <div className="flex-1">
+                <p className="text-[#1b5f52] font-semibold text-lg mb-2">
+                  Did you try this recommendation?
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    className={`px-6 py-2 rounded-full font-semibold border-2 transition-all duration-300 ${
+                      tried === true
+                        ? 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white border-[#55AD9B]'
+                        : 'bg-white text-[#1b5f52] border-[#D8EFD3] hover:bg-[#F7FBF9]'
+                    }`}
+                    onClick={() => setTried(true)}
+                  >
+                    Yes
+                  </button>
+                  <button
+                    className={`px-6 py-2 rounded-full font-semibold border-2 transition-all duration-300 ${
+                      tried === false
+                        ? 'bg-gradient-to-r from-[#94A3B8] to-[#64748B] text-white border-[#94A3B8]'
+                        : 'bg-white text-[#1b5f52] border-[#D8EFD3] hover:bg-[#F7FBF9]'
+                    }`}
+                    onClick={() => setTried(false)}
+                  >
+                    Not yet
+                  </button>
+                </div>
+                {tried === false && (
+                  <p className="mt-2 text-[#6b7280] text-sm">
+                    No worries! You can try it anytime and come back to rate its effectiveness.
+                  </p>
                 )}
               </div>
             </div>
