@@ -28,7 +28,7 @@ const RecommendationRating = () => {
     const created = new Date(recommendation.createdAt).getTime();
     const now = Date.now();
     // 2 minutes = 120000 ms
-    return now - created < 120000;
+    return now - created < 7200000;
   }, [recommendation]);
 
   useEffect(() => {
