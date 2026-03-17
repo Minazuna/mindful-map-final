@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import StarIcon from '@mui/icons-material/Star';
@@ -18,7 +18,18 @@ const RecommendationRating = () => {
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [tried, setTried] = useState(null); // New state for follow-up question
+  const [tried, setTried] = useState(null);
+  const [showTryModal, setShowTryModal] = useState(false);
+  const [showTooFastModal, setShowTooFastModal] = useState(false);
+
+  // Helper: check if recommendation is "new" (generated within last 2 minutes)
+  const isNewRecommendation = useMemo(() => {
+    if (!recommendation?.createdAt) return false;
+    const created = new Date(recommendation.createdAt).getTime();
+    const now = Date.now();
+    // 2 minutes = 120000 ms
+    return now - created < 120000;
+  }, [recommendation]);
 
   useEffect(() => {
     const loadRecommendation = async () => {
@@ -92,6 +103,45 @@ const RecommendationRating = () => {
 
   const ratingLabels = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
   const ratingEmojis = ['😟', '😐', '🙂', '😊', '🤩'];
+
+  // Handle tried button logic
+  const handleTried = (value) => {
+    setTried(value);
+    if (value === false) {
+      setShowTryModal(true);
+    } else if (value === true && isNewRecommendation) {
+      setShowTooFastModal(true);
+    }
+  };
+
+  // Modal component
+  const Modal = ({ open, onClose, children }) => (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center border-2 border-[#D8EFD3]"
+          >
+            {children}
+            <button
+              onClick={onClose}
+              className="mt-6 px-6 py-2 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white font-semibold shadow hover:shadow-lg transition-all"
+            >
+              OK
+            </button>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
@@ -195,7 +245,7 @@ const RecommendationRating = () => {
                         ? 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white border-[#55AD9B]'
                         : 'bg-white text-[#1b5f52] border-[#D8EFD3] hover:bg-[#F7FBF9]'
                     }`}
-                    onClick={() => setTried(true)}
+                    onClick={() => handleTried(true)}
                   >
                     Yes
                   </button>
@@ -205,7 +255,7 @@ const RecommendationRating = () => {
                         ? 'bg-gradient-to-r from-[#94A3B8] to-[#64748B] text-white border-[#94A3B8]'
                         : 'bg-white text-[#1b5f52] border-[#D8EFD3] hover:bg-[#F7FBF9]'
                     }`}
-                    onClick={() => setTried(false)}
+                    onClick={() => handleTried(false)}
                   >
                     Not yet
                   </button>
@@ -218,119 +268,140 @@ const RecommendationRating = () => {
               </div>
             </div>
 
-            {/* Rating Selector */}
-            <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="flex-1">
-                  <h3 className="text-[#1b5f52] font-bold text-xl">How effective was this recommendation?</h3>
-                  <p className="text-[#6b7280] text-md">Select a rating from 1 (not helpful) to 5 (very helpful)</p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-center gap-6">
-                <div className="flex items-center gap-4">
-                  {[1, 2, 3, 4, 5].map((n) => {
-                    const active = n === rating;
-                    return (
-                      <motion.button
-                        key={n}
-                        onClick={() => setRating(n)}
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.95 }}
-                        className={`h-16 w-16 rounded-2xl flex items-center justify-center font-bold text-lg transition-all duration-300 ${
-                          active
-                            ? 'bg-gradient-to-br from-[#55AD9B] to-[#3e8e7e] text-white shadow-lg scale-110'
-                            : 'bg-white border-2 border-[#D8EFD3] text-[#55AD9B] hover:border-[#55AD9B]'
-                        }`}
-                        aria-label={`Rate ${n}`}
-                      >
-                        {n}
-                      </motion.button>
-                    );
-                  })}
-                </div>
-
-                {rating > 0 && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.9 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    className="flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] border-2 border-[#D8EFD3]"
-                  >
-                    <span className="text-3xl">{ratingEmojis[rating - 1]}</span>
-                    <div>
-                      <p className="text-[#1b5f52] font-bold text-lg">{ratingLabels[rating - 1]}</p>
-                      <p className="text-[#6b7280] text-sm">You rated this {rating} out of 5</p>
+            {/* Only show rating/comment if user clicked Yes and not too fast */}
+            {tried === true && !isNewRecommendation && (
+              <>
+                {/* Rating Selector */}
+                <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="flex-1">
+                      <h3 className="text-[#1b5f52] font-bold text-xl">How effective was this recommendation?</h3>
+                      <p className="text-[#6b7280] text-md">Select a rating from 1 (not helpful) to 5 (very helpful)</p>
                     </div>
-                  </motion.div>
-                )}
-              </div>
-            </div>
+                  </div>
 
-            {/* Comment Box */}
-            <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="flex-1">
-                  <h3 className="text-[#1b5f52] font-bold text-xl">Share your thoughts</h3>
+                  <div className="flex flex-col items-center gap-6">
+                    <div className="flex items-center gap-4">
+                      {[1, 2, 3, 4, 5].map((n) => {
+                        const active = n === rating;
+                        return (
+                          <motion.button
+                            key={n}
+                            onClick={() => setRating(n)}
+                            whileHover={{ scale: 1.1 }}
+                            whileTap={{ scale: 0.95 }}
+                            className={`h-16 w-16 rounded-2xl flex items-center justify-center font-bold text-lg transition-all duration-300 ${
+                              active
+                                ? 'bg-gradient-to-br from-[#55AD9B] to-[#3e8e7e] text-white shadow-lg scale-110'
+                                : 'bg-white border-2 border-[#D8EFD3] text-[#55AD9B] hover:border-[#55AD9B]'
+                            }`}
+                            aria-label={`Rate ${n}`}
+                          >
+                            {n}
+                          </motion.button>
+                        );
+                      })}
+                    </div>
+
+                    {rating > 0 && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="flex items-center gap-3 px-6 py-3 rounded-full bg-gradient-to-r from-[#F7FBF9] to-[#EAF7F3] border-2 border-[#D8EFD3]"
+                      >
+                        <span className="text-3xl">{ratingEmojis[rating - 1]}</span>
+                        <div>
+                          <p className="text-[#1b5f52] font-bold text-lg">{ratingLabels[rating - 1]}</p>
+                          <p className="text-[#6b7280] text-sm">You rated this {rating} out of 5</p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
                 </div>
-                <span className="px-3 py-1.5 rounded-full bg-[#fbbf24]/10 text-[#92400e] border border-[#fbbf24]/30 text-md font-semibold">
-                  Optional
-                </span>
-              </div>
 
-              <textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                rows={5}
-                className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-base bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none"
-                placeholder="e.g., This helped me feel more relaxed and focused. Nakatulong talaga siya sa akin!"
-              />
+                {/* Comment Box */}
+                <div className="bg-white rounded-2xl p-8 border-2 border-[#D8EFD3] shadow-md">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="flex-1">
+                      <h3 className="text-[#1b5f52] font-bold text-xl">Share your thoughts</h3>
+                    </div>
+                    <span className="px-3 py-1.5 rounded-full bg-[#fbbf24]/10 text-[#92400e] border border-[#fbbf24]/30 text-md font-semibold">
+                      Optional
+                    </span>
+                  </div>
 
-              <div className="mt-3 flex items-start gap-2 text-sm text-[#6b7280]">
-                <InfoOutlinedIcon style={{ fontSize: 18, color: '#6b7280' }} />
-                <p className="leading-relaxed">
-                  Comments with at least 10 characters will be analyzed to better understand your experience. 
-                  Feel free to write in Filipino, English, or a mix of both!
-                </p>
-              </div>
-            </div>
+                  <textarea
+                    value={comment}
+                    onChange={(e) => setComment(e.target.value)}
+                    rows={5}
+                    className="w-full rounded-xl border-2 border-[#E6F4EA] p-4 text-[#272829] text-base bg-[#F7FBF9]/50 focus:outline-none focus:ring-2 focus:ring-[#55AD9B] focus:border-transparent transition-all resize-none"
+                    placeholder="e.g., This helped me feel more relaxed and focused. Nakatulong talaga siya sa akin!"
+                  />
 
-            {/* Action Buttons */}
-            <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
-              <button
-                onClick={() => navigate(-1)}
-                className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmit}
-                disabled={submitting || !rating}
-                className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
-                  submitting || !rating
-                    ? 'bg-[#94A3B8] cursor-not-allowed'
-                    : 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg'
-                }`}
-              >
-                {submitting ? (
-                  <>
-                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                    <span>Submitting...</span>
-                  </>
-                ) : (
-                  <>
-                    <SendIcon style={{ fontSize: 20 }} />
-                    <span>Submit Feedback</span>
-                  </>
-                )}
-              </button>
-            </div>
+                  <div className="mt-3 flex items-start gap-2 text-sm text-[#6b7280]">
+                    <InfoOutlinedIcon style={{ fontSize: 18, color: '#6b7280' }} />
+                    <p className="leading-relaxed">
+                      Comments with at least 10 characters will be analyzed to better understand your experience. 
+                      Feel free to write in Filipino, English, or a mix of both!
+                    </p>
+                  </div>
+                </div>
 
-            {/* Bottom Note */}
-            <div className="text-center">
-              <p className="text-[#6b7280] text-md leading-relaxed">
-                Your feedback helps us understand what works best for you and helps improve future recommendations.
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-4">
+                  <button
+                    onClick={() => navigate(-1)}
+                    className="w-full sm:w-auto px-6 py-3 rounded-full border-2 border-[#D8EFD3] bg-white text-[#1b5f52] text-base font-semibold hover:bg-[#F7FBF9] transition-all duration-300"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSubmit}
+                    disabled={submitting || !rating}
+                    className={`w-full sm:w-auto px-8 py-3 rounded-full text-base font-semibold text-white transition-all duration-300 flex items-center justify-center gap-2 ${
+                      submitting || !rating
+                        ? 'bg-[#94A3B8] cursor-not-allowed'
+                        : 'bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] hover:shadow-lg'
+                    }`}
+                  >
+                    {submitting ? (
+                      <>
+                        <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <span>Submitting...</span>
+                      </>
+                    ) : (
+                      <>
+                        <SendIcon style={{ fontSize: 20 }} />
+                        <span>Submit Feedback</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Bottom Note */}
+                <div className="text-center">
+                  <p className="text-[#6b7280] text-md leading-relaxed">
+                    Your feedback helps us understand what works best for you and helps improve future recommendations.
+                  </p>
+                </div>
+              </>
+            )}
+
+            {/* Modals */}
+            <Modal open={showTryModal} onClose={() => setShowTryModal(false)}>
+              <InfoOutlinedIcon style={{ fontSize: 40, color: '#55AD9B', marginBottom: 12 }} />
+              <h3 className="text-xl font-bold text-[#1b5f52] mb-2">Try it first!</h3>
+              <p className="text-[#272829] text-base mb-2">
+                Please try the recommendation before rating its effectiveness. Come back here after you've given it a go!
               </p>
-            </div>
+            </Modal>
+            <Modal open={showTooFastModal} onClose={() => setShowTooFastModal(false)}>
+              <InfoOutlinedIcon style={{ fontSize: 40, color: '#fbbf24', marginBottom: 12 }} />
+              <h3 className="text-xl font-bold text-[#92400e] mb-2">Too soon to rate!</h3>
+              <p className="text-[#92400e] text-base mb-2">
+                It looks like this recommendation was just generated. Please give yourself some time to try it out before rating its effectiveness.
+              </p>
+            </Modal>
           </motion.div>
         ) : (
           <motion.div
@@ -354,7 +425,6 @@ const RecommendationRating = () => {
           </motion.div>
         )}
       </div>
-
     </div>
   );
 };
