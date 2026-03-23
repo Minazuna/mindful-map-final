@@ -20,7 +20,9 @@ const capitalizeText = (text) => {
 };
 
 function getPeriodDisplay(periodType, baseDate = new Date()) {
-  const type = String(periodType || '').toLowerCase();
+  const raw = String(periodType || '').toLowerCase().trim();
+  const normalized = raw.replace(/[_-]/g, ' ').replace(/\s+/g, ' ').trim();
+  const compact = normalized.replace(/\s+/g, '');
 
   const formatMonthYear = (date) =>
     date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
@@ -31,15 +33,19 @@ function getPeriodDisplay(periodType, baseDate = new Date()) {
   const formatMonthDay = (date) =>
     date.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
 
-  if (type === 'month' || type === 'monthly') {
+  const isMonthly = compact === 'month' || compact === 'monthly' || compact === 'monthlyperiod' || normalized.includes('month');
+  const isDaily = compact === 'day' || compact === 'daily' || compact === 'dailyperiod' || normalized.includes('day');
+  const isWeekly = compact === 'week' || compact === 'weekly' || compact === 'weeklyperiod' || normalized.includes('week');
+
+  if (isMonthly) {
     return formatMonthYear(baseDate); // e.g. March 2026
   }
 
-  if (type === 'day' || type === 'daily') {
+  if (isDaily) {
     return formatLongDate(baseDate); // e.g. March 23, 2026
   }
 
-  if (type === 'week' || type === 'weekly') {
+  if (isWeekly) {
     // Monday to Sunday span
     const start = new Date(baseDate);
     const mondayOffset = (start.getDay() + 6) % 7; // Monday=0 ... Sunday=6
@@ -63,7 +69,7 @@ function getPeriodDisplay(periodType, baseDate = new Date()) {
     return `${formatLongDate(start)}-${formatLongDate(end)}`;
   }
 
-  return capitalizeText(type || 'Period');
+  return capitalizeText(normalized || 'Period');
 }
 
 function getSummary(moodCounts, moodType, sortedMoods) {
