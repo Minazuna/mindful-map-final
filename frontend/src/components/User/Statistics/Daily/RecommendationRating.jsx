@@ -9,6 +9,8 @@ import CommentIcon from '@mui/icons-material/Comment';
 import SendIcon from '@mui/icons-material/Send';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
+const COOLDOWN_MS = 7200000; // 2 hours in ms
+
 const RecommendationRating = () => {
   const { recommendationId } = useParams();
   const navigate = useNavigate();
@@ -21,15 +23,49 @@ const RecommendationRating = () => {
   const [tried, setTried] = useState(null);
   const [showTryModal, setShowTryModal] = useState(false);
   const [showTooFastModal, setShowTooFastModal] = useState(false);
+  const [countdown, setCountdown] = useState(0);
 
-  // Helper: check if recommendation is "new" (generated within last 2 minutes)
+  // Helper: check if recommendation is "new" (generated within last 2 hours)
   const isNewRecommendation = useMemo(() => {
     if (!recommendation?.createdAt) return false;
     const created = new Date(recommendation.createdAt).getTime();
     const now = Date.now();
-    // 2 minutes = 120000 ms
-    return now - created < 7200000;
+    return now - created < COOLDOWN_MS;
   }, [recommendation]);
+
+  // Countdown logic
+  useEffect(() => {
+    let interval;
+    if (showTooFastModal && recommendation?.createdAt) {
+      const created = new Date(recommendation.createdAt).getTime();
+      const now = Date.now();
+      const remaining = Math.max(0, COOLDOWN_MS - (now - created));
+      setCountdown(remaining);
+
+      interval = setInterval(() => {
+        const now = Date.now();
+        const remaining = Math.max(0, COOLDOWN_MS - (now - created));
+        setCountdown(remaining);
+        if (remaining <= 0) {
+          clearInterval(interval);
+        }
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [showTooFastModal, recommendation]);
+
+  // Helper to format countdown ms to hh:mm:ss
+  const formatCountdown = (ms) => {
+    const totalSeconds = Math.ceil(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    return [
+      hours.toString().padStart(2, '0'),
+      minutes.toString().padStart(2, '0'),
+      seconds.toString().padStart(2, '0')
+    ].join(':');
+  };
 
   useEffect(() => {
     const loadRecommendation = async () => {
@@ -401,6 +437,14 @@ const RecommendationRating = () => {
               <p className="text-[#92400e] text-base mb-2">
                 It looks like this recommendation was just generated. Please give yourself some time to try it out before rating its effectiveness.
               </p>
+              {countdown > 0 && (
+                <div className="mt-4 flex flex-col items-center">
+                  <span className="text-[#92400e] font-semibold text-lg mb-1">Time left before you can rate:</span>
+                  <span className="text-2xl font-mono bg-[#FEF3C7] px-4 py-2 rounded-lg border border-[#fbbf24]/30">
+                    {formatCountdown(countdown)}
+                  </span>
+                </div>
+              )}
             </Modal>
           </motion.div>
         ) : (

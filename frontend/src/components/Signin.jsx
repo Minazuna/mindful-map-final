@@ -22,17 +22,21 @@ function TermsModal({ open, onClose }) {
         <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-8 relative">
           <div className="text-2xl font-bold mb-4 text-[#1b5f52] text-center">Terms &amp; Conditions</div>
           <div className="text-gray-700 text-base mb-6 max-h-72 overflow-y-auto">
-            <p>
-              <strong>Data Usage:</strong> Mindful Map collects and stores your journal entries, activity logs, and profile information solely for the purpose of providing personalized insights, progress tracking, and enhancing your experience within the system.
+            <h3 className="text-[#1b5f52] text-lg font-bold mb-2">
+              Data Privacy Notice (Philippines)
+            </h3>
+            <p className="mb-3 leading-relaxed">
+              <span className="font-semibold text-[#0f766e]">
+                Your personal data is protected under the Data Privacy Act of 2012 (Republic Act No. 10173).
+              </span>{' '}
+              Mindful Map processes your information lawfully, fairly, and securely in accordance with applicable Philippine data privacy regulations.
             </p>
-            <ul className="list-disc pl-6 my-3">
-              <li>Your data is <strong>never</strong> sold or shared with third parties.</li>
-              <li>All data is used only for analysis and features within Mindful Map.</li>
-              <li>We use industry-standard security to protect your privacy and information.</li>
+            <ul className="list-disc pl-6 my-3 space-y-1">
+              <li>We collect only data necessary to provide account and app features.</li>
+              <li>Your data is not sold and is not shared with unauthorized third parties.</li>
+              <li>Access to personal data is limited to authorized personnel/systems only.</li>
+              <li>Reasonable technical, organizational, and physical safeguards are applied to protect your data.</li>
             </ul>
-            <p>
-              By using Mindful Map, you agree to our use of your data as described above. Your privacy and trust are our top priorities.
-            </p>
           </div>
           <div className="flex items-center mb-6">
             <input
@@ -43,7 +47,7 @@ function TermsModal({ open, onClose }) {
               className="w-5 h-5 accent-[#55AD9B] mr-2"
             />
             <label htmlFor="agree" className="text-[#1b5f52] font-medium cursor-pointer">
-              I have read and agree to the Terms &amp; Conditions
+              I have read and agree to the Terms &amp; Conditions and Data Privacy Notice (RA 10173)
             </label>
           </div>
           <button

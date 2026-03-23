@@ -488,6 +488,25 @@ const Signup = () => {
             />
           </div>
 
+          {/* Data Privacy Notice (Philippines) */}
+          <div className="mb-6 rounded-xl border-2 border-[#D8EFD3] bg-[#F7FBF9] p-4">
+            <h3 className="text-[#1b5f52] text-lg font-bold mb-2">
+              Data Privacy Notice (Philippines)
+            </h3>
+            <p className="text-sm text-gray-700 mb-3 leading-relaxed">
+              <span className="font-semibold text-[#0f766e]">
+                Your personal data is protected under the Data Privacy Act of 2012 (Republic Act No. 10173).
+              </span>{' '}
+              Mindful Map processes your information lawfully, fairly, and securely in accordance with applicable Philippine data privacy regulations.
+            </p>
+            <ul className="list-disc pl-5 text-sm text-gray-700 space-y-1">
+              <li>We collect only data necessary to provide account and app features.</li>
+              <li>Your data is not sold and is not shared with unauthorized third parties.</li>
+              <li>Access to personal data is limited to authorized personnel/systems only.</li>
+              <li>Reasonable technical, organizational, and physical safeguards are applied to protect your data.</li>
+            </ul>
+          </div>
+
           {error && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl">
               <p className="text-red-600 text-sm">{error}</p>
