@@ -5,11 +5,95 @@ import { motion, AnimatePresence } from 'framer-motion';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import ThumbUpIcon from '@mui/icons-material/ThumbUp';
 import StarIcon from '@mui/icons-material/Star';
-import CommentIcon from '@mui/icons-material/Comment';
 import SendIcon from '@mui/icons-material/Send';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 
 const COOLDOWN_MS = 7200000; // 2 hours in ms
+
+const formatCountdown = (ms) => {
+  const totalSeconds = Math.ceil(ms / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [
+    hours.toString().padStart(2, '0'),
+    minutes.toString().padStart(2, '0'),
+    seconds.toString().padStart(2, '0')
+  ].join(':');
+};
+
+// Reusable modal
+const Modal = ({ open, onClose, children }) => (
+  <AnimatePresence>
+    {open && (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
+      >
+        <motion.div
+          initial={{ scale: 0.95, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.95, opacity: 0 }}
+          className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center border-2 border-[#D8EFD3]"
+        >
+          {children}
+          <button
+            onClick={onClose}
+            className="mt-6 px-6 py-2 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white font-semibold shadow hover:shadow-lg transition-all"
+          >
+            OK
+          </button>
+        </motion.div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+);
+
+// Countdown modal with local state (prevents parent-wide second-by-second rerender)
+const TooFastModal = ({ open, onClose, createdAt }) => {
+  const [remainingMs, setRemainingMs] = useState(0);
+
+  useEffect(() => {
+    if (!open || !createdAt) return;
+
+    const created = new Date(createdAt).getTime();
+
+    const tick = () => {
+      const now = Date.now();
+      const remaining = Math.max(0, COOLDOWN_MS - (now - created));
+      setRemainingMs(remaining);
+      return remaining;
+    };
+
+    tick();
+    const interval = setInterval(() => {
+      const remaining = tick();
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [open, createdAt]);
+
+  return (
+    <Modal open={open} onClose={onClose}>
+      <InfoOutlinedIcon style={{ fontSize: 40, color: '#fbbf24', marginBottom: 12 }} />
+      <h3 className="text-xl font-bold text-[#92400e] mb-2">Too soon to rate!</h3>
+      <p className="text-[#92400e] text-base mb-2">
+        It looks like this recommendation was just generated. Please give yourself some time to try it out before rating its effectiveness.
+      </p>
+      {remainingMs > 0 && (
+        <div className="mt-4 flex flex-col items-center">
+          <span className="text-[#92400e] font-semibold text-lg mb-1">Time left before you can rate:</span>
+          <span className="text-2xl font-mono bg-[#FEF3C7] px-4 py-2 rounded-lg border border-[#fbbf24]/30">
+            {formatCountdown(remainingMs)}
+          </span>
+        </div>
+      )}
+    </Modal>
+  );
+};
 
 const RecommendationRating = () => {
   const { recommendationId } = useParams();
@@ -23,49 +107,12 @@ const RecommendationRating = () => {
   const [tried, setTried] = useState(null);
   const [showTryModal, setShowTryModal] = useState(false);
   const [showTooFastModal, setShowTooFastModal] = useState(false);
-  const [countdown, setCountdown] = useState(0);
 
-  // Helper: check if recommendation is "new" (generated within last 2 hours)
   const isNewRecommendation = useMemo(() => {
     if (!recommendation?.createdAt) return false;
     const created = new Date(recommendation.createdAt).getTime();
-    const now = Date.now();
-    return now - created < COOLDOWN_MS;
+    return Date.now() - created < COOLDOWN_MS;
   }, [recommendation]);
-
-  // Countdown logic
-  useEffect(() => {
-    let interval;
-    if (showTooFastModal && recommendation?.createdAt) {
-      const created = new Date(recommendation.createdAt).getTime();
-      const now = Date.now();
-      const remaining = Math.max(0, COOLDOWN_MS - (now - created));
-      setCountdown(remaining);
-
-      interval = setInterval(() => {
-        const now = Date.now();
-        const remaining = Math.max(0, COOLDOWN_MS - (now - created));
-        setCountdown(remaining);
-        if (remaining <= 0) {
-          clearInterval(interval);
-        }
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [showTooFastModal, recommendation]);
-
-  // Helper to format countdown ms to hh:mm:ss
-  const formatCountdown = (ms) => {
-    const totalSeconds = Math.ceil(ms / 1000);
-    const hours = Math.floor(totalSeconds / 3600);
-    const minutes = Math.floor((totalSeconds % 3600) / 60);
-    const seconds = totalSeconds % 60;
-    return [
-      hours.toString().padStart(2, '0'),
-      minutes.toString().padStart(2, '0'),
-      seconds.toString().padStart(2, '0')
-    ].join(':');
-  };
 
   useEffect(() => {
     const loadRecommendation = async () => {
@@ -76,6 +123,7 @@ const RecommendationRating = () => {
           `${import.meta.env.VITE_NODE_API}/api/recommendation/week`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
+
         const byId = Array.isArray(data?.recommendations)
           ? data.recommendations.find((r) => r?._id === recommendationId)
           : null;
@@ -106,6 +154,7 @@ const RecommendationRating = () => {
     if (!rating) return;
     setSubmitting(true);
     const token = localStorage.getItem('token');
+
     try {
       const { data } = await axios.post(
         `${import.meta.env.VITE_NODE_API}/api/recommendation/feedback`,
@@ -119,28 +168,27 @@ const RecommendationRating = () => {
           feedback: data?.feedback || { rating, comment },
           sentimentScore: data?.sentimentScore ?? 0,
           combinedScore: data?.combinedScore ?? 0,
-          effective: !!data?.effective,
+          effective: !!data?.effective
         }
       });
     } catch {
-      // stay on page; you could show a toast here
+      // optional toast
     }
+
     setSubmitting(false);
   };
 
-  // Helper function to format text: capitalize first letters and remove dashes
   const formatText = (text) => {
     if (!text) return '';
     return text
       .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   };
 
   const ratingLabels = ['Poor', 'Fair', 'Good', 'Great', 'Excellent'];
   const ratingEmojis = ['😟', '😐', '🙂', '😊', '🤩'];
 
-  // Handle tried button logic
   const handleTried = (value) => {
     setTried(value);
     if (value === false) {
@@ -149,35 +197,6 @@ const RecommendationRating = () => {
       setShowTooFastModal(true);
     }
   };
-
-  // Modal component
-  const Modal = ({ open, onClose, children }) => (
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/30"
-        >
-          <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="bg-white rounded-2xl shadow-xl p-8 max-w-sm w-full text-center border-2 border-[#D8EFD3]"
-          >
-            {children}
-            <button
-              onClick={onClose}
-              className="mt-6 px-6 py-2 rounded-full bg-gradient-to-r from-[#55AD9B] to-[#3e8e7e] text-white font-semibold shadow hover:shadow-lg transition-all"
-            >
-              OK
-            </button>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F1F8E8] via-[#95D2B3] to-[#EAF7F3]">
@@ -198,7 +217,7 @@ const RecommendationRating = () => {
             </div>
           </div>
 
-          <div className="w-[52px]"></div>
+          <div className="w-[52px]" />
         </div>
       </div>
 
@@ -252,22 +271,21 @@ const RecommendationRating = () => {
                 </div>
               </div>
 
-              {/* Tags */}
               <div className="flex flex-wrap gap-3">
                 <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#55AD9B]/10 text-[#1b5f52] border border-[#55AD9B]/30 text-sm font-semibold">
-                  <span className="w-2 h-2 rounded-full bg-[#55AD9B]"></span>
+                  <span className="w-2 h-2 rounded-full bg-[#55AD9B]" />
                   {formatText(recommendation.category)}
                 </span>
                 {recommendation.activity && (
                   <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#95D2B3]/10 text-[#1b5f52] border border-[#95D2B3]/30 text-sm font-semibold">
-                    <span className="w-2 h-2 rounded-full bg-[#95D2B3]"></span>
+                    <span className="w-2 h-2 rounded-full bg-[#95D2B3]" />
                     {formatText(recommendation.activity)}
                   </span>
                 )}
               </div>
             </div>
 
-            {/* Follow-up Question: Did you try it? */}
+            {/* Did you try it */}
             <div className="bg-white rounded-2xl p-6 border-2 border-[#D8EFD3] shadow-md flex items-center gap-4">
               <ThumbUpIcon style={{ color: '#55AD9B', fontSize: 28 }} />
               <div className="flex-1">
@@ -304,7 +322,6 @@ const RecommendationRating = () => {
               </div>
             </div>
 
-            {/* Only show rating/comment if user clicked Yes and not too fast */}
             {tried === true && !isNewRecommendation && (
               <>
                 {/* Rating Selector */}
@@ -377,7 +394,7 @@ const RecommendationRating = () => {
                   <div className="mt-3 flex items-start gap-2 text-sm text-[#6b7280]">
                     <InfoOutlinedIcon style={{ fontSize: 18, color: '#6b7280' }} />
                     <p className="leading-relaxed">
-                      Comments with at least 10 characters will be analyzed to better understand your experience. 
+                      Comments with at least 10 characters will be analyzed to better understand your experience.
                       Feel free to write in Filipino, English, or a mix of both!
                     </p>
                   </div>
@@ -402,7 +419,7 @@ const RecommendationRating = () => {
                   >
                     {submitting ? (
                       <>
-                        <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                        <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                         <span>Submitting...</span>
                       </>
                     ) : (
@@ -414,7 +431,6 @@ const RecommendationRating = () => {
                   </button>
                 </div>
 
-                {/* Bottom Note */}
                 <div className="text-center">
                   <p className="text-[#6b7280] text-md leading-relaxed">
                     Your feedback helps us understand what works best for you and helps improve future recommendations.
@@ -431,21 +447,12 @@ const RecommendationRating = () => {
                 Please try the recommendation before rating its effectiveness. Come back here after you've given it a go!
               </p>
             </Modal>
-            <Modal open={showTooFastModal} onClose={() => setShowTooFastModal(false)}>
-              <InfoOutlinedIcon style={{ fontSize: 40, color: '#fbbf24', marginBottom: 12 }} />
-              <h3 className="text-xl font-bold text-[#92400e] mb-2">Too soon to rate!</h3>
-              <p className="text-[#92400e] text-base mb-2">
-                It looks like this recommendation was just generated. Please give yourself some time to try it out before rating its effectiveness.
-              </p>
-              {countdown > 0 && (
-                <div className="mt-4 flex flex-col items-center">
-                  <span className="text-[#92400e] font-semibold text-lg mb-1">Time left before you can rate:</span>
-                  <span className="text-2xl font-mono bg-[#FEF3C7] px-4 py-2 rounded-lg border border-[#fbbf24]/30">
-                    {formatCountdown(countdown)}
-                  </span>
-                </div>
-              )}
-            </Modal>
+
+            <TooFastModal
+              open={showTooFastModal}
+              onClose={() => setShowTooFastModal(false)}
+              createdAt={recommendation?.createdAt}
+            />
           </motion.div>
         ) : (
           <motion.div
