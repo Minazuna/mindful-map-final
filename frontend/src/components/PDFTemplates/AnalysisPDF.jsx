@@ -97,7 +97,7 @@ function getPeriodDisplay(periodType, baseDate = new Date()) {
     return `${formatLongDate(start)}-${formatLongDate(end)}`;
   }
 
-  return capitalizeText(periodType || 'Period');
+  return capitalizeText(periodType || 'Report');
 }
 
 // If caller passes "Monthly Period"/"Weekly Period"/"Daily Period", this always returns real date text.
@@ -568,7 +568,7 @@ export const generateCategoricalLogsPDF = async (selectedSection, logsData, date
 
     autoTable(doc, {
       startY: yPos,
-      head: [['Period', 'Activity', 'Social', 'Health', 'Sleep', 'Total']],
+      head: [['Time Period', 'Activity', 'Social', 'Health', 'Sleep', 'Total']],
       body: tableData,
       theme: 'striped',
       headStyles: { fillColor: [85, 173, 155], textColor: 255 },

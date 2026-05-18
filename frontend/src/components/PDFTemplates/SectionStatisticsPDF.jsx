@@ -93,7 +93,7 @@ function getPeriodDisplay(periodType, baseDate = new Date()) {
     return `${formatLongDate(start)}-${formatLongDate(end)}`;
   }
 
-  return beautifyName(periodType || 'Period');
+  return beautifyName(periodType || 'Report');
 }
 
 function getSummaryPhrase(title, data) {
